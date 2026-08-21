@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+@import "leaflet.markercluster/dist/MarkerCluster.css";
+@import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -127,4 +130,48 @@
   html {
     @apply font-sans;
   }
+}
+
+@layer utilities {
+  .scrollbar-subtle {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .scrollbar-subtle:hover {
+    scrollbar-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent) transparent;
+  }
+  .scrollbar-subtle::-webkit-scrollbar {
+    width: 5px;
+  }
+  .scrollbar-subtle::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-subtle::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 9999px;
+  }
+  .scrollbar-subtle:hover::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--muted-foreground) 30%, transparent);
+  }
+}
+
+/*
+ * Sileo: NO tocar --sileo-width (morph SVG a 350px fijo en JS).
+ * Descripción a la derecha + body SVG estrecho vía --sileo-body-w/x
+ * (AppToaster mide el texto y actualiza esas vars).
+ */
+[data-sileo-toast] {
+  filter: drop-shadow(0 10px 28px rgb(24 24 27 / 0.28));
+}
+
+[data-sileo-description] {
+  text-align: right !important;
+  width: fit-content !important;
+  max-width: 100%;
+  margin-left: auto;
+}
+
+[data-sileo-body] {
+  width: var(--sileo-body-w, 350px) !important;
+  x: var(--sileo-body-x, 0px) !important;
 }
