@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown, MapPinned } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -16,7 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { listProvincias } from "@/lib/mock/hospitales";
+import { fetchProvincias } from "@/lib/api/hospitales";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -27,12 +28,24 @@ interface Props {
 
 export default function SelectorProvincia({ value, onChange, error }: Props) {
   const [open, setOpen] = useState(false);
-  const provincias = useMemo(() => listProvincias(), []);
+  const { data: provincias = [], isPending, isError } = useQuery({
+    queryKey: ["hospitales", "provincias"],
+    queryFn: fetchProvincias,
+  });
+
+  const isDisabled = isPending || isError;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        if (isDisabled) return;
+        setOpen(next);
+      }}
+    >
       <PopoverTrigger
         type="button"
+        disabled={isDisabled}
         aria-expanded={open}
         aria-invalid={error || undefined}
         className={cn(
@@ -44,7 +57,11 @@ export default function SelectorProvincia({ value, onChange, error }: Props) {
         <span className="flex min-w-0 flex-1 items-center gap-2 text-left">
           <MapPinned className="size-4 shrink-0 opacity-60" />
           <span className="truncate text-sm">
-            {value || "Seleccionar provincia…"}
+            {isPending
+              ? "Cargando provincias…"
+              : isError
+                ? "No se pudieron cargar las provincias"
+                : value || "Seleccionar provincia…"}
           </span>
         </span>
         <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
