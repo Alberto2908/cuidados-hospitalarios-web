@@ -1,0 +1,320 @@
+---
+description: Reglas de diseño e implementación de UI para cuidados-hospitalarios-web (Next 16 + React 19 + Tailwind v4 + shadcn base-nova). Aplícalas al crear o modificar cualquier página, componente o estilo.
+globs: app/**/*.tsx,app/**/*.css,components/**/*.tsx,lib/**/*.ts,lib/**/*.tsx
+alwaysApply: false
+---
+
+# ═══════════════════════════════════════════════════════════════
+# REGLAS DE FRONTEND — cuidados-hospitalarios-web
+# Stack: Next 16 (App Router) + React 19 + TypeScript
+#        Tailwind v4 (@theme inline) + shadcn `base-nova` + @base-ui/react
+#        lucide-react · sileo (toasts) · leaflet/react-leaflet · RHF + zod
+# ═══════════════════════════════════════════════════════════════
+# Complementa `AGENTS.md` (dominio, roles, pagos, datos sensibles).
+# Si algo choca, manda AGENTS.md. Este archivo manda en lo visual.
+# ═══════════════════════════════════════════════════════════════
+
+## 0. IDENTIDAD VISUAL DEL PROYECTO
+
+Marketplace sanitario: un familiar busca a alguien que acompañe a un paciente
+ingresado. La dirección estética es **clínica-serena**: neutral, mucho blanco/gris,
+bordes suaves, sombras mínimas, cero estridencia. El color solo aparece para
+**identificar un rol** o para **señalar un estado**, nunca como decoración.
+
+La confianza es el objetivo de diseño. Antes de codificar un componente declara:
+- Qué tokens existentes vas a reutilizar (no inventes valores nuevos)
+- Si el rol del usuario condiciona el color (ver §2)
+- Si el componente ya existe en `components/ui/` (no lo reimplementes)
+
+**NO** conviertas esto en una landing de startup: sin gradientes saturados, sin
+glassmorphism, sin dark hero con neón, sin ilustraciones 3D genéricas.
+
+---
+
+## 1. TOKENS — Única fuente de verdad
+
+Todos los colores y radios viven en `app/globals.css`: variables `oklch` en
+`:root` / `.dark`, expuestas a Tailwind con `@theme inline`.
+
+### Usa siempre la utilidad con token, nunca el valor
+```
+bg-background   text-foreground     border-border
+bg-card         text-card-foreground
+bg-muted        text-muted-foreground   bg-muted/30  bg-muted/40
+bg-primary      text-primary-foreground
+bg-secondary    bg-accent  text-accent-foreground
+border-input    ring-ring
+text-destructive  bg-destructive/10
+rounded-md rounded-lg rounded-xl rounded-2xl   (derivados de --radius: 0.625rem)
+```
+
+**PROHIBIDO en componentes:**
+- Hex, `rgb()` u `oklch()` escritos a mano (`bg-[#1a1a1a]`, `text-[oklch(...)]`)
+- Grises de la paleta cruda para texto o superficie: `text-gray-500`, `bg-slate-50`,
+  `bg-white`, `bg-zinc-900`… Rompen el modo oscuro. Usa `muted-foreground`,
+  `card`, `background`.
+- Radios arbitrarios (`rounded-[14px]`). Usa la escala `--radius-*`.
+- Añadir variables nuevas a `globals.css` sin declararlas también en `.dark`.
+
+Si de verdad necesitas un token nuevo: defínelo en `:root` **y** en `.dark`,
+mapéalo en `@theme inline`, y úsalo por su utilidad. Nunca `var(--x)` inline.
+
+### Tipografía
+Geist / Geist Mono se cargan con `next/font/google` en `app/layout.tsx` y se
+exponen como `--font-sans` / `--font-mono`; `font-heading` es alias de `font-sans`.
+
+- **No importes otra fuente** ni añadas `<link>` a Google Fonts.
+- No uses `font-serif` en ningún sitio.
+
+Escala real del proyecto (respétala, no inventes tamaños intermedios):
+
+| Uso | Clases |
+|-----|--------|
+| H1 de página interior | `text-2xl font-bold tracking-tight text-foreground` |
+| H1 de portada / hero | `text-3xl font-bold tracking-tight sm:text-4xl` |
+| H2 / título de card | `text-base font-semibold text-foreground` |
+| Cuerpo y controles | `text-sm` |
+| Metadatos, ayudas, footer | `text-xs text-muted-foreground` |
+| Badges y micro-etiquetas | `text-[10px]` / `text-[11px] font-semibold` |
+| Eyebrow / cabecera de bloque | `text-xs font-medium uppercase tracking-wide text-muted-foreground` |
+
+---
+
+## 2. COLOR POR ROL — Convención cerrada
+
+`sky` = PACIENTE · `emerald` = CUIDADOR · `violet` = ADMIN.
+Se usa en `Navbar.tsx`, `InicioPage.tsx` y en toda insignia de rol. **No
+introduzcas otro color para el mismo propósito ni cambies el mapeo.**
+
+Pares exactos (siempre con su variante `dark:`):
+```
+sky:     bg-sky-100 text-sky-700         dark:bg-sky-900/40 dark:text-sky-300
+emerald: bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300
+violet:  bg-violet-100 text-violet-700   dark:bg-violet-900/40 dark:text-violet-300
+```
+
+Colores de estado, también cerrados:
+
+| Significado | Clases |
+|-------------|--------|
+| Valoración / estrellas | `text-amber-500` + `fill-amber-400 text-amber-400` en el icono |
+| Acción destructiva (cerrar sesión, borrar) | `text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40` |
+| Error de validación en formulario | `text-destructive` |
+
+Una paleta de rol **no** se usa como color de marca general: los CTA neutros
+siguen siendo `bg-primary`.
+
+---
+
+## 3. ESTRUCTURA DE PÁGINA — Convención del repo
+
+Cada ruta usa dos archivos y ese patrón no se rompe:
+
+```
+app/<ruta>/page.tsx          → export { default } from "./XxxPage";  (+ metadata si aplica)
+app/<ruta>/XxxPage.tsx       → "use client" y toda la UI
+```
+
+- Server Component por defecto. `"use client"` solo donde haya estado, efectos,
+  `useAuth`, mapa o formulario.
+- `metadata` va en `page.tsx`, nunca en el componente cliente.
+- Next 16 tiene tipos generados: usa `LayoutProps<"/">` / `PageProps<...>` como en
+  `app/layout.tsx` en lugar de tipar los props a mano.
+- Antes de usar una API de Next que recuerdes de otra versión, consulta
+  `node_modules/next/dist/docs/` (ver el bloque de AGENTS.md).
+
+### Contenedor de página (idéntico en todas las rutas)
+```tsx
+<div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+  <div className="mb-6">
+    <h1 className="text-2xl font-bold text-foreground">Título</h1>
+    <p className="mt-1 text-sm text-muted-foreground">Subtítulo de una línea</p>
+  </div>
+  {/* contenido */}
+</div>
+```
+
+`max-w-7xl` es el ancho del proyecto (navbar y footer ya lo usan). No mezcles
+`max-w-5xl`/`max-w-6xl` en páginas nuevas; excepción: `max-w-2xl` centrado en
+portada/auth.
+
+### Card / sección
+`components/anuncio/FormSection.tsx` es la referencia canónica:
+```tsx
+<section className="rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6">
+```
+Sombras: `shadow-sm` por defecto, `hover:shadow-md` como máximo. Nunca
+`shadow-2xl` ni sombras de color.
+
+### Panel de lista con scroll (patrón mapa + resultados)
+Columna fija `lg:w-80` con altura acotada (`lg:h-[580px]`), cabecera y pie
+`shrink-0`, y el cuerpo `flex-1 overflow-y-auto` con la utilidad **`scrollbar-subtle`**
+definida en `globals.css`. Reutiliza `PacienteBuscarPage.tsx` como plantilla.
+
+### Navbar
+`sticky top-0 z-50` con `h-16`. Cualquier elemento flotante debe respetarla:
+los toasts de sileo ya llevan `offset={{ top: 88, right: 24 }}`. No pongas nada
+en `z-index` mayor que 50 salvo overlays de diálogo (los gestiona base-ui).
+
+---
+
+## 4. COMPONENTES — Usa lo que ya hay
+
+`components/ui/` es shadcn con estilo **`base-nova`** sobre primitivas
+`@base-ui/react`. Está configurado en `components.json` (`baseColor: neutral`,
+`iconLibrary: lucide`, `cssVariables: true`).
+
+**SIEMPRE:**
+- Reutiliza `Button`, `Input`, `Label`, `Textarea`, `Checkbox`, `Dialog`,
+  `Popover`, `Command`, `Calendar`, `InputGroup` de `@/components/ui/*`.
+- Para añadir un componente nuevo, instálalo con la CLI de shadcn (respeta
+  `style: base-nova`); no lo copies a mano desde la doc de otra versión.
+- Combina clases con `cn()` de `@/lib/utils`, y expón `className?: string` en
+  componentes reutilizables (como hace `FormSection`).
+- Variantes con `cva` cuando un componente tenga más de dos aspectos.
+
+**NUNCA:**
+- Reimplementes un botón, input, dropdown o modal con `<div>` + clases si existe
+  la primitiva. (El dropdown a mano de `Navbar.tsx` es deuda heredada, no un
+  patrón a copiar: para menús nuevos usa `Popover`/`Menu` de base-ui.)
+- Instales otra librería de UI, de iconos o de animación.
+
+### Iconos
+Solo `lucide-react`. Tamaños: `h-4 w-4` en línea de texto y navegación,
+`h-3 w-3`/`h-2.5 w-2.5` dentro de badges, `h-7 w-7`/`h-8 w-8` en tarjetas de rol
+y cabeceras. Nunca emojis como icono. Botón solo-icono → `aria-label` obligatorio.
+
+---
+
+## 5. FORMULARIOS
+
+`react-hook-form` + `zodResolver`. El esquema vive en `lib/<dominio>/schema.ts`
+(referencia de estilo: `lib/anuncio/schema.ts`).
+
+- Mensajes de validación **en español**, concretos y con el límite explícito
+  ("Máximo 120 caracteres", no "Inválido").
+- Límites de longitud y `trim()` siempre en el esquema, no solo en el input.
+- Reglas cruzadas con `superRefine`, no con validación suelta en el componente.
+- Cada campo: `<Label htmlFor>` visible + control con `id`. El placeholder nunca
+  sustituye a la etiqueta.
+- Error: `aria-invalid` en el control y texto `text-xs text-destructive` debajo.
+- Handler de envío inválido → toast de error (`onInvalid`, ver
+  `PacienteCrearAnuncioPage.tsx`).
+- Campos de pago (cuando existan): seguir
+  `.agents/skills/modern-web-guidance/guides/forms/autofill-payment-form.md`
+  (`autocomplete="cc-number"/"cc-exp"/"cc-csc"`, `inputmode="numeric"`, y **nunca**
+  `type="password"` para el CVC).
+
+---
+
+## 6. TOASTS (sileo)
+
+API única del proyecto:
+```ts
+import { sileo } from "sileo";
+
+sileo.success({ title: "Anuncio publicado", description: "Los cuidadores ya pueden ver tu solicitud." });
+sileo.error({   title: "Revisa el formulario", description: "Faltan datos obligatorios o hay algún error." });
+sileo.warning({ title: "Permiso denegado",   description: "Activa la ubicación en el navegador o busca una ciudad." });
+```
+
+- `title` en 2–4 palabras; `description` una frase completa, en español, orientada
+  a la acción siguiente.
+- Nunca `alert()`, `confirm()` ni banners propios para feedback puntual.
+- `AppToaster` se monta una sola vez en `app/layout.tsx`. No lo montes de nuevo.
+- **No toques** `--sileo-width`, `--sileo-body-w` ni `--sileo-body-x` en
+  `globals.css`: el morph SVG está calculado en JS por `AppToaster`.
+
+---
+
+## 7. MAPA (leaflet)
+
+- Leaflet no soporta SSR: importa siempre con
+  `dynamic(() => import("@/components/map/MapaHospitales"), { ssr: false, loading: ... })`
+  y da un `loading` con el mismo tamaño para evitar salto de layout.
+- Estilos de marcador y de tiles en `lib/map/markerStyles.ts` y
+  `lib/map/tileStyles.ts`. No pongas colores de marcador en el componente.
+- El contenedor del mapa lleva `rounded-xl overflow-hidden border border-border shadow-sm`
+  y altura explícita (`h-[420px] lg:h-[580px]`).
+- Filtrado por `bounds` con `useMemo`/`useCallback`, como en `PacienteBuscarPage.tsx`:
+  el mapa no debe re-renderizar la lista en cada movimiento sin memoizar.
+
+---
+
+## 8. DATOS SENSIBLES EN LA UI (no negociable)
+
+`planta`, `habitacion` y `cama` localizan a una persona ingresada.
+
+- No los renderices salvo que el paciente haya aceptado la solicitud de ese
+  cuidador para ese turno.
+- Mientras no estén disponibles, muestra el bloqueo explícito (icono `Lock` +
+  texto), no un campo vacío.
+- Cuando haya backend, el filtro es del servidor: no basta con ocultarlos en la
+  UI si el dato ya llegó al navegador.
+
+---
+
+## 9. ACCESIBILIDAD (no negociable)
+
+- Foco visible siempre: `focus-visible:ring-3 focus-visible:ring-ring/50` (ya en
+  `Button`) o `outline-none ring-ring focus:ring-2` en controles propios.
+  Nunca `outline: none` sin sustituto visible.
+- Contraste mínimo 4.5:1 en texto. Los grises claros de Tailwind
+  (`*-400`) no valen para cuerpo de texto.
+- Objetivos táctiles ≥ 44×44 px en móvil (los `size-6`/`h-7` de shadcn solo en
+  densidad de escritorio).
+- `aria-label` en todo botón solo-icono; `alt` en toda imagen con contenido.
+- Elemento interactivo → `cursor-pointer` y feedback de hover (color, no
+  desplazamiento de layout).
+- El color nunca es el único indicador de estado: acompáñalo de texto o icono.
+- `lang="es"` ya está en `<html>`; escribe todo el copy visible en español.
+
+---
+
+## 10. MOVIMIENTO Y RESPONSIVE
+
+- Transiciones: `transition-colors` / `transition-all` con `duration-200`.
+  Animaciones de entrada solo con las utilidades de `tw-animate-css`.
+- No instales GSAP, Framer Motion ni similares: no forman parte del stack.
+- Nada de animaciones que muevan layout (`scale` en cards, `translate` en hover
+  de listas). El `active:translate-y-px` de `Button` es la única excepción.
+- Respeta `prefers-reduced-motion` en cualquier animación que no sea un cambio
+  de color.
+- Mobile-first con los breakpoints de Tailwind ya usados: `sm` / `md` / `lg`.
+- `clamp()` o `text-2xl sm:text-4xl`: evita cadenas de cuatro breakpoints.
+- Sin scroll horizontal en 375 / 768 / 1024 / 1440 px.
+- El menú móvil del navbar ya existe (hamburguesa + panel): no lo rediseñes sin
+  petición explícita.
+
+---
+
+## 11. CHECKLIST ANTES DE ENTREGAR
+
+□ ¿Todos los colores son tokens (`bg-card`, `text-muted-foreground`…) y no hex ni grises crudos?
+□ ¿Probado en claro y oscuro (clase `.dark`)? ¿Bordes y superficies visibles en ambos?
+□ ¿Rol coloreado con sky/emerald/violet y su par `dark:`?
+□ ¿Reutilizas `components/ui/*` en vez de reimplementar el control?
+□ ¿Iconos solo de lucide, con tamaño de la escala y `aria-label` si van solos?
+□ ¿La ruta sigue el patrón `page.tsx` (re-export) + `XxxPage.tsx` (`"use client"`)?
+□ ¿Contenedor `mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8`?
+□ ¿Formulario con zod en `lib/<dominio>/schema.ts`, mensajes en español y `Label` por campo?
+□ ¿Feedback con `sileo.*` y no con `alert()`?
+□ ¿`planta`/`habitacion`/`cama` ocultos si el turno no está aceptado?
+□ ¿Foco visible en todo lo interactivo y sin scroll horizontal en móvil?
+□ ¿`npm run lint` limpio?
+
+---
+
+## 12. REFERENCIAS DENTRO DEL REPO
+
+| Para | Mira |
+|------|------|
+| Tokens, dark mode, utilidades propias | `app/globals.css` |
+| Card / sección de formulario | `components/anuncio/FormSection.tsx` |
+| Página con mapa + lista filtrada | `app/paciente/buscar/PacienteBuscarPage.tsx` |
+| Formulario completo (RHF + zod + toasts + dato sensible) | `app/paciente/anuncio/nuevo/PacienteCrearAnuncioPage.tsx` |
+| Esquema zod de referencia | `lib/anuncio/schema.ts` |
+| Colores y badges de rol | `components/layout/Navbar.tsx`, `app/InicioPage.tsx` |
+| Variantes de botón disponibles | `components/ui/button.tsx` |
+| Toasts y sus CSS vars | `components/providers/AppToaster.tsx` |
+| Dominio, roles, pagos, deuda técnica | `AGENTS.md` |
