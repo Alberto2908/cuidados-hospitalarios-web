@@ -1,6 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronsUpDown, MapPin } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -16,17 +23,41 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  hospitalesByProvincia,
-  type Hospital,
-} from "@/lib/mock/hospitales";
+import { fetchHospitalesPorProvincia } from "@/lib/api/hospitales";
 import { cn } from "@/lib/utils";
+
+function normalizarTexto(texto: string) {
+  return texto
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase();
+}
+
+function filtrarPorCoincidencia(value: string, search: string) {
+  const consulta = normalizarTexto(search).trim();
+  if (!consulta) return 1;
+  return normalizarTexto(value).includes(consulta) ? 1 : 0;
+}
+
+function seleccionarConShiftInicioFin(event: KeyboardEvent<HTMLDivElement>) {
+  if (!event.shiftKey || (event.key !== "Home" && event.key !== "End")) {
+    return;
+  }
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
+
+  event.preventDefault();
+  if (event.key === "Home") {
+    input.setSelectionRange(0, input.selectionEnd ?? input.value.length);
+  } else {
+    input.setSelectionRange(input.selectionStart ?? 0, input.value.length);
+  }
+}
 
 interface Props {
   value: string;
   onChange: (hospitalId: string) => void;
   provincia: string;
-  hospitals?: Hospital[];
   error?: boolean;
   disabled?: boolean;
 }
@@ -35,23 +66,33 @@ export default function SelectorHospital({
   value,
   onChange,
   provincia,
-  hospitals,
   error,
   disabled,
 }: Props) {
   const [open, setOpen] = useState(false);
-
-  const options = useMemo(
-    () => hospitals ?? hospitalesByProvincia(provincia),
-    [hospitals, provincia],
-  );
+  const [busqueda, setBusqueda] = useState("");
+  const listaRef = useRef<HTMLDivElement>(null);
+  const { data: options = [], isPending, isError } = useQuery({
+    queryKey: ["hospitales", { provincia }],
+    queryFn: () => fetchHospitalesPorProvincia(provincia),
+    enabled: Boolean(provincia),
+  });
 
   const selected = useMemo(
     () => options.find((h) => h.id === value) ?? null,
     [options, value],
   );
 
-  const isDisabled = disabled || !provincia;
+  useLayoutEffect(() => {
+    listaRef.current?.scrollTo({ top: 0 });
+  }, [busqueda]);
+
+  const isDisabled = disabled || !provincia || isPending || isError;
+
+  let placeholder = "Primero elige una provincia";
+  if (provincia && isPending) placeholder = "Cargando hospitales…";
+  else if (provincia && isError) placeholder = "No se pudieron cargar los hospitales";
+  else if (provincia) placeholder = "Buscar hospital…";
 
   return (
     <Popover
@@ -59,6 +100,7 @@ export default function SelectorHospital({
       onOpenChange={(next) => {
         if (isDisabled) return;
         setOpen(next);
+        if (!next) setBusqueda("");
       }}
     >
       <PopoverTrigger
@@ -84,11 +126,7 @@ export default function SelectorHospital({
               </span>
             </span>
           ) : (
-            <span className="text-sm">
-              {provincia
-                ? "Buscar hospital…"
-                : "Primero elige una provincia"}
-            </span>
+            <span className="text-sm">{placeholder}</span>
           )}
         </span>
         <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
@@ -97,10 +135,21 @@ export default function SelectorHospital({
         align="start"
         className="w-(--anchor-width) max-w-[min(100vw-2rem,28rem)] p-0"
       >
-        <Command>
-          <CommandInput placeholder="Nombre, ciudad o dirección…" />
-          <CommandList>
-            <CommandEmpty>No hay hospitales en esta provincia.</CommandEmpty>
+        <Command
+          filter={filtrarPorCoincidencia}
+          onKeyDown={seleccionarConShiftInicioFin}
+        >
+          <CommandInput
+            placeholder="Nombre, ciudad o dirección…"
+            value={busqueda}
+            onValueChange={setBusqueda}
+          />
+          <CommandList ref={listaRef}>
+            <CommandEmpty>
+              {busqueda.trim()
+                ? "Ningún hospital coincide con la búsqueda."
+                : "No hay hospitales en esta provincia."}
+            </CommandEmpty>
             <CommandGroup>
               {options.map((h) => (
                 <CommandItem
