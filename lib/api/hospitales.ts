@@ -39,6 +39,12 @@ export function fetchProvincias(): Promise<string[]> {
   return apiGet<string[]>("/api/hospitales/provincias");
 }
 
+/** Sin filtro de provincia: usar solo donde tenga sentido cargar el catalogo entero (~850 filas). */
+export async function fetchTodosLosHospitales(): Promise<Hospital[]> {
+  const data = await apiGet<HospitalApi[]>("/api/hospitales");
+  return data.map(toHospital);
+}
+
 export async function fetchHospitalesPorProvincia(
   provincia: string,
 ): Promise<Hospital[]> {

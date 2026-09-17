@@ -3,61 +3,73 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth, UserRole } from "@/lib/auth/AuthContext";
-import { HeartPulse, Eye, EyeOff, UserRound, Stethoscope } from "lucide-react";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { ApiError } from "@/lib/api/client";
+import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
+import { FloatingInput } from "@/components/ui/FloatingInput";
+import { HeartPulse, Eye, EyeOff, Check, X } from "lucide-react";
 
-const ROLES: { value: UserRole; label: string; desc: string; icon: React.ReactNode }[] = [
-  {
-    value: "PACIENTE",
-    label: "Paciente / Familia",
-    desc: "Busco un cuidador para mí o un familiar",
-    icon: <UserRound className="h-5 w-5" />,
-  },
-  {
-    value: "CUIDADOR",
-    label: "Cuidador profesional",
-    desc: "Ofrezco mis servicios como cuidador",
-    icon: <Stethoscope className="h-5 w-5" />,
-  },
+const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+
+const REQUISITOS_PASSWORD = [
+  { label: "Al menos 8 caracteres", cumple: (p: string) => p.length >= 8 },
+  { label: "Una letra mayúscula", cumple: (p: string) => /[A-Z]/.test(p) },
+  { label: "Un número", cumple: (p: string) => /\d/.test(p) },
+  { label: "Un símbolo", cumple: (p: string) => /[^A-Za-z0-9]/.test(p) },
 ];
 
 export default function RegistroPage() {
-  const { login } = useAuth();
+  const { registrar, loginConGoogle } = useAuth();
   const router = useRouter();
 
   const [nombre, setNombre] = useState("");
-  const [apellido, setApellido] = useState("");
+  const [apellidos, setApellidos] = useState("");
   const [email, setEmail] = useState("");
+  const [telefono, setTelefono] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<UserRole | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
+  const [enviando, setEnviando] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
-    if (!nombre || !apellido || !email || !password || !confirmPassword) {
+    if (!nombre || !apellidos || !email || !password || !confirmPassword) {
       setError("Todos los campos son obligatorios.");
-      return;
-    }
-    if (!role) {
-      setError("Selecciona un rol.");
       return;
     }
     if (password !== confirmPassword) {
       setError("Las contraseñas no coinciden.");
       return;
     }
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
+    if (!PASSWORD_REGEX.test(password)) {
+      setError("La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo.");
       return;
     }
 
-    login(role);
-    router.push("/");
-  };
+    setEnviando(true);
+    try {
+      await registrar({ nombre, apellidos, email, password, telefono: telefono || undefined });
+      router.push("/");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se ha podido crear la cuenta.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function handleGoogleCredential(idToken: string) {
+    setError("");
+    try {
+      await loginConGoogle(idToken);
+      router.push("/");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se ha podido continuar con Google.");
+    }
+  }
 
   return (
     <div className="flex flex-1 items-center justify-center px-4 py-16 bg-gradient-to-b from-background to-muted/30">
@@ -84,108 +96,133 @@ export default function RegistroPage() {
             </div>
           )}
 
-          {/* Selector de rol */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">¿Qué quieres hacer?</label>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {ROLES.map((r) => (
-                <button
-                  key={r.value}
-                  type="button"
-                  onClick={() => setRole(r.value)}
-                  className={`flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-all ${
-                    role === r.value
-                      ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                      : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
-                  }`}
-                >
-                  <div className={`mt-0.5 ${role === r.value ? "text-primary" : "text-muted-foreground"}`}>
-                    {r.icon}
-                  </div>
-                  <div>
-                    <p className={`text-sm font-semibold ${role === r.value ? "text-primary" : "text-foreground"}`}>
-                      {r.label}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{r.desc}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
+          <GoogleLoginButton onCredential={handleGoogleCredential} />
+
+          <div className="relative flex items-center gap-3 py-1">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">o continúa con email</span>
+            <div className="h-px flex-1 bg-border" />
           </div>
 
-          {/* Nombre y apellido */}
+          {/* Nombre y apellidos */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <label htmlFor="nombre" className="text-sm font-medium text-foreground">Nombre</label>
-              <input
-                id="nombre"
-                type="text"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="María"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-ring focus:ring-2 transition-shadow"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="apellido" className="text-sm font-medium text-foreground">Apellido</label>
-              <input
-                id="apellido"
-                type="text"
-                value={apellido}
-                onChange={(e) => setApellido(e.target.value)}
-                placeholder="García"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-ring focus:ring-2 transition-shadow"
-              />
-            </div>
-          </div>
-
-          {/* Email */}
-          <div className="space-y-1.5">
-            <label htmlFor="reg-email" className="text-sm font-medium text-foreground">Email</label>
-            <input
-              id="reg-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="correo@ejemplo.com"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-ring focus:ring-2 transition-shadow"
+            <FloatingInput
+              id="nombre"
+              type="text"
+              label="Nombre"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              autoComplete="given-name"
+            />
+            <FloatingInput
+              id="apellidos"
+              type="text"
+              label="Apellidos"
+              value={apellidos}
+              onChange={(e) => setApellidos(e.target.value)}
+              autoComplete="family-name"
             />
           </div>
 
+          {/* Email */}
+          <FloatingInput
+            id="reg-email"
+            type="email"
+            label="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+          />
+
+          {/* Teléfono */}
+          <FloatingInput
+            id="telefono"
+            type="tel"
+            label={<>Teléfono <span className="text-muted-foreground">(opcional)</span></>}
+            value={telefono}
+            onChange={(e) => setTelefono(e.target.value)}
+            autoComplete="tel"
+          />
+
           {/* Contraseña */}
           <div className="space-y-1.5">
-            <label htmlFor="reg-password" className="text-sm font-medium text-foreground">Contraseña</label>
-            <div className="relative">
-              <input
-                id="reg-password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 pr-10 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-ring focus:ring-2 transition-shadow"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                tabIndex={-1}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
+            <FloatingInput
+              id="reg-password"
+              type={showPassword ? "text" : "password"}
+              label="Contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              }
+            />
+            {password.length > 0 && (
+              <ul className="grid grid-cols-1 gap-1 pt-1 sm:grid-cols-2">
+                {REQUISITOS_PASSWORD.map((req) => {
+                  const cumple = req.cumple(password);
+                  return (
+                    <li
+                      key={req.label}
+                      className={`flex items-center gap-1.5 text-xs ${
+                        cumple ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
+                      }`}
+                    >
+                      {cumple ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+                      {req.label}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
 
           {/* Confirmar contraseña */}
           <div className="space-y-1.5">
-            <label htmlFor="reg-confirm" className="text-sm font-medium text-foreground">Confirmar contraseña</label>
-            <input
+            <FloatingInput
               id="reg-confirm"
-              type={showPassword ? "text" : "password"}
+              type={showConfirmPassword ? "text" : "password"}
+              label="Confirmar contraseña"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Repite la contraseña"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-ring focus:ring-2 transition-shadow"
+              autoComplete="new-password"
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              }
             />
+            {confirmPassword.length > 0 && (
+              <p
+                className={`flex items-center gap-1.5 text-xs ${
+                  password === confirmPassword
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-600 dark:text-red-400"
+                }`}
+              >
+                {password === confirmPassword ? (
+                  <>
+                    <Check className="h-3.5 w-3.5" /> Las contraseñas coinciden
+                  </>
+                ) : (
+                  <>
+                    <X className="h-3.5 w-3.5" /> Las contraseñas no coinciden
+                  </>
+                )}
+              </p>
+            )}
           </div>
 
           {/* Términos */}
@@ -201,10 +238,15 @@ export default function RegistroPage() {
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            disabled={enviando}
+            className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
           >
-            Crear cuenta
+            {enviando ? "Creando cuenta..." : "Crear cuenta"}
           </button>
+
+          <p className="text-center text-xs text-muted-foreground">
+            ¿Quieres ofrecer tus servicios como cuidador? Podrás activarlo desde tu perfil después de registrarte.
+          </p>
         </form>
 
         {/* Enlace a login */}
