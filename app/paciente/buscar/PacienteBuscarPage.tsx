@@ -2,9 +2,15 @@
 
 import { useState, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { MapPin, Star, X } from "lucide-react";
-import { MOCK_HOSPITALES } from "@/lib/mock/hospitales";
-import { MOCK_CUIDADORES } from "@/lib/mock/usuarios";
+import type { Hospital } from "@/lib/mock/hospitales";
+import { fetchTodosLosHospitales } from "@/lib/api/hospitales";
+import {
+  fetchConteoCuidadoresPorHospitales,
+  fetchCuidadoresPorHospitales,
+  type CuidadorPublico,
+} from "@/lib/api/cuidadores";
 import type { HospitalMarker, MapBounds } from "@/components/map/MapaHospitales";
 import BuscadorUbicacion from "@/components/map/BuscadorUbicacion";
 import BotonMiUbicacion from "@/components/map/BotonMiUbicacion";
@@ -19,7 +25,13 @@ const MapaHospitales = dynamic(() => import("@/components/map/MapaHospitales"), 
   ),
 });
 
-const ESPECIALIDADES = Array.from(new Set(MOCK_CUIDADORES.map((c) => c.especialidad))).sort();
+// especialidad/experienciaAnios/valoracion todavia no existen en el modelo
+// real de cuidador (ver TODO.md, "Ampliar perfil_cuidador"). Mientras tanto
+// se muestran estos valores fijos en vez de romper la tarjeta.
+const DEFAULT_ESPECIALIDAD = "Cuidado general";
+const DEFAULT_EXPERIENCIA_ANIOS = 1;
+const DEFAULT_VALORACION = 5;
+const TAMANO_PAGINA = 20;
 
 function hospitalEnBounds(h: { lat: number; lng: number }, b: MapBounds | null) {
   if (!b) return true;
@@ -28,41 +40,67 @@ function hospitalEnBounds(h: { lat: number; lng: number }, b: MapBounds | null) 
 
 export default function PacienteBuscarPage() {
   const [selectedHospitalId, setSelectedHospitalId] = useState<string | null>(null);
-  const [filtroEspecialidad, setFiltroEspecialidad] = useState<string>("todas");
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   const [focusTarget, setFocusTarget] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
 
-  const cuidadoresActivos = useMemo(
-    () => MOCK_CUIDADORES.filter((c) => c.estado === "activo"),
-    [],
+  const { data: hospitales = [] } = useQuery({
+    queryKey: ["hospitales", "todos"],
+    queryFn: fetchTodosLosHospitales,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const hospitalesVisibles = useMemo(
+    () => hospitales.filter((h) => hospitalEnBounds(h, bounds)),
+    [hospitales, bounds],
   );
+
+  const idsVisibles = useMemo(
+    () => hospitalesVisibles.map((h) => h.id).sort(),
+    [hospitalesVisibles],
+  );
+
+  // Nunca trae cuidadores, solo cuenta cuantos hay por hospital -> alimenta
+  // los numeros de los marcadores sin paginar nada (ver TODO.md).
+  const { data: conteos = {} } = useQuery({
+    queryKey: ["cuidadores", "conteo", idsVisibles],
+    queryFn: () => fetchConteoCuidadoresPorHospitales(idsVisibles),
+    enabled: idsVisibles.length > 0,
+    staleTime: 60 * 1000,
+  });
 
   const markers: HospitalMarker[] = useMemo(
     () =>
-      MOCK_HOSPITALES.map((h) => ({
-        hospital: h,
-        count: cuidadoresActivos.filter((c) => c.hospitalesDisponibles.includes(h.id)).length,
-        color: "emerald" as const,
-      })).filter((m) => m.count > 0),
-    [cuidadoresActivos],
+      hospitalesVisibles
+        .map((h) => ({ hospital: h, count: conteos[h.id] ?? 0, color: "emerald" as const }))
+        .filter((m) => m.count > 0),
+    [hospitalesVisibles, conteos],
   );
 
-  const cuidadoresFiltrados = useMemo(() => {
-    return cuidadoresActivos.filter((c) => {
-      const tieneHospitalVisible = c.hospitalesDisponibles.some((hId) => {
-        const h = MOCK_HOSPITALES.find((x) => x.id === hId);
-        return h ? hospitalEnBounds(h, bounds) : false;
-      });
-      const coincideHospital = selectedHospitalId
-        ? c.hospitalesDisponibles.includes(selectedHospitalId)
-        : true;
-      const coincideEspecialidad =
-        filtroEspecialidad === "todas" || c.especialidad === filtroEspecialidad;
-      return tieneHospitalVisible && coincideHospital && coincideEspecialidad;
-    });
-  }, [cuidadoresActivos, bounds, selectedHospitalId, filtroEspecialidad]);
+  // useInfiniteQuery en vez de un estado+efecto manual: cambiar de hospital
+  // cambia la queryKey y react-query reinicia las paginas solo, sin
+  // necesidad de sincronizar nada "a mano" (evita el anti-patron de hacer
+  // setState dentro de un efecto para derivar estado de otro estado).
+  const {
+    data: cuidadoresData,
+    fetchNextPage,
+    hasNextPage,
+    isFetching: cargandoCuidadores,
+  } = useInfiniteQuery({
+    queryKey: ["cuidadores", "busqueda", selectedHospitalId],
+    queryFn: ({ pageParam }) =>
+      fetchCuidadoresPorHospitales([selectedHospitalId as string], pageParam, TAMANO_PAGINA),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => (lastPage.page + 1 < lastPage.totalPages ? lastPage.page + 1 : undefined),
+    enabled: Boolean(selectedHospitalId),
+  });
 
-  const hospitalSeleccionado = MOCK_HOSPITALES.find((h) => h.id === selectedHospitalId);
+  const cuidadores: CuidadorPublico[] = useMemo(
+    () => cuidadoresData?.pages.flatMap((p) => p.content) ?? [],
+    [cuidadoresData],
+  );
+  const totalCuidadores = cuidadoresData?.pages[0]?.totalElements ?? 0;
+
+  const hospitalSeleccionado = hospitales.find((h) => h.id === selectedHospitalId);
 
   const handleMarkerClick = useCallback((id: string) => {
     setSelectedHospitalId((prev) => (prev === id ? null : id));
@@ -88,7 +126,7 @@ export default function PacienteBuscarPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">Buscar cuidador</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          La lista muestra solo los cuidadores de los hospitales visibles en el mapa
+          Selecciona un hospital en el mapa para ver los cuidadores disponibles ahí
         </p>
       </div>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
@@ -108,6 +146,7 @@ export default function PacienteBuscarPage() {
             <div className="mb-3">
               <BuscadorUbicacion
                 onSelect={handleSearchSelect}
+                hospitales={hospitales}
                 trailing={<BotonMiUbicacion onLocated={handleMiUbicacion} />}
               />
             </div>
@@ -126,81 +165,90 @@ export default function PacienteBuscarPage() {
                 </button>
               </div>
             )}
-
-            <div>
-              <select
-                value={filtroEspecialidad}
-                onChange={(e) => setFiltroEspecialidad(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-ring focus:ring-2"
-              >
-                <option value="todas">Todas las especialidades</option>
-                {ESPECIALIDADES.map((esp) => (
-                  <option key={esp} value={esp}>{esp}</option>
-                ))}
-              </select>
-            </div>
           </div>
 
           <div className="scrollbar-subtle flex flex-1 flex-col gap-3 overflow-y-auto px-1 py-3">
-            {cuidadoresFiltrados.length === 0 ? (
+            {!selectedHospitalId ? (
               <div className="flex flex-col items-center justify-center py-16 text-center text-sm text-muted-foreground gap-2">
                 <MapPin className="h-8 w-8 opacity-30" />
-                <p>No hay cuidadores en la zona</p>
-                <p className="text-xs">Aleja el mapa o desplázate para ver más</p>
+                <p>Selecciona un hospital en el mapa</p>
+                <p className="text-xs">Los marcadores muestran cuántos cuidadores hay disponibles</p>
+              </div>
+            ) : cuidadores.length === 0 && !cargandoCuidadores ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center text-sm text-muted-foreground gap-2">
+                <MapPin className="h-8 w-8 opacity-30" />
+                <p>No hay cuidadores en este hospital</p>
               </div>
             ) : (
-              cuidadoresFiltrados.map((cuidador) => (
-                <div
-                  key={cuidador.id}
-                  className="rounded-2xl bg-muted/20 p-4 shadow-sm transition-all hover:bg-muted/40 hover:shadow-md"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-                      {cuidador.nombre[0]}{cuidador.apellido[0]}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <p className="font-medium text-foreground text-sm">
-                          {cuidador.nombre} {cuidador.apellido}
-                        </p>
-                        <span className="shrink-0 flex items-center gap-0.5 text-xs font-medium text-amber-500">
-                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                          {cuidador.valoracion}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{cuidador.especialidad}</p>
-                      <p className="text-xs text-muted-foreground">{cuidador.experienciaAnios} años de experiencia</p>
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {cuidador.hospitalesDisponibles.map((hId) => {
-                          const h = MOCK_HOSPITALES.find((x) => x.id === hId);
-                          if (!h) return null;
-                          const isActive = selectedHospitalId === hId;
-                          const isVisible = hospitalEnBounds(h, bounds);
-                          if (!isVisible) return null;
-                          return (
-                            <span
-                              key={hId}
-                              className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                                isActive
-                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              <MapPin className="h-2.5 w-2.5" />
-                              {h.nombre.replace("Hospital ", "").replace("Universitario ", "")}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
+              <>
+                {cuidadores.map((cuidador) => (
+                  <TarjetaCuidador key={cuidador.id} cuidador={cuidador} hospitalActivoId={selectedHospitalId} />
+                ))}
+                {hasNextPage && (
+                  <button
+                    type="button"
+                    onClick={() => fetchNextPage()}
+                    disabled={cargandoCuidadores}
+                    className="rounded-lg border border-input bg-background py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-60"
+                  >
+                    {cargandoCuidadores ? "Cargando…" : "Cargar más"}
+                  </button>
+                )}
+              </>
             )}
           </div>
 
-          <div className="shrink-0 px-1 py-2 text-xs text-muted-foreground">
-            {cuidadoresFiltrados.length} {cuidadoresFiltrados.length === 1 ? "cuidador" : "cuidadores"} en la zona
+          {selectedHospitalId && cuidadoresData && (
+            <div className="shrink-0 px-1 py-2 text-xs text-muted-foreground">
+              {totalCuidadores} {totalCuidadores === 1 ? "cuidador" : "cuidadores"} en este hospital
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TarjetaCuidador({
+  cuidador,
+  hospitalActivoId,
+}: {
+  cuidador: CuidadorPublico;
+  hospitalActivoId: string | null;
+}) {
+  return (
+    <div className="rounded-2xl bg-muted/20 p-4 shadow-sm transition-all hover:bg-muted/40 hover:shadow-md">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+          {cuidador.nombre[0]}
+          {cuidador.apellidos[0]}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-1">
+            <p className="font-medium text-foreground text-sm">
+              {cuidador.nombre} {cuidador.apellidos}
+            </p>
+            <span className="shrink-0 flex items-center gap-0.5 text-xs font-medium text-amber-500">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+              {DEFAULT_VALORACION}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">{DEFAULT_ESPECIALIDAD}</p>
+          <p className="text-xs text-muted-foreground">{DEFAULT_EXPERIENCIA_ANIOS} año de experiencia</p>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {cuidador.hospitales.map((h: Hospital) => (
+              <span
+                key={h.id}
+                className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                  hospitalActivoId === h.id
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                <MapPin className="h-2.5 w-2.5" />
+                {h.nombre.replace("Hospital ", "").replace("Universitario ", "")}
+              </span>
+            ))}
           </div>
         </div>
       </div>
