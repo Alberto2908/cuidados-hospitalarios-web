@@ -73,6 +73,12 @@ export default function AnuncioDetallePage() {
     queryClient.invalidateQueries({ queryKey: ["anuncio", anuncioId] });
     queryClient.invalidateQueries({ queryKey: ["postulaciones", "anuncio", anuncioId] });
     queryClient.invalidateQueries({ queryKey: ["postulaciones", "mias"] });
+    // El estado de este anuncio (activo/cubierto/cancelado) tambien se
+    // muestra en "Mis anuncios" y en el badge de notificaciones del navbar;
+    // sin esto quedaban con datos obsoletos hasta que expirase el
+    // staleTime global (5 min, ver QueryProvider.tsx).
+    queryClient.invalidateQueries({ queryKey: ["anuncios", "mios"] });
+    queryClient.invalidateQueries({ queryKey: ["anuncios", "notificaciones-conteo"] });
   }
 
   const cancelarAnuncioMutation = useMutation({
@@ -288,7 +294,7 @@ function FilaPostulacion({
 }) {
   const [precio, setPrecio] = useState(String(postulacion.precioHora));
   const esPendiente = postulacion.estado === "pendiente";
-  const importeEstimado = Math.round(postulacion.precioHora * horas * 100) / 100;
+  const importeTotal = Math.round(postulacion.precioHora * horas * 100) / 100;
 
   return (
     <div className="rounded-xl border border-border p-4">
@@ -297,11 +303,11 @@ function FilaPostulacion({
         <EstadoPostulacionBadge estado={postulacion.estado} />
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
-        Última propuesta: <strong className="text-foreground">{postulacion.precioHora} €/hora</strong>{" "}
-        ({postulacion.propuestoPor === "cuidador" ? "propuesta del cuidador" : "tu contraoferta"})
+        Precio propuesto: <strong className="text-foreground">{postulacion.precioHora} €/hora</strong>{" "}
+        ({postulacion.propuestoPor === "cuidador" ? "enviado por el cuidador" : "enviado por ti"})
       </p>
       <p className="text-xs text-muted-foreground">
-        Total estimado para este anuncio ({horas}h): <strong className="text-foreground">≈ {importeEstimado} €</strong>
+        Coste total para este anuncio ({horas}h): <strong className="text-foreground">{importeTotal} €</strong>
       </p>
 
       {esPendiente && puedeActuar && (
@@ -426,8 +432,8 @@ function SeccionPostularse({
         <div className="mt-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm text-foreground">
-              Última propuesta: <strong>{miPostulacion.precioHora} €/hora</strong>{" "}
-              ({miPostulacion.propuestoPor === "cuidador" ? "tuya" : "del paciente"})
+              Precio propuesto: <strong>{miPostulacion.precioHora} €/hora</strong>{" "}
+              ({miPostulacion.propuestoPor === "cuidador" ? "enviado por ti" : "enviado por el paciente/familiar"})
             </p>
             <EstadoPostulacionBadge estado={miPostulacion.estado} />
           </div>
