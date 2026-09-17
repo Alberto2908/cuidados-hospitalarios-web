@@ -2,16 +2,24 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Search, X, MapPin, Building2, Loader2 } from "lucide-react";
-import { matchHospitalesByQuery } from "@/lib/mock/hospitales";
+import { hospitalSearchText, type Hospital } from "@/lib/mock/hospitales";
 import { geocodeEspana, type GeocodeResult } from "@/lib/geocoding/nominatim";
 
 interface Props {
   onSelect: (result: GeocodeResult) => void;
+  /** Catálogo sobre el que buscar coincidencias locales de hospital (siempre datos reales del backend). */
+  hospitales: Hospital[];
   /** Acción a la derecha de la etiqueta (p. ej. «Mi ubicación») */
   trailing?: ReactNode;
 }
 
-export default function BuscadorUbicacion({ onSelect, trailing }: Props) {
+function matchHospitales(hospitales: Hospital[], query: string): Hospital[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return hospitales.filter((h) => hospitalSearchText(h).includes(q)).slice(0, 6);
+}
+
+export default function BuscadorUbicacion({ onSelect, hospitales, trailing }: Props) {
   const inputId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
@@ -47,7 +55,7 @@ export default function BuscadorUbicacion({ onSelect, trailing }: Props) {
 
     const timer = window.setTimeout(async () => {
       // 1) Coincidencias locales de hospitales (instantáneas y precisas)
-      const hospitalResults: GeocodeResult[] = matchHospitalesByQuery(q).map((h) => ({
+      const hospitalResults: GeocodeResult[] = matchHospitales(hospitales, q).map((h) => ({
         id: `hosp-${h.id}`,
         label: h.nombre,
         detail: `${h.direccion}, ${h.codigoPostal} ${h.ciudad}`,
@@ -92,7 +100,7 @@ export default function BuscadorUbicacion({ onSelect, trailing }: Props) {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, hospitales]);
 
   function handleSelect(result: GeocodeResult) {
     setQuery(result.label);
@@ -111,7 +119,7 @@ export default function BuscadorUbicacion({ onSelect, trailing }: Props) {
 
     setLoading(true);
     try {
-      const local = matchHospitalesByQuery(q);
+      const local = matchHospitales(hospitales, q);
       if (local[0]) {
         handleSelect({
           id: `hosp-${local[0].id}`,
