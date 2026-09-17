@@ -6,6 +6,7 @@ import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/lib/auth/AuthContext";
 import AppToaster from "@/components/providers/AppToaster";
 import QueryProvider from "@/components/providers/QueryProvider";
+import EstadoCuentaBanner from "@/components/auth/EstadoCuentaBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <QueryProvider>
             <AuthProvider>
               <Navbar />
+              <EstadoCuentaBanner />
               <main className="flex-1">{children}</main>
               <Footer />
               <AppToaster />
