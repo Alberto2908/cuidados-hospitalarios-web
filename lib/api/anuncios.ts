@@ -165,3 +165,36 @@ export function cancelarAnuncio(id: string, motivo?: string) {
     body: JSON.stringify({ motivo }),
   });
 }
+
+export type SeccionMiAnuncio = "activo" | "completado";
+
+export interface MiAnuncio {
+  id: string;
+  hospital: Hospital;
+  titulo: string;
+  estado: EstadoAnuncio;
+  seccion: SeccionMiAnuncio;
+  postulacionesPendientes: number;
+  fechaInicioPrevista: string;
+  creadoEn: string;
+}
+
+interface MiAnuncioApi {
+  id: string;
+  hospital: HospitalApi;
+  titulo: string;
+  estado: EstadoAnuncio;
+  seccion: SeccionMiAnuncio;
+  postulacionesPendientes: number;
+  fechaInicioPrevista: string;
+  creadoEn: string;
+}
+
+export async function misAnuncios(): Promise<MiAnuncio[]> {
+  const data = await apiFetch<MiAnuncioApi[]>("/api/anuncios/mios");
+  return data.map((a) => ({ ...a, hospital: toHospital(a.hospital) }));
+}
+
+export function misNotificacionesConteo(): Promise<{ total: number }> {
+  return apiFetch<{ total: number }>("/api/anuncios/mios/notificaciones-conteo");
+}

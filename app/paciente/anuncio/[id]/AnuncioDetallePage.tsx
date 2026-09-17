@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
@@ -8,6 +9,8 @@ import { CalendarDays, Lock, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { horasTotales } from "@/lib/anuncio/horas";
+import type { FranjaHoraria } from "@/lib/anuncio/schema";
 import {
   cancelarAnuncio,
   obtenerAnuncio,
@@ -158,6 +161,7 @@ export default function AnuncioDetallePage() {
       {esAutor && (
         <SeccionPostulacionesAutor
           anuncioActivo={anuncio.estado === "activo"}
+          franjas={anuncio.franjas ?? []}
           postulaciones={postulacionesQuery.data ?? []}
           cargando={postulacionesQuery.isLoading}
           onCambio={invalidarTodo}
@@ -169,6 +173,7 @@ export default function AnuncioDetallePage() {
         <SeccionPostularse
           anuncioId={anuncioId}
           anuncioActivo={anuncio.estado === "activo"}
+          miTarifaHora={user?.tarifaHora ?? null}
           miPostulacion={miPostulacion}
           cargando={misPostulacionesQuery.isLoading}
           onCambio={invalidarTodo}
@@ -180,17 +185,20 @@ export default function AnuncioDetallePage() {
 
 function SeccionPostulacionesAutor({
   anuncioActivo,
+  franjas,
   postulaciones,
   cargando,
   onCambio,
   onAceptada,
 }: {
   anuncioActivo: boolean;
+  franjas: FranjaHoraria[];
   postulaciones: Postulacion[];
   cargando: boolean;
   onCambio: () => void;
   onAceptada: () => void;
 }) {
+  const horas = horasTotales(franjas);
   const aceptarMutation = useMutation({
     mutationFn: (id: string) => aceptarPostulacion(id),
     onSuccess: (servicio) => {
@@ -239,6 +247,7 @@ function SeccionPostulacionesAutor({
             <FilaPostulacion
               key={p.id}
               postulacion={p}
+              horas={horas}
               puedeActuar={anuncioActivo}
               onAceptar={() => aceptarMutation.mutate(p.id)}
               onRechazar={() => rechazarMutation.mutate(p.id)}
@@ -254,6 +263,7 @@ function SeccionPostulacionesAutor({
 
 function FilaPostulacion({
   postulacion,
+  horas,
   puedeActuar,
   onAceptar,
   onRechazar,
@@ -261,6 +271,7 @@ function FilaPostulacion({
   pendienteAccion,
 }: {
   postulacion: Postulacion;
+  horas: number;
   puedeActuar: boolean;
   onAceptar: () => void;
   onRechazar: () => void;
@@ -269,6 +280,7 @@ function FilaPostulacion({
 }) {
   const [precio, setPrecio] = useState(String(postulacion.precioHora));
   const esPendiente = postulacion.estado === "pendiente";
+  const importeEstimado = Math.round(postulacion.precioHora * horas * 100) / 100;
 
   return (
     <div className="rounded-xl border border-border p-4">
@@ -279,6 +291,9 @@ function FilaPostulacion({
       <p className="mt-1 text-xs text-muted-foreground">
         Última propuesta: <strong className="text-foreground">{postulacion.precioHora} €/hora</strong>{" "}
         ({postulacion.propuestoPor === "cuidador" ? "propuesta del cuidador" : "tu contraoferta"})
+      </p>
+      <p className="text-xs text-muted-foreground">
+        Total estimado para este anuncio ({horas}h): <strong className="text-foreground">≈ {importeEstimado} €</strong>
       </p>
 
       {esPendiente && puedeActuar && (
@@ -315,12 +330,14 @@ function FilaPostulacion({
 function SeccionPostularse({
   anuncioId,
   anuncioActivo,
+  miTarifaHora,
   miPostulacion,
   cargando,
   onCambio,
 }: {
   anuncioId: string;
   anuncioActivo: boolean;
+  miTarifaHora: number | null;
   miPostulacion: Postulacion | undefined;
   cargando: boolean;
   onCambio: () => void;
@@ -328,7 +345,7 @@ function SeccionPostularse({
   const [precio, setPrecio] = useState("");
 
   const postularseMutation = useMutation({
-    mutationFn: (precioHora: number) => postularse(anuncioId, precioHora),
+    mutationFn: () => postularse(anuncioId),
     onSuccess: () => {
       sileo.success({ title: "Te has postulado", description: "El paciente/familiar podrá revisar tu propuesta." });
       onCambio();
@@ -372,28 +389,30 @@ function SeccionPostularse({
 
       {!miPostulacion ? (
         anuncioActivo && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <label className="text-sm text-muted-foreground" htmlFor="precioHora">
-              Tu precio por hora
-            </label>
-            <Input
-              id="precioHora"
-              type="number"
-              min="0.01"
-              step="0.5"
-              value={precio}
-              onChange={(e) => setPrecio(e.target.value)}
-              className="h-9 w-28"
-            />
-            <Button
-              type="button"
-              size="sm"
-              disabled={postularseMutation.isPending || !precio}
-              onClick={() => postularseMutation.mutate(Number(precio))}
-            >
-              Postularme
-            </Button>
-          </div>
+          miTarifaHora == null ? (
+            <p className="mt-3 rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+              Antes de postularte, fija tu tarifa por hora en{" "}
+              <Link href="/perfil" className="font-medium text-foreground underline underline-offset-2">
+                tu perfil
+              </Link>
+              .
+            </p>
+          ) : (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <p className="text-sm text-foreground">
+                Te postularás con tu tarifa: <strong>{miTarifaHora} €/hora</strong>
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                className="ml-auto"
+                disabled={postularseMutation.isPending}
+                onClick={() => postularseMutation.mutate()}
+              >
+                Postularme
+              </Button>
+            </div>
+          )
         )
       ) : (
         <div className="mt-3">

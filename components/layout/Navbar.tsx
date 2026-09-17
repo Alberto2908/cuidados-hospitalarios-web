@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import {
   HeartPulse,
   Menu,
@@ -19,6 +20,12 @@ import {
   Settings,
 } from "lucide-react";
 import { useAuth, UserRole } from "@/lib/auth/AuthContext";
+import { misNotificacionesConteo } from "@/lib/api/anuncios";
+
+// Notificaciones = postulaciones pendientes en mis anuncios activos (ver
+// backend AnuncioService.contarNotificacionesPendientes). Solo tiene sentido
+// para el enlace de "Mis anuncios" (antes "Ver historial").
+const HREF_CON_NOTIFICACIONES = "/paciente/historial";
 
 /* ─── tipos de enlace de nav ─────────────────────────────────────── */
 interface NavLink {
@@ -31,7 +38,7 @@ const NAV_LINKS: Record<UserRole, NavLink[]> = {
   USUARIO: [
     { label: "Poner anuncio",   href: "/paciente/anuncio/nuevo", icon: <Megaphone className="h-4 w-4" /> },
     { label: "Buscar cuidador", href: "/paciente/buscar",        icon: <Search     className="h-4 w-4" /> },
-    { label: "Ver historial",   href: "/paciente/historial",     icon: <History    className="h-4 w-4" /> },
+    { label: "Mis anuncios",    href: "/paciente/historial",     icon: <History    className="h-4 w-4" /> },
   ],
   CUIDADOR: [
     { label: "Buscar anuncio", href: "/cuidador/buscar",    icon: <Search  className="h-4 w-4" /> },
@@ -64,6 +71,15 @@ export default function Navbar() {
 
   const links = user ? NAV_LINKS[user.rol] : [];
 
+  const { data: notificaciones } = useQuery({
+    queryKey: ["anuncios", "notificaciones-conteo"],
+    queryFn: misNotificacionesConteo,
+    enabled: isAuthenticated,
+    staleTime: 20 * 1000,
+    refetchInterval: 30 * 1000,
+  });
+  const totalNotificaciones = notificaciones?.total ?? 0;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-muted/30 backdrop-blur-md supports-backdrop-filter:bg-muted/60">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -87,6 +103,11 @@ export default function Navbar() {
               >
                 {link.icon}
                 {link.label}
+                {link.href === HREF_CON_NOTIFICACIONES && totalNotificaciones > 0 && (
+                  <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                    {totalNotificaciones}
+                  </span>
+                )}
               </Link>
             ))}
           </nav>
@@ -204,6 +225,11 @@ export default function Navbar() {
               >
                 {link.icon}
                 {link.label}
+                {link.href === HREF_CON_NOTIFICACIONES && totalNotificaciones > 0 && (
+                  <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                    {totalNotificaciones}
+                  </span>
+                )}
               </Link>
             ))}
             {/* Perfil en móvil */}

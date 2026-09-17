@@ -20,6 +20,7 @@ export interface UsuarioActual {
   stripeCobrosHabilitados: boolean | null;
   proveedorAuth: "LOCAL" | "GOOGLE";
   hospitalesTrabajo: Hospital[] | null;
+  tarifaHora: number | null;
 }
 
 export interface RegistroDatos {
@@ -97,5 +98,12 @@ export function actualizarHospitales(hospitalIds: string[]) {
   return apiFetch<Hospital[]>("/api/usuarios/me/hospitales", {
     method: "PATCH",
     body: JSON.stringify({ hospitalIds }),
+  });
+}
+
+export function actualizarTarifaHora(tarifaHora: number) {
+  return apiFetch<UsuarioActual>("/api/usuarios/me/tarifa-hora", {
+    method: "PATCH",
+    body: JSON.stringify({ tarifaHora }),
   });
 }
