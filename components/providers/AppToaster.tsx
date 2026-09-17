@@ -107,7 +107,10 @@ function useSileoBodyFit() {
 }
 
 /**
- * theme="light" → fill oscuro (#1a1a1a), contraste sobre fondos blancos.
+ * Se probo fondo blanco + borde negro para acercarlo a las tarjetas de la
+ * app, pero el borde queda entrecortado (ver globals.css) y el blanco solo,
+ * sin borde, se confunde con el fondo blanco de la pagina. Se vuelve al
+ * fill oscuro (#1a1a1a) por defecto, que sí contrasta bien.
  * --sileo-width permanece 350px (morph); el body se ajusta vía CSS vars.
  */
 export default function AppToaster() {

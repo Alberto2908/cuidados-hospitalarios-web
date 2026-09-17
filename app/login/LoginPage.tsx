@@ -3,18 +3,22 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth, UserRole } from "@/lib/auth/AuthContext";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { ApiError } from "@/lib/api/client";
+import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
+import { FloatingInput } from "@/components/ui/FloatingInput";
 import { HeartPulse, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginConGoogle } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [enviando, setEnviando] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
@@ -23,14 +27,26 @@ export default function LoginPage() {
       return;
     }
 
-    // Mock: selecciona el rol según el email
-    let role: UserRole = "PACIENTE";
-    if (email.includes("cuidador")) role = "CUIDADOR";
-    else if (email.includes("admin")) role = "ADMIN";
+    setEnviando(true);
+    try {
+      await login(email, password);
+      router.push("/");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se ha podido iniciar sesión.");
+    } finally {
+      setEnviando(false);
+    }
+  }
 
-    login(role);
-    router.push("/");
-  };
+  async function handleGoogleCredential(idToken: string) {
+    setError("");
+    try {
+      await loginConGoogle(idToken);
+      router.push("/");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "No se ha podido iniciar sesión con Google.");
+    }
+  }
 
   return (
     <div className="flex flex-1 items-center justify-center px-4 py-16 bg-gradient-to-b from-background to-muted/30">
@@ -57,43 +73,41 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium text-foreground">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="correo@ejemplo.com"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-ring focus:ring-2 transition-shadow"
-            />
+          <GoogleLoginButton onCredential={handleGoogleCredential} />
+
+          <div className="relative flex items-center gap-3 py-1">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">o continúa con email</span>
+            <div className="h-px flex-1 bg-border" />
           </div>
 
-          <div className="space-y-1.5">
-            <label htmlFor="password" className="text-sm font-medium text-foreground">
-              Contraseña
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 pr-10 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-ring focus:ring-2 transition-shadow"
-              />
+          <FloatingInput
+            id="email"
+            type="email"
+            label="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+          />
+
+          <FloatingInput
+            id="password"
+            type={showPassword ? "text" : "password"}
+            label="Contraseña"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            rightElement={
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
-            </div>
-          </div>
+            }
+          />
 
           <div className="flex items-center justify-between text-sm">
             <label className="flex items-center gap-2 text-muted-foreground">
@@ -107,18 +121,11 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            disabled={enviando}
+            className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
           >
-            Iniciar sesión
+            {enviando ? "Entrando..." : "Iniciar sesión"}
           </button>
-
-          {/* Mock info */}
-          <div className="rounded-lg bg-muted/50 px-4 py-3 text-xs text-muted-foreground">
-            <p className="font-medium mb-1">Demo — cualquier contraseña funciona:</p>
-            <p>• Email con "admin" → rol Admin</p>
-            <p>• Email con "cuidador" → rol Cuidador</p>
-            <p>• Cualquier otro email → rol Paciente</p>
-          </div>
         </form>
 
         {/* Enlace a registro */}
