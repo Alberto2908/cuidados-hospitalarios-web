@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
 import { Lock } from "lucide-react";
 import { sileo } from "sileo";
 import { Button } from "@/components/ui/button";
@@ -15,12 +14,9 @@ import FormSection from "@/components/anuncio/FormSection";
 import FranjasPorDia from "@/components/anuncio/FranjasPorDia";
 import SelectorHospital from "@/components/anuncio/SelectorHospital";
 import SelectorProvincia from "@/components/anuncio/SelectorProvincia";
-import {
-  crearAnuncioSchema,
-  turnoDesdeFranjas,
-  type CrearAnuncioFormValues,
-} from "@/lib/anuncio/schema";
-import { MOCK_ANUNCIOS } from "@/lib/mock/anuncios";
+import { crearAnuncioSchema, type CrearAnuncioFormValues } from "@/lib/anuncio/schema";
+import { crearAnuncio } from "@/lib/api/anuncios";
+import { ApiError } from "@/lib/api/client";
 
 const defaultValues: CrearAnuncioFormValues = {
   titulo: "",
@@ -58,30 +54,30 @@ export default function PacienteCrearAnuncioPage() {
     Boolean(hospitalId) &&
     franjas.length > 0;
 
-  function onSubmit(values: CrearAnuncioFormValues) {
-    const id = `a${Date.now()}`;
-    MOCK_ANUNCIOS.unshift({
-      id,
-      hospitalId: values.hospitalId,
-      titulo: values.titulo.trim(),
-      descripcion: values.descripcion.trim(),
-      pacienteNombre: "Tú",
-      necesidades: [],
-      turno: turnoDesdeFranjas(values.franjas),
-      fechaPublicacion: format(new Date(), "yyyy-MM-dd"),
-      estado: "activo",
-      franjas: values.franjas,
-      planta: values.planta.trim() || undefined,
-      habitacion: values.habitacion.trim() || undefined,
-      cama: values.cama.trim() || undefined,
-    });
+  async function onSubmit(values: CrearAnuncioFormValues) {
+    try {
+      const anuncio = await crearAnuncio({
+        titulo: values.titulo.trim(),
+        descripcion: values.descripcion.trim(),
+        hospitalId: values.hospitalId,
+        planta: values.planta.trim() || undefined,
+        habitacion: values.habitacion.trim() || undefined,
+        cama: values.cama.trim() || undefined,
+        franjas: values.franjas,
+      });
 
-    sileo.success({
-      title: "Anuncio publicado",
-      description: "Los cuidadores ya pueden ver tu solicitud.",
-    });
+      sileo.success({
+        title: "Anuncio publicado",
+        description: "Los cuidadores ya pueden ver tu solicitud.",
+      });
 
-    router.push("/cuidador/buscar");
+      router.push(`/paciente/anuncio/${anuncio.id}`);
+    } catch (error) {
+      sileo.error({
+        title: "No se pudo publicar el anuncio",
+        description: error instanceof ApiError ? error.message : "Inténtalo de nuevo en unos segundos.",
+      });
+    }
   }
 
   function onInvalid() {
