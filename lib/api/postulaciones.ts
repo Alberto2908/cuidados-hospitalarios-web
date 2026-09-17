@@ -1,8 +1,10 @@
 import { apiFetch } from "@/lib/api/client";
-import type { Servicio } from "@/lib/api/servicios";
+import type { EstadoServicio, Servicio } from "@/lib/api/servicios";
+import type { Hospital } from "@/lib/mock/hospitales";
 
 export type EstadoPostulacion = "pendiente" | "rechazada" | "retirada" | "aceptada";
 export type PropuestoPor = "cuidador" | "paciente";
+export type SeccionMiPostulacion = "activo" | "historial";
 
 export interface Postulacion {
   id: string;
@@ -28,6 +30,55 @@ export function listarPostulacionesPorAnuncio(anuncioId: string): Promise<Postul
 
 export function listarMisPostulaciones(): Promise<Postulacion[]> {
   return apiFetch<Postulacion[]>("/api/postulaciones/mias");
+}
+
+interface HospitalApi {
+  id: string;
+  nombre: string;
+  direccion: string;
+  ciudad: string;
+  provincia: string;
+  codigoPostal: string;
+  lat: number;
+  lng: number;
+  telefono?: string | null;
+  email?: string | null;
+}
+
+function toHospital(h: HospitalApi): Hospital {
+  return {
+    id: h.id,
+    nombre: h.nombre,
+    direccion: h.direccion,
+    ciudad: h.ciudad,
+    provincia: h.provincia,
+    codigoPostal: h.codigoPostal,
+    lat: Number(h.lat),
+    lng: Number(h.lng),
+  };
+}
+
+export interface MiPostulacion {
+  id: string;
+  anuncioId: string;
+  anuncioTitulo: string;
+  hospital: Hospital;
+  precioHora: number;
+  propuestoPor: PropuestoPor;
+  estado: EstadoPostulacion;
+  seccion: SeccionMiPostulacion;
+  estadoServicio: EstadoServicio | null;
+  creadoEn: string;
+}
+
+interface MiPostulacionApi extends Omit<MiPostulacion, "hospital"> {
+  hospital: HospitalApi;
+}
+
+/** Postulaciones propias del cuidador: activas arriba, historial debajo (ver /cuidador/historial). */
+export async function misPostulacionesConSeccion(): Promise<MiPostulacion[]> {
+  const data = await apiFetch<MiPostulacionApi[]>("/api/postulaciones/mias/historial");
+  return data.map((p) => ({ ...p, hospital: toHospital(p.hospital) }));
 }
 
 /** Contraoferta: la puede mandar tanto el cuidador como el autor del anuncio. */

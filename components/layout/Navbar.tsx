@@ -42,7 +42,7 @@ const NAV_LINKS: Record<UserRole, NavLink[]> = {
   ],
   CUIDADOR: [
     { label: "Buscar anuncio", href: "/cuidador/buscar",    icon: <Search  className="h-4 w-4" /> },
-    { label: "Ver historial",  href: "/cuidador/historial", icon: <History className="h-4 w-4" /> },
+    { label: "Mis postulaciones", href: "/cuidador/historial", icon: <History className="h-4 w-4" /> },
   ],
   ADMIN: [
     { label: "Gestionar anuncios",  href: "/admin/anuncios",  icon: <LayoutDashboard className="h-4 w-4" /> },
