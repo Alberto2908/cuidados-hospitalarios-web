@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
-import { CalendarDays, Lock, MapPin } from "lucide-react";
+import { ArrowLeft, CalendarDays, Lock, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,6 +93,15 @@ export default function AnuncioDetallePage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Volver
+      </button>
+
       <div className="mb-6 flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">{anuncio.titulo}</h1>
@@ -143,7 +152,6 @@ export default function AnuncioDetallePage() {
           <div className="mt-5 flex justify-end">
             <Button
               type="button"
-              variant="outline"
               size="sm"
               disabled={cancelarAnuncioMutation.isPending}
               onClick={() => {
@@ -446,7 +454,7 @@ function SeccionPostularse({
               <Button
                 type="button"
                 size="sm"
-                variant="ghost"
+                variant="destructive"
                 disabled={retirarMutation.isPending}
                 onClick={() => retirarMutation.mutate()}
               >
@@ -477,7 +485,7 @@ function EstadoPostulacionBadge({ estado }: { estado: Postulacion["estado"] }) {
     pendiente: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
     aceptada: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
     rechazada: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-    retirada: "bg-muted text-muted-foreground",
+    retirada: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
   };
   return (
     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${color[estado]}`}>

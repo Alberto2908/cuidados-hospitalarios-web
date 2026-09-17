@@ -78,6 +78,15 @@ de comisión, política de cancelación/no-show, calendario de payout al cuidado
   (`bg-background`, `text-foreground`, `border-border`, `bg-primary`, `--radius-*`, etc.)
   en vez de colores o radios sueltos — así el modo oscuro (clase `.dark`) funciona sin
   esfuerzo adicional en componentes nuevos.
+- Botones (`components/ui/button.tsx`, `variant`): **por defecto usar `variant="default"`
+  (negro, `bg-primary`)**, no `outline` ni `ghost` — esas variantes son para una acción
+  claramente secundaria que convive con una principal ya negra en la misma tarjeta/pantalla
+  (p. ej. "Contraofertar" en `outline` junto a un "Aceptar" en negro). `variant="destructive"`
+  (rojo) se reserva para una acción puntual que el usuario pida explícitamente en rojo —
+  no asumir que "cancelar" siempre es rojo: "Cancelar anuncio" es negro, "Retirar
+  postulación" es rojo, decisión caso por caso confirmada por el usuario, no una regla
+  automática por tipo de acción. Feedback explícito del usuario (2026-09-17): "siempre
+  estás poniendo los botones blancos y deberían ser negros" — ante la duda, negro.
 - Color por rol (usado en `Navbar.tsx`, `app/page.tsx` y badges): **sky** = Paciente,
   **emerald** = Cuidador, **violet** = Admin. Reutilizar exactamente estas paletas
   Tailwind al añadir UI nueva relacionada con un rol, no introducir otro color para el

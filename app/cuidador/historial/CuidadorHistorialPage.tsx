@@ -136,7 +136,7 @@ function TarjetaMiPostulacion({
       </Link>
 
       {onRetirar && (
-        <Button type="button" size="sm" variant="ghost" disabled={retirando} onClick={onRetirar}>
+        <Button type="button" size="sm" variant="destructive" disabled={retirando} onClick={onRetirar}>
           Retirar
         </Button>
       )}
