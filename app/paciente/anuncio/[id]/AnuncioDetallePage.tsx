@@ -445,7 +445,6 @@ function SeccionPostularse({
               <Button
                 type="button"
                 size="sm"
-                variant="outline"
                 disabled={contraofertaMutation.isPending || !precio}
                 onClick={() => contraofertaMutation.mutate(Number(precio))}
               >
