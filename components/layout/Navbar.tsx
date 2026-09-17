@@ -28,7 +28,7 @@ interface NavLink {
 }
 
 const NAV_LINKS: Record<UserRole, NavLink[]> = {
-  PACIENTE: [
+  USUARIO: [
     { label: "Poner anuncio",   href: "/paciente/anuncio/nuevo", icon: <Megaphone className="h-4 w-4" /> },
     { label: "Buscar cuidador", href: "/paciente/buscar",        icon: <Search     className="h-4 w-4" /> },
     { label: "Ver historial",   href: "/paciente/historial",     icon: <History    className="h-4 w-4" /> },
@@ -42,12 +42,6 @@ const NAV_LINKS: Record<UserRole, NavLink[]> = {
     { label: "Gestionar cuidadores",href: "/admin/cuidadores",icon: <UserCheck       className="h-4 w-4" /> },
     { label: "Gestionar pacientes", href: "/admin/pacientes", icon: <Users           className="h-4 w-4" /> },
   ],
-};
-
-const ROLE_BADGE: Record<UserRole, { label: string; classes: string }> = {
-  PACIENTE: { label: "Paciente", classes: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300" },
-  CUIDADOR: { label: "Cuidador", classes: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
-  ADMIN:    { label: "Admin",    classes: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" },
 };
 
 /* ─── componente principal ───────────────────────────────────────── */
@@ -68,10 +62,10 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const links = user ? NAV_LINKS[user.role] : [];
+  const links = user ? NAV_LINKS[user.rol] : [];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-muted/30">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-muted/30 backdrop-blur-md supports-backdrop-filter:bg-muted/60">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
 
         {/* ── Logo ── */}
@@ -109,14 +103,10 @@ export default function Navbar() {
               >
                 {/* Avatar inicial */}
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
-                  {user.nombre[0]}{user.apellido[0]}
+                  {user.nombre[0]}{user.apellidos[0]}
                 </div>
                 <span className="hidden sm:block font-medium text-foreground">
-                  {user.nombre} {user.apellido}
-                </span>
-                {/* Badge de rol */}
-                <span className={`hidden sm:block rounded-full px-2 py-0.5 text-[10px] font-semibold ${ROLE_BADGE[user.role].classes}`}>
-                  {ROLE_BADGE[user.role].label}
+                  {user.nombre} {user.apellidos}
                 </span>
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
               </button>
@@ -126,7 +116,7 @@ export default function Navbar() {
                 <div className="absolute right-0 mt-2 w-56 rounded-xl border border-border bg-background shadow-lg ring-1 ring-black/5 dark:ring-white/10">
                   {/* Cabecera del dropdown */}
                   <div className="border-b border-border px-4 py-3">
-                    <p className="text-sm font-medium text-foreground">{user.nombre} {user.apellido}</p>
+                    <p className="text-sm font-medium text-foreground">{user.nombre} {user.apellidos}</p>
                     <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                   </div>
                   {/* Opciones */}
@@ -147,7 +137,7 @@ export default function Navbar() {
                       <KeyRound className="h-4 w-4 text-muted-foreground" />
                       Cambiar contraseña
                     </Link>
-                    {user.role === "ADMIN" && (
+                    {user.rol === "ADMIN" && (
                       <Link
                         href="/admin/configuracion"
                         onClick={() => setUserMenuOpen(false)}
@@ -177,7 +167,7 @@ export default function Navbar() {
                 href="/login"
                 className="rounded-md px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
-                Acceder
+                Iniciar sesión
               </Link>
               <Link
                 href="/registro"

@@ -164,11 +164,26 @@
   filter: drop-shadow(0 10px 28px rgb(24 24 27 / 0.28));
 }
 
+/*
+ * Se probo fondo blanco + borde negro (ver AppToaster.tsx), pero
+ * [data-sileo-pill]/[data-sileo-body] son dos <rect> SVG independientes
+ * que se animan por separado: donde se tocan (cabecera/cuerpo) cada uno
+ * pinta su propio trazo y queda una costura entrecortada. Sin tocar la
+ * libreria no hay forma limpia de unir ambos bordes en una animacion.
+ */
+
 [data-sileo-description] {
   text-align: right !important;
   width: fit-content !important;
   max-width: 100%;
   margin-left: auto;
+}
+
+/* La libreria pinta la descripcion al 50% de opacidad sobre el fondo
+   oscuro del toast; casi no se lee. La subimos a blanco practicamente
+   solido para que contraste igual que el titulo. */
+[data-sileo-viewport][data-theme="light"] [data-sileo-description] {
+  color: rgba(255, 255, 255, 0.92) !important;
 }
 
 [data-sileo-body] {

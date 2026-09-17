@@ -109,6 +109,7 @@ export default function CuidadorBuscarPage() {
             <div className="mb-3">
               <BuscadorUbicacion
                 onSelect={handleSearchSelect}
+                hospitales={MOCK_HOSPITALES}
                 trailing={<BotonMiUbicacion onLocated={handleMiUbicacion} />}
               />
             </div>
