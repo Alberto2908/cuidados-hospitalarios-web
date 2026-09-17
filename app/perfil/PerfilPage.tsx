@@ -9,7 +9,7 @@ import type { ActualizarPerfilDatos, TipoDocumento } from "@/lib/auth/api";
 import type { Hospital } from "@/lib/mock/hospitales";
 import SelectorProvincia from "@/components/anuncio/SelectorProvincia";
 import SelectorHospitalesMultiple from "@/components/perfil/SelectorHospitalesMultiple";
-import { User, Stethoscope, ShieldCheck, AlertTriangle, Lock, Building2, X } from "lucide-react";
+import { User, Stethoscope, ShieldCheck, AlertTriangle, Lock, Building2, X, Euro } from "lucide-react";
 
 const TIPOS_DOCUMENTO: TipoDocumento[] = ["DNI", "NIE", "NIF"];
 
@@ -225,6 +225,12 @@ function PerfilContenido({ user }: { user: AuthUser }) {
 
       {user.rol === "CUIDADOR" && (
         <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
+          <SeccionTarifa tarifaInicial={user.tarifaHora} />
+        </div>
+      )}
+
+      {user.rol === "CUIDADOR" && (
+        <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
           <SeccionHospitales hospitalesIniciales={user.hospitalesTrabajo ?? []} />
         </div>
       )}
@@ -300,6 +306,63 @@ function PerfilContenido({ user }: { user: AuthUser }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function SeccionTarifa({ tarifaInicial }: { tarifaInicial: number | null }) {
+  const { actualizarTarifaHora } = useAuth();
+  const [tarifa, setTarifa] = useState(tarifaInicial != null ? String(tarifaInicial) : "");
+  const [guardando, setGuardando] = useState(false);
+
+  async function handleGuardar() {
+    const valor = Number(tarifa);
+    if (!valor || valor <= 0) {
+      sileo.error({ title: "Indica una tarifa válida", description: "Debe ser un número mayor que 0." });
+      return;
+    }
+    setGuardando(true);
+    try {
+      await actualizarTarifaHora(valor);
+      sileo.success({ title: "Tarifa guardada", description: "Ya puedes postularte a anuncios con esta tarifa." });
+    } catch (err) {
+      const mensaje = err instanceof ApiError ? err.message : "No se ha podido guardar la tarifa.";
+      sileo.error({ title: "No se ha podido guardar", description: mensaje });
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 text-foreground">
+        <Euro className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+        <h2 className="text-lg font-semibold">Tu tarifa por hora</h2>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Es el precio de partida con el que te postulas a un anuncio. El paciente/familiar podrá proponerte un
+        precio distinto una vez te hayas postulado.
+      </p>
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          min="0.01"
+          step="0.5"
+          value={tarifa}
+          onChange={(e) => setTarifa(e.target.value)}
+          placeholder="Ej. 15"
+          className="w-32 rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-ring focus:ring-2 transition-shadow"
+        />
+        <span className="text-sm text-muted-foreground">€ / hora</span>
+        <button
+          type="button"
+          onClick={handleGuardar}
+          disabled={guardando}
+          className="ml-auto rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+        >
+          {guardando ? "Guardando..." : "Guardar tarifa"}
+        </button>
+      </div>
     </div>
   );
 }

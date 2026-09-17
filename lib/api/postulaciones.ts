@@ -16,11 +16,10 @@ export interface Postulacion {
   actualizadoEn: string;
 }
 
-export function postularse(anuncioId: string, precioHora: number): Promise<Postulacion> {
-  return apiFetch<Postulacion>(`/api/anuncios/${anuncioId}/postulaciones`, {
-    method: "POST",
-    body: JSON.stringify({ precioHora }),
-  });
+// Sin precioHora: la tarifa de partida es la que el cuidador tiene fijada
+// en su perfil (decision explicita, no se elige caso por caso al postularse).
+export function postularse(anuncioId: string): Promise<Postulacion> {
+  return apiFetch<Postulacion>(`/api/anuncios/${anuncioId}/postulaciones`, { method: "POST" });
 }
 
 export function listarPostulacionesPorAnuncio(anuncioId: string): Promise<Postulacion[]> {
