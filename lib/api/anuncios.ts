@@ -159,6 +159,15 @@ export async function crearAnuncio(payload: CrearAnuncioPayload): Promise<Anunci
   return toAnuncio(data);
 }
 
+/** Solo mientras el anuncio siga activo (autor se equivocó de día/hora/hospital). */
+export async function actualizarAnuncio(id: string, payload: CrearAnuncioPayload): Promise<Anuncio> {
+  const data = await apiFetch<AnuncioApi>(`/api/anuncios/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  return toAnuncio(data);
+}
+
 export function cancelarAnuncio(id: string, motivo?: string) {
   return apiFetch<void>(`/api/anuncios/${id}/cancelar`, {
     method: "POST",
@@ -175,6 +184,7 @@ export interface MiAnuncio {
   estado: EstadoAnuncio;
   seccion: SeccionMiAnuncio;
   postulacionesPendientes: number;
+  franjas: FranjaHoraria[];
   fechaInicioPrevista: string;
   creadoEn: string;
 }
@@ -186,13 +196,14 @@ interface MiAnuncioApi {
   estado: EstadoAnuncio;
   seccion: SeccionMiAnuncio;
   postulacionesPendientes: number;
+  franjas: FranjaApi[];
   fechaInicioPrevista: string;
   creadoEn: string;
 }
 
 export async function misAnuncios(): Promise<MiAnuncio[]> {
   const data = await apiFetch<MiAnuncioApi[]>("/api/anuncios/mios");
-  return data.map((a) => ({ ...a, hospital: toHospital(a.hospital) }));
+  return data.map((a) => ({ ...a, hospital: toHospital(a.hospital), franjas: a.franjas.map(toFranja) }));
 }
 
 export function misNotificacionesConteo(): Promise<{ total: number }> {

@@ -68,6 +68,8 @@ export interface MiPostulacion {
   estado: EstadoPostulacion;
   seccion: SeccionMiPostulacion;
   estadoServicio: EstadoServicio | null;
+  /** Pago ya procesado/retenido y todavía no visto — ver TODO.md (aviso solo tras el cobro real, no al aceptar). */
+  nuevoServicioAceptado: boolean;
   creadoEn: string;
 }
 
@@ -99,4 +101,9 @@ export function rechazarPostulacion(id: string): Promise<void> {
 
 export function retirarPostulacion(id: string): Promise<void> {
   return apiFetch<void>(`/api/postulaciones/${id}/retirar`, { method: "POST" });
+}
+
+/** Badge del navbar (cuidador): contraofertas del paciente que esperan su respuesta. */
+export function misNotificacionesConteo(): Promise<{ total: number }> {
+  return apiFetch<{ total: number }>("/api/postulaciones/mias/notificaciones-conteo");
 }

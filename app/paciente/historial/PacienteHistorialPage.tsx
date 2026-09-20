@@ -1,26 +1,51 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, MapPin, MessageSquare } from "lucide-react";
-import { misAnuncios, type MiAnuncio } from "@/lib/api/anuncios";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { sileo } from "sileo";
+import { MapPin, MessageSquare } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cancelarAnuncio, misAnuncios, type MiAnuncio } from "@/lib/api/anuncios";
+import { formatearFecha } from "@/lib/fecha";
 
+// "Cubierto" (nombre interno del backend) se muestra como "Aceptado": es lo
+// que entiende el paciente/familiar ("ya lo aceptó un cuidador"). El pago
+// real via Stripe llegara mas adelante sin cambiar este estado.
 const ESTADO_LABEL: Record<MiAnuncio["estado"], string> = {
   activo: "Activo",
-  cubierto: "Cubierto",
+  cubierto: "Aceptado",
   cancelado: "Cancelado",
 };
 
 const ESTADO_COLOR: Record<MiAnuncio["estado"], string> = {
-  activo: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  cubierto: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
+  activo: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
+  cubierto: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
 };
 
 export default function PacienteHistorialPage() {
+  const queryClient = useQueryClient();
+
+  // Mismo staleTime/poll que el badge del navbar (misNotificacionesConteo):
+  // sin esto, esta lista podia quedarse hasta 5 min desfasada (staleTime
+  // global) frente al numero ya actualizado del navbar, mostrando un total
+  // de notificaciones sin que ninguna tarjeta reflejara aun a que anuncio
+  // pertenecia.
   const { data: anuncios, isLoading } = useQuery({
     queryKey: ["anuncios", "mios"],
     queryFn: misAnuncios,
+    staleTime: 20 * 1000,
+    refetchInterval: 30 * 1000,
+  });
+
+  const cancelarMutation = useMutation({
+    mutationFn: (id: string) => cancelarAnuncio(id),
+    onSuccess: () => {
+      sileo.success({ title: "Anuncio cancelado" });
+      queryClient.invalidateQueries({ queryKey: ["anuncios", "mios"] });
+      queryClient.invalidateQueries({ queryKey: ["anuncios", "notificaciones-conteo"] });
+    },
+    onError: (error: Error) => sileo.error({ title: "No se pudo cancelar", description: error.message }),
   });
 
   const activos = anuncios?.filter((a) => a.seccion === "activo") ?? [];
@@ -53,7 +78,12 @@ export default function PacienteHistorialPage() {
             ) : (
               <div className="flex flex-col gap-3">
                 {activos.map((anuncio) => (
-                  <TarjetaMiAnuncio key={anuncio.id} anuncio={anuncio} />
+                  <TarjetaMiAnuncio
+                    key={anuncio.id}
+                    anuncio={anuncio}
+                    onCancelar={() => cancelarMutation.mutate(anuncio.id)}
+                    cancelando={cancelarMutation.isPending}
+                  />
                 ))}
               </div>
             )}
@@ -77,35 +107,67 @@ export default function PacienteHistorialPage() {
   );
 }
 
-function TarjetaMiAnuncio({ anuncio }: { anuncio: MiAnuncio }) {
+function TarjetaMiAnuncio({
+  anuncio,
+  onCancelar,
+  cancelando,
+}: {
+  anuncio: MiAnuncio;
+  onCancelar?: () => void;
+  cancelando?: boolean;
+}) {
   return (
-    <Link
-      href={`/paciente/anuncio/${anuncio.id}`}
-      className="flex items-start justify-between gap-3 rounded-2xl border border-border bg-background p-4 shadow-sm transition-all hover:bg-muted/40 hover:shadow-md"
-    >
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="font-medium text-foreground text-sm">{anuncio.titulo}</p>
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_COLOR[anuncio.estado]}`}>
-            {ESTADO_LABEL[anuncio.estado]}
-          </span>
-        </div>
+    <div className="flex items-stretch justify-between gap-3 rounded-2xl border border-border bg-background p-4 shadow-sm transition-all hover:bg-muted/40 hover:shadow-md">
+      <Link href={`/paciente/anuncio/${anuncio.id}`} className="min-w-0 flex-1 hover:opacity-80">
+        <p className="font-medium text-foreground text-sm">{anuncio.titulo}</p>
         <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
           <MapPin className="h-3 w-3 shrink-0" />
           <span className="truncate">{anuncio.hospital.nombre}</span>
         </div>
-        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-          <CalendarDays className="h-3 w-3 shrink-0" />
-          <span>Publicado el {new Date(anuncio.creadoEn).toLocaleDateString("es-ES")}</span>
-        </div>
-      </div>
+        {anuncio.franjas.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {anuncio.franjas.map((f, i) => (
+              <span key={i} className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground">
+                {formatearFecha(f.fecha)} · {f.diaEntero ? "Día entero" : `${f.horaDesde}–${f.horaHasta}`}
+              </span>
+            ))}
+          </div>
+        )}
+      </Link>
 
-      {anuncio.postulacionesPendientes > 0 && (
-        <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
-          <MessageSquare className="h-3 w-3" />
-          {anuncio.postulacionesPendientes}
-        </span>
-      )}
-    </Link>
+      <div className="flex shrink-0 flex-col items-end justify-between gap-2">
+        <div className="flex flex-col items-end gap-1.5">
+          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_COLOR[anuncio.estado]}`}>
+            {ESTADO_LABEL[anuncio.estado]}
+          </span>
+          {anuncio.postulacionesPendientes > 0 && (
+            <span className="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
+              <MessageSquare className="h-3 w-3" />
+              {anuncio.postulacionesPendientes}
+            </span>
+          )}
+        </div>
+
+        {anuncio.estado === "activo" && onCancelar && (
+          <div className="flex gap-2">
+            <Link href={`/paciente/anuncio/${anuncio.id}/editar`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              Modificar
+            </Link>
+            <Button
+              type="button"
+              size="sm"
+              disabled={cancelando}
+              onClick={() => {
+                if (confirm("¿Seguro que quieres cancelar este anuncio?")) {
+                  onCancelar();
+                }
+              }}
+            >
+              Cancelar
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
