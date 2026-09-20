@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
-import { CalendarDays, MapPin } from "lucide-react";
+import { CalendarDays, MapPin, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { misPostulacionesConSeccion, retirarPostulacion, type MiPostulacion } from "@/lib/api/postulaciones";
 
@@ -113,6 +113,13 @@ function TarjetaMiPostulacion({
   onRetirar?: () => void;
   retirando?: boolean;
 }) {
+  // Dos motivos de aviso, misma tarjeta: contraoferta del paciente/familiar
+  // sin responder (badge del navbar via contarEsperandoRespuestaCuidador), o
+  // pago ya procesado/retenido sin ver (postulacion.nuevoServicioAceptado —
+  // deliberadamente NO se activa solo con aceptar, ver TODO.md). Se marca en
+  // la tarjeta concreta para saber de cual se trata si hay varias.
+  const esperandoMiRespuesta = postulacion.estado === "pendiente" && postulacion.propuestoPor === "paciente";
+
   return (
     <div className="flex items-start justify-between gap-3 rounded-2xl border border-border bg-background p-4 shadow-sm">
       <Link href={`/paciente/anuncio/${postulacion.anuncioId}`} className="min-w-0 flex-1 hover:opacity-80">
@@ -135,11 +142,19 @@ function TarjetaMiPostulacion({
         </div>
       </Link>
 
-      {onRetirar && (
-        <Button type="button" size="sm" variant="destructive" disabled={retirando} onClick={onRetirar}>
-          Retirar
-        </Button>
-      )}
+      <div className="flex shrink-0 items-center gap-2">
+        {(esperandoMiRespuesta || postulacion.nuevoServicioAceptado) && (
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
+            <MessageSquare className="h-3 w-3" />
+            1
+          </span>
+        )}
+        {onRetirar && (
+          <Button type="button" size="sm" variant="destructive" disabled={retirando} onClick={onRetirar}>
+            Retirar
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

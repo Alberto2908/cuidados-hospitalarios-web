@@ -164,6 +164,13 @@
   filter: drop-shadow(0 10px 28px rgb(24 24 27 / 0.28));
 }
 
+/* La libreria pone text-transform: capitalize en el titulo (mayuscula en
+   cada palabra, "Anuncio Publicado"); nuestros titulos ya van en frase
+   normal ("Anuncio publicado") y quedan mal con esa transformacion. */
+[data-sileo-title] {
+  text-transform: none !important;
+}
+
 /*
  * Se probo fondo blanco + borde negro (ver AppToaster.tsx), pero
  * [data-sileo-pill]/[data-sileo-body] son dos <rect> SVG independientes
