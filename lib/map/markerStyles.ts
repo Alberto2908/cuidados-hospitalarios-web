@@ -102,6 +102,28 @@ export function buildMarkerHtml(
 }
 
 /**
+ * Punto de "mi ubicación" (estilo Google Maps): círculo azul sólido con
+ * borde blanco y un halo que pulsa (misma animación @keyframes marker-pulse
+ * que ya se inyecta en MapaHospitales para los demás marcadores).
+ */
+export function buildMiUbicacionHtml(): MarkerIconResult {
+  const S = 22;
+  return {
+    html: `
+      <div style="position:relative;width:${S}px;height:${S}px;">
+        <div style="position:absolute;inset:0;border-radius:50%;background:rgba(37,99,235,0.35);animation:marker-pulse 2.4s ease-out infinite;"></div>
+        <div style="
+          position:relative;width:${S}px;height:${S}px;border-radius:50%;
+          background:#2563eb;border:3px solid #fff;
+          box-shadow:0 1px 4px rgba(0,0,0,0.35);
+        "></div>
+      </div>`,
+    iconSize: [S, S],
+    iconAnchor: [S / 2, S / 2],
+  };
+}
+
+/**
  * Cluster de hospitales: burbuja suave con cruz + nº de hospitales agrupados.
  * El conteo de anuncios/cuidadores queda en las píldoras individuales.
  */
