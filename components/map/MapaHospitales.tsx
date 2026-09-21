@@ -9,6 +9,7 @@ import { DEFAULT_MAP_STYLE_ID, getMapTileStyle } from "@/lib/map/tileStyles";
 import {
   buildClusterSoftBubbleHtml,
   buildMarkerHtml,
+  buildMiUbicacionHtml,
 } from "@/lib/map/markerStyles";
 
 export interface HospitalMarker {
@@ -31,6 +32,8 @@ interface Props {
   selectedHospitalId?: string | null;
   /** Cuando cambia, el mapa hace flyTo a esa ubicación */
   focusTarget?: { lat: number; lng: number; zoom: number } | null;
+  /** Coordenadas de "mi ubicación": pinta un punto azul, fuera del clustering de hospitales */
+  miUbicacion?: { lat: number; lng: number } | null;
   /** Id de estilo de tiles (ver lib/map/tileStyles) */
   tileStyleId?: string;
 }
@@ -192,11 +195,13 @@ export default function MapaHospitales({
   onBoundsChange,
   selectedHospitalId,
   focusTarget,
+  miUbicacion,
   tileStyleId = DEFAULT_MAP_STYLE_ID,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markerGroupRef = useRef<MarkerClusterGroup | null>(null);
+  const miUbicacionMarkerRef = useRef<Marker | null>(null);
   const mapGenRef = useRef(0);
 
   const onClickRef = useRef(onHospitalClick);
@@ -337,6 +342,45 @@ export default function MapaHospitales({
       duration: 0.9,
     });
   }, [focusTarget]);
+
+  /* ── Punto de "mi ubicación" ── */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!isMapAlive(map)) return;
+
+    const gen = mapGenRef.current;
+    let cancelled = false;
+
+    loadLeafletWithCluster().then((L) => {
+      if (cancelled || gen !== mapGenRef.current || !isMapAlive(mapRef.current)) return;
+
+      if (miUbicacionMarkerRef.current) {
+        miUbicacionMarkerRef.current.remove();
+        miUbicacionMarkerRef.current = null;
+      }
+
+      if (!miUbicacion) return;
+
+      const built = buildMiUbicacionHtml();
+      const icon = L.divIcon({
+        className: "",
+        html: built.html,
+        iconSize: built.iconSize,
+        iconAnchor: built.iconAnchor,
+      });
+      const marker = L.marker([miUbicacion.lat, miUbicacion.lng], {
+        icon,
+        interactive: false,
+        zIndexOffset: 1000,
+      });
+      marker.addTo(map);
+      miUbicacionMarkerRef.current = marker;
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [miUbicacion]);
 
   return (
     <div ref={containerRef} className="h-full w-full" style={{ touchAction: "auto" }} />
