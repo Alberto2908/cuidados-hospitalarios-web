@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { sileo } from "sileo";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { ApiError } from "@/lib/api/client";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
@@ -15,36 +16,35 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
 
     if (!email || !password) {
-      setError("Introduce tu email y contraseña.");
+      sileo.error({ title: "Introduce tu email y contraseña" });
       return;
     }
 
     setEnviando(true);
     try {
       await login(email, password);
+      sileo.success({ title: "Sesión iniciada" });
       router.push("/");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se ha podido iniciar sesión.");
+      sileo.error({ title: err instanceof ApiError ? err.message : "No se ha podido iniciar sesión" });
     } finally {
       setEnviando(false);
     }
   }
 
   async function handleGoogleCredential(idToken: string) {
-    setError("");
     try {
       await loginConGoogle(idToken);
+      sileo.success({ title: "Sesión iniciada" });
       router.push("/");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "No se ha podido iniciar sesión con Google.");
+      sileo.error({ title: err instanceof ApiError ? err.message : "No se ha podido iniciar sesión con Google" });
     }
   }
 
@@ -67,12 +67,6 @@ export default function LoginPage() {
           onSubmit={handleSubmit}
           className="rounded-2xl border border-border bg-background p-6 shadow-sm space-y-5"
         >
-          {error && (
-            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
-              {error}
-            </div>
-          )}
-
           <GoogleLoginButton onCredential={handleGoogleCredential} />
 
           <div className="relative flex items-center gap-3 py-1">
