@@ -166,17 +166,24 @@ function drawMarkers(
 }
 
 /**
- * Radio de cluster en px según zoom.
- * Los hospitales más cercanos del mock están a ~1,75 km (Clínico–FJD).
- * A zoom ≥10 deben verse siempre separados; solo agrupamos al alejar mucho.
+ * Radio de cluster en px según zoom, SIN salto brusco entre valores (ese
+ * salto -provocado por `disableClusteringAtZoom`- era el que hacia que las
+ * burbujas desaparecieran un instante al cruzar cierto zoom). Igual que el
+ * store locator de fitnesspark.es (MarkerClusterer de Google Maps, grid de
+ * 30px) pero con radio variable en vez de fijo: con un radio fijo pequeño
+ * (14px) los hospitales mas cercanos del mock se ven separados a partir de
+ * zoom 10 -que es lo que buscamos-, pero a zoom de pais ese mismo radio es
+ * demasiado pequeño para fundir hospitales algo mas alejados entre si (p.
+ * ej. Madrid-Toledo), y se ven como clusters sueltos en vez de uno solo.
+ * Por eso el radio es mayor cuanto mas se aleja el mapa.
  */
 function clusterRadiusForZoom(zoom: number): number {
-  if (zoom <= 5) return 70;
+  if (zoom <= 5) return 65;
   if (zoom <= 6) return 48;
-  if (zoom <= 7) return 32;
-  if (zoom <= 8) return 22;
-  if (zoom <= 9) return 14;
-  return 8;
+  if (zoom <= 7) return 36;
+  if (zoom <= 8) return 26;
+  if (zoom <= 9) return 18;
+  return 14;
 }
 
 export default function MapaHospitales({
@@ -241,8 +248,6 @@ export default function MapaHospitales({
       }).addTo(map);
 
       const markerGroup = L.markerClusterGroup({
-        // A partir de zoom 10 (área metropolitana) todos los hospitales van sueltos
-        disableClusteringAtZoom: 10,
         maxClusterRadius: clusterRadiusForZoom,
         spiderfyOnMaxZoom: true,
         showCoverageOnHover: false,

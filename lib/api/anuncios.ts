@@ -98,6 +98,18 @@ async function apiGetPublico<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+async function apiPostPublico<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`Error al cargar ${path} (${response.status})`);
+  }
+  return response.json() as Promise<T>;
+}
+
 function hospitalIdsParams(hospitalIds: string[]): URLSearchParams {
   const params = new URLSearchParams();
   hospitalIds.forEach((id) => params.append("hospitalIds", id));
@@ -126,11 +138,14 @@ export async function fetchAnunciosPorHospitales(
   return { ...pagina, content: pagina.content.map(toAnuncio) };
 }
 
-/** Solo cuenta (para los numeros de los marcadores del mapa), nunca trae anuncios. */
+/**
+ * Solo cuenta (para los numeros de los marcadores del mapa), nunca trae
+ * anuncios. POST con el listado en el body: ver el comentario del mismo
+ * cambio en lib/api/cuidadores.ts (URL demasiado larga con ~850 hospitales).
+ */
 export async function fetchConteoAnunciosPorHospitales(hospitalIds: string[]): Promise<Record<string, number>> {
   if (hospitalIds.length === 0) return {};
-  const params = hospitalIdsParams(hospitalIds);
-  return apiGetPublico<Record<string, number>>(`/api/anuncios/conteo?${params}`);
+  return apiPostPublico<Record<string, number>>("/api/anuncios/conteo", hospitalIds);
 }
 
 // apiFetch (no apiGetPublico) a proposito: envia la cookie de sesion, asi el
