@@ -54,17 +54,18 @@ export default function PacienteBuscarPage() {
     [hospitales, bounds],
   );
 
-  const idsVisibles = useMemo(
-    () => hospitalesVisibles.map((h) => h.id).sort(),
-    [hospitalesVisibles],
-  );
+  const idsTodos = useMemo(() => hospitales.map((h) => h.id).sort(), [hospitales]);
 
-  // Nunca trae cuidadores, solo cuenta cuantos hay por hospital -> alimenta
-  // los numeros de los marcadores sin paginar nada (ver TODO.md).
+  // Se pide UNA vez para todos los hospitales (no solo los visibles): al
+  // alejar el zoom, idsVisibles podia llegar a incluir cientos de
+  // hospitales y la URL con tantos hospitalIds= fallaba (net::ERR_FAILED),
+  // dejando conteos vacio y sin ningun marcador en el mapa. Igual que el
+  // buscador de fitnesspark.es, que carga todos sus clubes de una vez y
+  // agrupa en el cliente, en vez de re-pedir datos en cada bounds change.
   const { data: conteos = {} } = useQuery({
-    queryKey: ["cuidadores", "conteo", idsVisibles],
-    queryFn: () => fetchConteoCuidadoresPorHospitales(idsVisibles),
-    enabled: idsVisibles.length > 0,
+    queryKey: ["cuidadores", "conteo", idsTodos],
+    queryFn: () => fetchConteoCuidadoresPorHospitales(idsTodos),
+    enabled: idsTodos.length > 0,
     staleTime: 60 * 1000,
   });
 

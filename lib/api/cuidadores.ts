@@ -34,6 +34,18 @@ function hospitalIdsParams(hospitalIds: string[]): URLSearchParams {
   return params;
 }
 
+async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`Error al cargar ${path} (${response.status})`);
+  }
+  return response.json() as Promise<T>;
+}
+
 /**
  * Siempre paginado: con miles de cuidadores en un mismo hospital esto no
  * puede traerlos todos de golpe (ver TODO.md, escalabilidad del buscador).
@@ -52,11 +64,15 @@ export function fetchCuidadoresPorHospitales(
   return apiGet<PaginaCuidadores>(`/api/cuidadores?${params}`);
 }
 
-/** Solo cuenta (para los numeros de los marcadores del mapa), nunca trae cuidadores. */
+/**
+ * Solo cuenta (para los numeros de los marcadores del mapa), nunca trae
+ * cuidadores. POST con el listado en el body -a proposito, no GET+query-:
+ * con ~850 hospitales una URL con un hospitalIds= por cada uno supera el
+ * limite del navegador y la peticion fallaba en seco.
+ */
 export async function fetchConteoCuidadoresPorHospitales(
   hospitalIds: string[],
 ): Promise<Record<string, number>> {
   if (hospitalIds.length === 0) return {};
-  const params = hospitalIdsParams(hospitalIds);
-  return apiGet<Record<string, number>>(`/api/cuidadores/conteo?${params}`);
+  return apiPost<Record<string, number>>("/api/cuidadores/conteo", hospitalIds);
 }

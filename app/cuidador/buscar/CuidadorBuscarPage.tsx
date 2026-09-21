@@ -48,14 +48,15 @@ export default function CuidadorBuscarPage() {
     [hospitales, bounds],
   );
 
-  const idsVisibles = useMemo(() => hospitalesVisibles.map((h) => h.id).sort(), [hospitalesVisibles]);
+  const idsTodos = useMemo(() => hospitales.map((h) => h.id).sort(), [hospitales]);
 
-  // Nunca trae anuncios, solo cuenta cuantos hay activos por hospital -> los
-  // numeros de los marcadores del mapa (mismo patron que /paciente/buscar).
+  // Se pide UNA vez para todos los hospitales, no solo los visibles: ver el
+  // comentario en PacienteBuscarPage (mismo patron) sobre por que filtrar
+  // por bounds aqui rompia el mapa a zooms bajos.
   const { data: conteos = {} } = useQuery({
-    queryKey: ["anuncios", "conteo", idsVisibles],
-    queryFn: () => fetchConteoAnunciosPorHospitales(idsVisibles),
-    enabled: idsVisibles.length > 0,
+    queryKey: ["anuncios", "conteo", idsTodos],
+    queryFn: () => fetchConteoAnunciosPorHospitales(idsTodos),
+    enabled: idsTodos.length > 0,
     staleTime: 60 * 1000,
   });
 
