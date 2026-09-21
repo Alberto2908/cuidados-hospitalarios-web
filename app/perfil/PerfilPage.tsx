@@ -10,6 +10,7 @@ import type { Hospital } from "@/lib/mock/hospitales";
 import SelectorProvincia from "@/components/anuncio/SelectorProvincia";
 import SelectorHospitalesMultiple from "@/components/perfil/SelectorHospitalesMultiple";
 import { User, Stethoscope, ShieldCheck, AlertTriangle, Lock, Building2, X, Euro } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 const TIPOS_DOCUMENTO: TipoDocumento[] = ["DNI", "NIE", "NIF"];
 
@@ -122,17 +123,25 @@ function PerfilContenido({ user }: { user: AuthUser }) {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-12">
-      <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
-          {user.nombre[0]}
-          {user.apellidos[0]}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
+            {user.nombre[0]}
+            {user.apellidos[0]}
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">
+              {user.nombre} {user.apellidos}
+            </h1>
+            <p className="text-sm text-muted-foreground">{user.email}</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">
-            {user.nombre} {user.apellidos}
-          </h1>
-          <p className="text-sm text-muted-foreground">{user.email}</p>
-        </div>
+
+        {user.rol === "CUIDADOR" && (
+          <div className="w-80 shrink-0">
+            <SeccionCompletitud user={user} />
+          </div>
+        )}
       </div>
 
       {/* Datos personales */}
@@ -306,6 +315,44 @@ function PerfilContenido({ user }: { user: AuthUser }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Interpola de rojo (0%) a verde (100%). Con una interpolacion lineal del
+ * hue, a partir de ~hue 90 el ojo ya lo percibe como verde -> al 75% se veia
+ * verde en vez de ambar. Con easing cubico el hue crece despacio al
+ * principio (rojo/naranja se mantienen mas tiempo) y solo se acerca al
+ * verde cerca del 100%.
+ */
+function colorCompletitud(porcentaje: number): string {
+  const t = porcentaje / 100;
+  const hue = t ** 3 * 142; // 0 = rojo, 142 ≈ verde emerald
+  return `hsl(${hue}, 75%, 45%)`;
+}
+
+function SeccionCompletitud({ user }: { user: AuthUser }) {
+  const items = [
+    { label: "Teléfono de contacto", hecho: Boolean(user.telefono) },
+    { label: "Tarifa por hora", hecho: user.tarifaHora != null },
+    { label: "Hospitales en los que trabajas", hecho: (user.hospitalesTrabajo?.length ?? 0) > 0 },
+    { label: "Datos de cobro verificados", hecho: Boolean(user.stripeCobrosHabilitados) },
+  ];
+  const completados = items.filter((item) => item.hecho).length;
+  const porcentaje = Math.round((completados / items.length) * 100);
+
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between text-sm">
+        <span className="font-medium text-foreground">Perfil de cuidador completo</span>
+        <span className="font-semibold text-foreground">{porcentaje}%</span>
+      </div>
+      <Progress
+        value={porcentaje}
+        indicatorColor={colorCompletitud(porcentaje)}
+        aria-label="Perfil de cuidador completo"
+      />
     </div>
   );
 }
