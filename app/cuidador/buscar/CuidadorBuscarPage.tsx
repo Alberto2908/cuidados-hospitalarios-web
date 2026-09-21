@@ -2,9 +2,15 @@
 
 import { useState, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { MapPin, Clock, X } from "lucide-react";
-import { MOCK_HOSPITALES } from "@/lib/mock/hospitales";
-import { MOCK_ANUNCIOS, Anuncio } from "@/lib/mock/anuncios";
+import Link from "next/link";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { MapPin, CalendarDays, X } from "lucide-react";
+import { fetchTodosLosHospitales } from "@/lib/api/hospitales";
+import {
+  fetchAnunciosPorHospitales,
+  fetchConteoAnunciosPorHospitales,
+  type Anuncio,
+} from "@/lib/api/anuncios";
 import type { HospitalMarker, MapBounds } from "@/components/map/MapaHospitales";
 import BuscadorUbicacion from "@/components/map/BuscadorUbicacion";
 import BotonMiUbicacion from "@/components/map/BotonMiUbicacion";
@@ -19,16 +25,7 @@ const MapaHospitales = dynamic(() => import("@/components/map/MapaHospitales"), 
   ),
 });
 
-const TURNO_LABEL: Record<Anuncio["turno"], string> = {
-  mañana: "Mañana", tarde: "Tarde", noche: "Noche", flexible: "Flexible",
-};
-
-const TURNO_COLOR: Record<Anuncio["turno"], string> = {
-  mañana:   "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  tarde:    "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
-  noche:    "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
-  flexible: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
-};
+const TAMANO_PAGINA = 20;
 
 function hospitalEnBounds(h: { lat: number; lng: number }, b: MapBounds | null) {
   if (!b) return true;
@@ -37,33 +34,58 @@ function hospitalEnBounds(h: { lat: number; lng: number }, b: MapBounds | null) 
 
 export default function CuidadorBuscarPage() {
   const [selectedHospitalId, setSelectedHospitalId] = useState<string | null>(null);
-  const [filtroTurno, setFiltroTurno] = useState<Anuncio["turno"] | "todos">("todos");
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   const [focusTarget, setFocusTarget] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
 
-  const anunciosActivos = useMemo(() => MOCK_ANUNCIOS.filter((a) => a.estado === "activo"), []);
+  const { data: hospitales = [] } = useQuery({
+    queryKey: ["hospitales", "todos"],
+    queryFn: fetchTodosLosHospitales,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const hospitalesVisibles = useMemo(
+    () => hospitales.filter((h) => hospitalEnBounds(h, bounds)),
+    [hospitales, bounds],
+  );
+
+  const idsTodos = useMemo(() => hospitales.map((h) => h.id).sort(), [hospitales]);
+
+  // Se pide UNA vez para todos los hospitales, no solo los visibles: ver el
+  // comentario en PacienteBuscarPage (mismo patron) sobre por que filtrar
+  // por bounds aqui rompia el mapa a zooms bajos.
+  const { data: conteos = {} } = useQuery({
+    queryKey: ["anuncios", "conteo", idsTodos],
+    queryFn: () => fetchConteoAnunciosPorHospitales(idsTodos),
+    enabled: idsTodos.length > 0,
+    staleTime: 60 * 1000,
+  });
 
   const markers: HospitalMarker[] = useMemo(
     () =>
-      MOCK_HOSPITALES.map((h) => ({
-        hospital: h,
-        count: anunciosActivos.filter((a) => a.hospitalId === h.id).length,
-        color: "sky" as const,
-      })).filter((m) => m.count > 0),
-    [anunciosActivos],
+      hospitalesVisibles
+        .map((h) => ({ hospital: h, count: conteos[h.id] ?? 0, color: "sky" as const }))
+        .filter((m) => m.count > 0),
+    [hospitalesVisibles, conteos],
   );
 
-  const anunciosFiltrados = useMemo(() => {
-    return anunciosActivos.filter((a) => {
-      const hospital = MOCK_HOSPITALES.find((h) => h.id === a.hospitalId);
-      const enVista = hospital ? hospitalEnBounds(hospital, bounds) : false;
-      const coincideHosp = selectedHospitalId ? a.hospitalId === selectedHospitalId : true;
-      const coincideTurno = filtroTurno === "todos" || a.turno === filtroTurno;
-      return enVista && coincideHosp && coincideTurno;
-    });
-  }, [anunciosActivos, bounds, selectedHospitalId, filtroTurno]);
+  const {
+    data: anunciosData,
+    fetchNextPage,
+    hasNextPage,
+    isFetching: cargandoAnuncios,
+  } = useInfiniteQuery({
+    queryKey: ["anuncios", "busqueda", selectedHospitalId],
+    queryFn: ({ pageParam }) =>
+      fetchAnunciosPorHospitales([selectedHospitalId as string], pageParam, TAMANO_PAGINA),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => (lastPage.page + 1 < lastPage.totalPages ? lastPage.page + 1 : undefined),
+    enabled: Boolean(selectedHospitalId),
+  });
 
-  const hospitalSeleccionado = MOCK_HOSPITALES.find((h) => h.id === selectedHospitalId);
+  const anuncios: Anuncio[] = useMemo(() => anunciosData?.pages.flatMap((p) => p.content) ?? [], [anunciosData]);
+  const totalAnuncios = anunciosData?.pages[0]?.totalElements ?? 0;
+
+  const hospitalSeleccionado = hospitales.find((h) => h.id === selectedHospitalId);
 
   const handleMarkerClick = useCallback((id: string) => {
     setSelectedHospitalId((prev) => (prev === id ? null : id));
@@ -89,7 +111,7 @@ export default function CuidadorBuscarPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">Buscar anuncios</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          La lista muestra solo los anuncios de los hospitales visibles en el mapa
+          Selecciona un hospital en el mapa para ver los anuncios activos ahí
         </p>
       </div>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
@@ -109,7 +131,7 @@ export default function CuidadorBuscarPage() {
             <div className="mb-3">
               <BuscadorUbicacion
                 onSelect={handleSearchSelect}
-                hospitales={MOCK_HOSPITALES}
+                hospitales={hospitales}
                 trailing={<BotonMiUbicacion onLocated={handleMiUbicacion} />}
               />
             </div>
@@ -128,71 +150,66 @@ export default function CuidadorBuscarPage() {
                 </button>
               </div>
             )}
-
-            <div className="flex flex-wrap gap-1.5">
-              {(["todos", "mañana", "tarde", "noche", "flexible"] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setFiltroTurno(t)}
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
-                    filtroTurno === t
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
-                  }`}
-                >
-                  {t === "todos" ? "Todos" : TURNO_LABEL[t]}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div className="scrollbar-subtle flex flex-1 flex-col gap-3 overflow-y-auto px-1 py-3">
-            {anunciosFiltrados.length === 0 ? (
+            {!selectedHospitalId ? (
               <div className="flex flex-col items-center justify-center py-16 text-center text-sm text-muted-foreground gap-2">
                 <MapPin className="h-8 w-8 opacity-30" />
-                <p>No hay anuncios en la zona</p>
-                <p className="text-xs">Aleja el mapa o desplázate para ver más</p>
+                <p>Selecciona un hospital en el mapa</p>
+                <p className="text-xs">Los marcadores muestran cuántos anuncios hay activos</p>
+              </div>
+            ) : anuncios.length === 0 && !cargandoAnuncios ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center text-sm text-muted-foreground gap-2">
+                <MapPin className="h-8 w-8 opacity-30" />
+                <p>No hay anuncios en este hospital</p>
               </div>
             ) : (
-              anunciosFiltrados.map((anuncio) => {
-                const hospital = MOCK_HOSPITALES.find((h) => h.id === anuncio.hospitalId);
-                return (
-                  <div
-                    key={anuncio.id}
-                    className="rounded-2xl bg-muted/20 p-4 shadow-sm transition-all hover:bg-muted/40 hover:shadow-md"
+              <>
+                {anuncios.map((anuncio) => (
+                  <TarjetaAnuncio key={anuncio.id} anuncio={anuncio} />
+                ))}
+                {hasNextPage && (
+                  <button
+                    type="button"
+                    onClick={() => fetchNextPage()}
+                    disabled={cargandoAnuncios}
+                    className="rounded-lg border border-input bg-background py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-60"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-medium text-foreground text-sm leading-snug">{anuncio.titulo}</p>
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${TURNO_COLOR[anuncio.turno]}`}>
-                        <Clock className="inline h-3 w-3 mr-0.5 -mt-0.5" />
-                        {TURNO_LABEL[anuncio.turno]}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{anuncio.descripcion}</p>
-                    {hospital && (
-                      <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3 shrink-0" />
-                        <span className="truncate">{hospital.nombre}</span>
-                      </div>
-                    )}
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {anuncio.necesidades.slice(0, 3).map((n) => (
-                        <span key={n} className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-                          {n}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })
+                    {cargandoAnuncios ? "Cargando…" : "Cargar más"}
+                  </button>
+                )}
+              </>
             )}
           </div>
 
-          <div className="shrink-0 px-1 py-2 text-xs text-muted-foreground">
-            {anunciosFiltrados.length} {anunciosFiltrados.length === 1 ? "anuncio" : "anuncios"} en la zona
-          </div>
+          {selectedHospitalId && anunciosData && (
+            <div className="shrink-0 px-1 py-2 text-xs text-muted-foreground">
+              {totalAnuncios} {totalAnuncios === 1 ? "anuncio" : "anuncios"} en este hospital
+            </div>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function TarjetaAnuncio({ anuncio }: { anuncio: Anuncio }) {
+  return (
+    <Link
+      href={`/paciente/anuncio/${anuncio.id}`}
+      className="block rounded-2xl bg-muted/20 p-4 shadow-sm transition-all hover:bg-muted/40 hover:shadow-md"
+    >
+      <p className="font-medium text-foreground text-sm leading-snug">{anuncio.titulo}</p>
+      <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{anuncio.descripcion}</p>
+      <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+        <MapPin className="h-3 w-3 shrink-0" />
+        <span className="truncate">{anuncio.hospital.nombre}</span>
+      </div>
+      <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+        <CalendarDays className="h-3 w-3 shrink-0" />
+        <span>Publicado por {anuncio.pacienteNombre}</span>
+      </div>
+    </Link>
   );
 }

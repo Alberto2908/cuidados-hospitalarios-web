@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Search, Users, FileText, UserX } from "lucide-react";
 import { MOCK_PACIENTES, Paciente } from "@/lib/mock/usuarios";
+import { formatearFecha } from "@/lib/fecha";
 
 const ESTADO_STYLES: Record<Paciente["estado"], string> = {
   activo:     "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
@@ -117,7 +118,7 @@ export default function AdminPacientesPage() {
                     </td>
                     <td className="px-4 py-3.5 text-muted-foreground hidden sm:table-cell">{p.telefono}</td>
                     <td className="px-4 py-3.5 text-muted-foreground hidden md:table-cell">
-                      {new Date(p.fechaRegistro).toLocaleDateString("es-ES")}
+                      {formatearFecha(p.fechaRegistro)}
                     </td>
                     <td className="px-4 py-3.5 text-center hidden lg:table-cell">
                       <span className="font-medium text-foreground">{p.anunciosActivos}</span>
