@@ -36,6 +36,7 @@ export default function CuidadorBuscarPage() {
   const [selectedHospitalId, setSelectedHospitalId] = useState<string | null>(null);
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   const [focusTarget, setFocusTarget] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
+  const [miUbicacion, setMiUbicacion] = useState<{ lat: number; lng: number } | null>(null);
 
   const { data: hospitales = [] } = useQuery({
     queryKey: ["hospitales", "todos"],
@@ -101,6 +102,7 @@ export default function CuidadorBuscarPage() {
   const handleMiUbicacion = useCallback(
     (coords: { lat: number; lng: number; zoom: number }) => {
       setFocusTarget(coords);
+      setMiUbicacion({ lat: coords.lat, lng: coords.lng });
       setSelectedHospitalId(null);
     },
     [],
@@ -123,6 +125,7 @@ export default function CuidadorBuscarPage() {
             onBoundsChange={handleBoundsChange}
             selectedHospitalId={selectedHospitalId}
             focusTarget={focusTarget}
+            miUbicacion={miUbicacion}
           />
         </div>
 
