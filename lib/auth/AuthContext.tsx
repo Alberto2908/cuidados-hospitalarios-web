@@ -25,6 +25,7 @@ interface AuthContextType {
   sincronizarStripe: () => Promise<AuthUser>;
   cambiarContrasena: (actual: string, nueva: string) => Promise<void>;
   actualizarHospitales: (hospitalIds: string[]) => Promise<Hospital[]>;
+  actualizarTarifaHora: (tarifaHora: number) => Promise<AuthUser>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -95,6 +96,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const actualizarTarifaHoraMutation = useMutation({
+    mutationFn: (tarifaHora: number) => authApi.actualizarTarifaHora(tarifaHora),
+    onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
+  });
+
   return (
     <AuthContext.Provider
       value={{
@@ -111,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sincronizarStripe: () => sincronizarStripeMutation.mutateAsync(),
         cambiarContrasena: (actual, nueva) => cambiarContrasenaMutation.mutateAsync({ actual, nueva }),
         actualizarHospitales: (hospitalIds) => actualizarHospitalesMutation.mutateAsync(hospitalIds),
+        actualizarTarifaHora: (tarifaHora) => actualizarTarifaHoraMutation.mutateAsync(tarifaHora),
       }}
     >
       {children}

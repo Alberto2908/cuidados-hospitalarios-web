@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import {
   HeartPulse,
   Menu,
@@ -19,6 +20,17 @@ import {
   Settings,
 } from "lucide-react";
 import { useAuth, UserRole } from "@/lib/auth/AuthContext";
+import { misNotificacionesConteo as misNotificacionesConteoAnuncios } from "@/lib/api/anuncios";
+import { misNotificacionesConteo as misNotificacionesConteoPostulaciones } from "@/lib/api/postulaciones";
+
+// Notificaciones por rol: para USUARIO/CUIDADOR-como-paciente, postulaciones
+// que esperan su respuesta en sus anuncios activos (ver backend
+// AnuncioService.contarNotificacionesPendientes); para CUIDADOR, sus propias
+// postulaciones donde el paciente acaba de contraofertar (ver backend
+// PostulacionService.contarNotificacionesPendientes). Cada href de "mis
+// anuncios/postulaciones" tiene como mucho un contador activo a la vez.
+const HREF_NOTIFICACIONES_PACIENTE = "/paciente/historial";
+const HREF_NOTIFICACIONES_CUIDADOR = "/cuidador/historial";
 
 /* ─── tipos de enlace de nav ─────────────────────────────────────── */
 interface NavLink {
@@ -31,11 +43,11 @@ const NAV_LINKS: Record<UserRole, NavLink[]> = {
   USUARIO: [
     { label: "Poner anuncio",   href: "/paciente/anuncio/nuevo", icon: <Megaphone className="h-4 w-4" /> },
     { label: "Buscar cuidador", href: "/paciente/buscar",        icon: <Search     className="h-4 w-4" /> },
-    { label: "Ver historial",   href: "/paciente/historial",     icon: <History    className="h-4 w-4" /> },
+    { label: "Mis anuncios",    href: "/paciente/historial",     icon: <History    className="h-4 w-4" /> },
   ],
   CUIDADOR: [
     { label: "Buscar anuncio", href: "/cuidador/buscar",    icon: <Search  className="h-4 w-4" /> },
-    { label: "Ver historial",  href: "/cuidador/historial", icon: <History className="h-4 w-4" /> },
+    { label: "Mis postulaciones", href: "/cuidador/historial", icon: <History className="h-4 w-4" /> },
   ],
   ADMIN: [
     { label: "Gestionar anuncios",  href: "/admin/anuncios",  icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -64,6 +76,29 @@ export default function Navbar() {
 
   const links = user ? NAV_LINKS[user.rol] : [];
 
+  const esPaciente = user?.rol === "USUARIO";
+  const esCuidador = user?.rol === "CUIDADOR";
+
+  const { data: notificacionesAnuncios } = useQuery({
+    queryKey: ["anuncios", "notificaciones-conteo"],
+    queryFn: misNotificacionesConteoAnuncios,
+    enabled: isAuthenticated && esPaciente,
+    staleTime: 20 * 1000,
+    refetchInterval: 30 * 1000,
+  });
+  const { data: notificacionesPostulaciones } = useQuery({
+    queryKey: ["postulaciones", "notificaciones-conteo"],
+    queryFn: misNotificacionesConteoPostulaciones,
+    enabled: isAuthenticated && esCuidador,
+    staleTime: 20 * 1000,
+    refetchInterval: 30 * 1000,
+  });
+
+  const notificacionesPorHref: Record<string, number> = {
+    [HREF_NOTIFICACIONES_PACIENTE]: notificacionesAnuncios?.total ?? 0,
+    [HREF_NOTIFICACIONES_CUIDADOR]: notificacionesPostulaciones?.total ?? 0,
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-muted/30 backdrop-blur-md supports-backdrop-filter:bg-muted/60">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -87,6 +122,11 @@ export default function Navbar() {
               >
                 {link.icon}
                 {link.label}
+                {(notificacionesPorHref[link.href] ?? 0) > 0 && (
+                  <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                    {notificacionesPorHref[link.href]}
+                  </span>
+                )}
               </Link>
             ))}
           </nav>
@@ -204,6 +244,11 @@ export default function Navbar() {
               >
                 {link.icon}
                 {link.label}
+                {(notificacionesPorHref[link.href] ?? 0) > 0 && (
+                  <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                    {notificacionesPorHref[link.href]}
+                  </span>
+                )}
               </Link>
             ))}
             {/* Perfil en móvil */}
