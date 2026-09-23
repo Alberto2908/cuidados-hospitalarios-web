@@ -18,6 +18,7 @@ import {
   Building2,
   Bell,
   MapPin,
+  BarChart3,
 } from "lucide-react";
 import { useAuth, UserRole, type AuthUser } from "@/lib/auth/AuthContext";
 import { misNotificacionesConteo as misNotificacionesAnuncios } from "@/lib/api/anuncios";
@@ -67,6 +68,12 @@ const ACCESOS_POR_ROL: Record<UserRole, AccesoRapido[]> = {
     },
   ],
   ADMIN: [
+    {
+      label: "Dashboard",
+      description: "Métricas y actividad de toda la plataforma",
+      href: "/admin/dashboard",
+      icon: <BarChart3 className="h-5 w-5" />,
+    },
     {
       label: "Gestionar anuncios",
       description: "Revisa los anuncios de la plataforma",
