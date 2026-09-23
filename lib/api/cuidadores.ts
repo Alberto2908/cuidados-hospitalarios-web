@@ -12,6 +12,18 @@ export interface CuidadorPublico {
   hospitales: Hospital[];
 }
 
+export interface CuidadorDetalle {
+  id: string;
+  nombre: string;
+  apellidos: string;
+  tarifaHora: number | null;
+  identidadVerificada: boolean;
+  /** Desde cuando tiene perfil de cuidador (ISO datetime), para calcular la antigüedad. */
+  cuidadorDesde: string;
+  cuidadosRealizados: number;
+  hospitales: Hospital[];
+}
+
 export interface PaginaCuidadores {
   content: CuidadorPublico[];
   page: number;
@@ -62,6 +74,11 @@ export function fetchCuidadoresPorHospitales(
   params.set("page", String(page));
   params.set("size", String(size));
   return apiGet<PaginaCuidadores>(`/api/cuidadores?${params}`);
+}
+
+/** Ficha publica de detalle de un cuidador (pantalla completa desde el buscador). */
+export function fetchCuidadorDetalle(id: string): Promise<CuidadorDetalle> {
+  return apiGet<CuidadorDetalle>(`/api/cuidadores/${id}`);
 }
 
 /**
