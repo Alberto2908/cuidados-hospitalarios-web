@@ -20,6 +20,7 @@ import {
 import {
   aceptarPostulacion,
   actualizarPrecioPostulacion,
+  etiquetaEstadoPostulacion,
   listarMisPostulaciones,
   listarPostulacionesPorAnuncio,
   postularse,
@@ -353,28 +354,35 @@ function FilaPostulacion({
         <p className="font-medium text-foreground text-sm">
           {postulacion.cuidadorNombre}
         </p>
-        <EstadoPostulacionBadge estado={postulacion.estado} />
+        <EstadoPostulacionBadge postulacion={postulacion} esCuidador={false} />
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Precio por hora:{" "}
-        <strong className="text-foreground">{postulacion.precioHora} €</strong>{" "}
-        (
+      <p className="mt-1 text-sm text-foreground">
+        Precio por hora: <strong>{postulacion.precioHora} €</strong> (
         {postulacion.propuestoPor === "cuidador"
           ? "enviado por el cuidador"
           : "enviado por ti"}
         )
       </p>
-      <p className="text-xs text-muted-foreground">
-        Coste total para este servicio ({horas}h):{" "}
-        <strong className="text-foreground">{importeTotal} €</strong>
+      <p className="text-sm text-foreground">
+        Coste total para este servicio ({horas}h): <strong>{importeTotal} €</strong>
       </p>
 
       {postulacion.estado === "aceptada" && (
-        <p className="mt-2 text-sm text-emerald-600 dark:text-emerald-400">
-          {postulacion.propuestoPor === "cuidador"
-            ? `Aceptaste la propuesta de ${postulacion.cuidadorNombre} (${postulacion.precioHora} €/hora).`
-            : `${postulacion.cuidadorNombre} aceptó tu propuesta de ${postulacion.precioHora} €/hora.`}
-        </p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/50 dark:bg-emerald-900/20">
+          <p className="text-sm text-emerald-700 dark:text-emerald-400">
+            {postulacion.propuestoPor === "cuidador"
+              ? `Aceptaste la propuesta de ${postulacion.cuidadorNombre}. Falta completar el pago.`
+              : `${postulacion.cuidadorNombre} aceptó tu propuesta. Falta completar el pago.`}
+          </p>
+          {/* TODO(stripe): abrir el pago real en vez de este placeholder, ver TODO.md "Cobro real via Stripe" */}
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => sileo.warning({ title: "Disponible próximamente", description: "El cobro real llegará con la integración de pagos." })}
+          >
+            Pagar
+          </Button>
+        </div>
       )}
       {postulacion.estado === "rechazada" && (
         <p className="mt-2 text-sm text-muted-foreground">Rechazaste esta postulación.</p>
@@ -559,7 +567,7 @@ function SeccionPostularse({
       ) : (
         <div className="mt-3">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm text-foreground">
+            <p className="text-base text-foreground">
               Precio propuesto:{" "}
               <strong>{miPostulacion.precioHora} €/hora</strong> (
               {miPostulacion.propuestoPor === "cuidador"
@@ -567,12 +575,16 @@ function SeccionPostularse({
                 : "enviado por el paciente/familiar"}
               )
             </p>
-            <EstadoPostulacionBadge estado={miPostulacion.estado} />
+            <EstadoPostulacionBadge postulacion={miPostulacion} esCuidador />
           </div>
+          <p className="text-base text-foreground">
+            Coste total para este servicio ({horas}h):{" "}
+            <strong>{Math.round(miPostulacion.precioHora * horas * 100) / 100} €</strong>
+          </p>
 
-          {miPostulacion.estado === "pendiente" && (
+          {(miPostulacion.estado === "pendiente" || miPostulacion.estado === "aceptada") && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              {miPostulacion.propuestoPor === "paciente" && (
+              {miPostulacion.estado === "pendiente" && miPostulacion.propuestoPor === "paciente" && (
                 <Button
                   type="button"
                   size="sm"
@@ -582,19 +594,21 @@ function SeccionPostularse({
                   Aceptar
                 </Button>
               )}
-              <Button
-                type="button"
-                size="sm"
-                variant={
-                  miPostulacion.propuestoPor === "paciente"
-                    ? "outline"
-                    : "default"
-                }
-                disabled={contraofertaMutation.isPending}
-                onClick={() => setModalAbierto(true)}
-              >
-                Enviar nueva propuesta
-              </Button>
+              {miPostulacion.estado === "pendiente" && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={
+                    miPostulacion.propuestoPor === "paciente"
+                      ? "outline"
+                      : "default"
+                  }
+                  disabled={contraofertaMutation.isPending}
+                  onClick={() => setModalAbierto(true)}
+                >
+                  Enviar nueva propuesta
+                </Button>
+              )}
               <Button
                 type="button"
                 size="sm"
@@ -604,9 +618,14 @@ function SeccionPostularse({
               >
                 Retirar
               </Button>
-              {miPostulacion.propuestoPor === "cuidador" && (
+              {miPostulacion.estado === "pendiente" && miPostulacion.propuestoPor === "cuidador" && (
                 <p className="text-xs text-muted-foreground">
                   Esperando la respuesta del paciente/familiar a tu propuesta.
+                </p>
+              )}
+              {miPostulacion.estado === "aceptada" && (
+                <p className="text-xs text-muted-foreground">
+                  Puedes retirarte antes de que se complete el pago.
                 </p>
               )}
             </div>
@@ -625,14 +644,6 @@ function SeccionPostularse({
             }}
           />
 
-          {miPostulacion.estado === "aceptada" && (
-            <p className="mt-2 text-sm text-emerald-600 dark:text-emerald-400">
-              {miPostulacion.propuestoPor === "cuidador"
-                ? `El paciente/familiar aceptó tu tarifa de ${miPostulacion.precioHora} €/hora.`
-                : `Aceptaste el precio de ${miPostulacion.precioHora} €/hora propuesto por el paciente/familiar.`}{" "}
-              Consulta &ldquo;Mis postulaciones&rdquo; para más detalles.
-            </p>
-          )}
           {miPostulacion.estado === "rechazada" && (
             <p className="mt-2 text-sm text-muted-foreground">
               El paciente/familiar rechazó tu postulación para este anuncio.
@@ -647,13 +658,13 @@ function SeccionPostularse({
   );
 }
 
-function EstadoPostulacionBadge({ estado }: { estado: Postulacion["estado"] }) {
-  const label: Record<Postulacion["estado"], string> = {
-    pendiente: "Pendiente",
-    aceptada: "Aceptada",
-    rechazada: "Rechazada",
-    retirada: "Retirada",
-  };
+function EstadoPostulacionBadge({
+  postulacion,
+  esCuidador,
+}: {
+  postulacion: Pick<Postulacion, "estado" | "aceptadoPorCuidador" | "aceptadoPorPaciente">;
+  esCuidador: boolean;
+}) {
   const color: Record<Postulacion["estado"], string> = {
     pendiente:
       "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
@@ -665,9 +676,9 @@ function EstadoPostulacionBadge({ estado }: { estado: Postulacion["estado"] }) {
   };
   return (
     <span
-      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${color[estado]}`}
+      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${color[postulacion.estado]}`}
     >
-      {label[estado]}
+      {etiquetaEstadoPostulacion(postulacion, esCuidador)}
     </span>
   );
 }

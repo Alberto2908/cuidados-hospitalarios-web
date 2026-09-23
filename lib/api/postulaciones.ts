@@ -14,6 +14,9 @@ export interface Postulacion {
   precioHora: number;
   propuestoPor: PropuestoPor;
   estado: EstadoPostulacion;
+  /** Quien propone un precio lo acepta implicitamente: estos dos flags reflejan el consentimiento de cada parte. */
+  aceptadoPorCuidador: boolean;
+  aceptadoPorPaciente: boolean;
   creadoEn: string;
   actualizadoEn: string;
 }
@@ -66,6 +69,8 @@ export interface MiPostulacion {
   precioHora: number;
   propuestoPor: PropuestoPor;
   estado: EstadoPostulacion;
+  aceptadoPorCuidador: boolean;
+  aceptadoPorPaciente: boolean;
   seccion: SeccionMiPostulacion;
   estadoServicio: EstadoServicio | null;
   /** Pago ya procesado/retenido y todavía no visto — ver TODO.md (aviso solo tras el cobro real, no al aceptar). */
@@ -106,4 +111,27 @@ export function retirarPostulacion(id: string): Promise<void> {
 /** Badge del navbar (cuidador): contraofertas del paciente que esperan su respuesta. */
 export function misNotificacionesConteo(): Promise<{ total: number }> {
   return apiFetch<{ total: number }>("/api/postulaciones/mias/notificaciones-conteo");
+}
+
+/**
+ * Etiqueta del estado de una postulacion vista desde un lado concreto
+ * (cuidador o paciente/familiar): quien propone un precio lo acepta
+ * implicitamente, la otra parte tiene que aceptarlo tambien para pasar a
+ * "aceptada" -> mientras tanto se distingue de quien es la aceptacion
+ * pendiente, en vez de un generico "Pendiente" o "Aceptada" que no dice nada
+ * de en que punto de la negociacion esta cada uno.
+ */
+export function etiquetaEstadoPostulacion(
+  postulacion: Pick<Postulacion, "estado" | "aceptadoPorCuidador" | "aceptadoPorPaciente">,
+  viendoComoCuidador: boolean,
+): string {
+  if (postulacion.estado === "rechazada") return "Rechazada";
+  if (postulacion.estado === "retirada") return "Retirada";
+  if (postulacion.estado === "aceptada") return "Aceptado por ambas partes";
+
+  const miAceptacion = viendoComoCuidador ? postulacion.aceptadoPorCuidador : postulacion.aceptadoPorPaciente;
+  const otraAceptacion = viendoComoCuidador ? postulacion.aceptadoPorPaciente : postulacion.aceptadoPorCuidador;
+  if (miAceptacion && !otraAceptacion) return "Aceptado por tu parte";
+  if (otraAceptacion && !miAceptacion) return "Aceptado por la otra parte";
+  return "Pendiente";
 }
