@@ -5,14 +5,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
 import { CalendarDays, MapPin, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { misPostulacionesConSeccion, retirarPostulacion, type MiPostulacion } from "@/lib/api/postulaciones";
-
-const ESTADO_LABEL: Record<MiPostulacion["estado"], string> = {
-  pendiente: "Pendiente",
-  aceptada: "Aceptada",
-  rechazada: "Rechazada",
-  retirada: "Retirada",
-};
+import {
+  etiquetaEstadoPostulacion,
+  misPostulacionesConSeccion,
+  retirarPostulacion,
+  type MiPostulacion,
+} from "@/lib/api/postulaciones";
 
 const ESTADO_COLOR: Record<MiPostulacion["estado"], string> = {
   pendiente: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
@@ -78,7 +76,11 @@ export default function CuidadorHistorialPage() {
                   <TarjetaMiPostulacion
                     key={p.id}
                     postulacion={p}
-                    onRetirar={p.estado === "pendiente" ? () => retirarMutation.mutate(p.id) : undefined}
+                    onRetirar={
+                      p.estado === "pendiente" || p.estado === "aceptada"
+                        ? () => retirarMutation.mutate(p.id)
+                        : undefined
+                    }
                     retirando={retirarMutation.isPending}
                   />
                 ))}
@@ -126,7 +128,7 @@ function TarjetaMiPostulacion({
         <div className="flex items-center gap-2">
           <p className="font-medium text-foreground text-sm">{postulacion.anuncioTitulo}</p>
           <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_COLOR[postulacion.estado]}`}>
-            {ESTADO_LABEL[postulacion.estado]}
+            {etiquetaEstadoPostulacion(postulacion, true)}
           </span>
         </div>
         <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
