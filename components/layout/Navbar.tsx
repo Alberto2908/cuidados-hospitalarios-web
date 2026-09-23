@@ -12,6 +12,7 @@ import {
   Search,
   History,
   LayoutDashboard,
+  BarChart3,
   Users,
   UserCheck,
   User,
@@ -50,6 +51,7 @@ const NAV_LINKS: Record<UserRole, NavLink[]> = {
     { label: "Mis postulaciones", href: "/cuidador/historial", icon: <History className="h-4 w-4" /> },
   ],
   ADMIN: [
+    { label: "Dashboard",           href: "/admin/dashboard", icon: <BarChart3       className="h-4 w-4" /> },
     { label: "Gestionar anuncios",  href: "/admin/anuncios",  icon: <LayoutDashboard className="h-4 w-4" /> },
     { label: "Gestionar cuidadores",href: "/admin/cuidadores",icon: <UserCheck       className="h-4 w-4" /> },
     { label: "Gestionar pacientes", href: "/admin/pacientes", icon: <Users           className="h-4 w-4" /> },

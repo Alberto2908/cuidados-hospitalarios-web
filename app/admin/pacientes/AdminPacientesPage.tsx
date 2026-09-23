@@ -1,38 +1,35 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Search, Users, FileText, UserX } from "lucide-react";
-import { MOCK_PACIENTES, Paciente } from "@/lib/mock/usuarios";
+import { fetchAdminPacientes, type EstadoUsuario } from "@/lib/api/admin";
 import { formatearFecha } from "@/lib/fecha";
-
-const ESTADO_STYLES: Record<Paciente["estado"], string> = {
-  activo:     "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  inactivo:   "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
-  suspendido: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-};
-
-const ESTADO_LABEL: Record<Paciente["estado"], string> = {
-  activo:     "Activo",
-  inactivo:   "Inactivo",
-  suspendido: "Suspendido",
-};
+import EstadoUsuarioBadge, { ESTADO_USUARIO_LABEL } from "@/components/admin/EstadoUsuarioBadge";
 
 export default function AdminPacientesPage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState<Paciente["estado"] | "todos">("todos");
+  const [filtroEstado, setFiltroEstado] = useState<EstadoUsuario | "todos">("todos");
 
-  const pacientesFiltrados = MOCK_PACIENTES.filter((p) => {
+  const { data: pacientes = [], isLoading } = useQuery({
+    queryKey: ["admin", "pacientes"],
+    queryFn: fetchAdminPacientes,
+  });
+
+  const pacientesFiltrados = pacientes.filter((p) => {
     const coincideBusqueda =
-      `${p.nombre} ${p.apellido} ${p.email}`.toLowerCase().includes(search.toLowerCase());
+      `${p.nombre} ${p.apellidos} ${p.email}`.toLowerCase().includes(search.toLowerCase());
     const coincideEstado = filtroEstado === "todos" || p.estado === filtroEstado;
     return coincideBusqueda && coincideEstado;
   });
 
   const totales = {
-    total:      MOCK_PACIENTES.length,
-    activos:    MOCK_PACIENTES.filter((p) => p.estado === "activo").length,
-    suspendidos: MOCK_PACIENTES.filter((p) => p.estado === "suspendido").length,
-    anuncios:   MOCK_PACIENTES.reduce((acc, p) => acc + p.anunciosActivos, 0),
+    total: pacientes.length,
+    activos: pacientes.filter((p) => p.estado === "activo").length,
+    suspendidos: pacientes.filter((p) => p.estado === "suspendido").length,
+    anuncios: pacientes.reduce((acc, p) => acc + p.anunciosActivos, 0),
   };
 
   return (
@@ -66,7 +63,7 @@ export default function AdminPacientesPage() {
           />
         </div>
         <div className="flex gap-2">
-          {(["todos", "activo", "inactivo", "suspendido"] as const).map((e) => (
+          {(["todos", "activo", "pendiente", "suspendido", "baja"] as const).map((e) => (
             <button
               key={e}
               onClick={() => setFiltroEstado(e)}
@@ -76,7 +73,7 @@ export default function AdminPacientesPage() {
                   : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
               }`}
             >
-              {e === "todos" ? "Todos" : ESTADO_LABEL[e]}
+              {e === "todos" ? "Todos" : ESTADO_USUARIO_LABEL[e]}
             </button>
           ))}
         </div>
@@ -96,7 +93,13 @@ export default function AdminPacientesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {pacientesFiltrados.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    Cargando…
+                  </td>
+                </tr>
+              ) : pacientesFiltrados.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">
                     No se encontraron pacientes
@@ -104,29 +107,31 @@ export default function AdminPacientesPage() {
                 </tr>
               ) : (
                 pacientesFiltrados.map((p) => (
-                  <tr key={p.id} className="transition-colors hover:bg-muted/30">
+                  <tr
+                    key={p.id}
+                    onClick={() => router.push(`/admin/pacientes/${p.id}`)}
+                    className="cursor-pointer transition-colors hover:bg-muted/30"
+                  >
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-semibold text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
-                          {p.nombre[0]}{p.apellido[0]}
+                          {p.nombre[0]}{p.apellidos[0]}
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">{p.nombre} {p.apellido}</p>
+                          <p className="font-medium text-foreground">{p.nombre} {p.apellidos}</p>
                           <p className="text-xs text-muted-foreground">{p.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 text-muted-foreground hidden sm:table-cell">{p.telefono}</td>
+                    <td className="px-4 py-3.5 text-muted-foreground hidden sm:table-cell">{p.telefono ?? "—"}</td>
                     <td className="px-4 py-3.5 text-muted-foreground hidden md:table-cell">
-                      {formatearFecha(p.fechaRegistro)}
+                      {formatearFecha(p.creadoEn)}
                     </td>
                     <td className="px-4 py-3.5 text-center hidden lg:table-cell">
                       <span className="font-medium text-foreground">{p.anunciosActivos}</span>
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${ESTADO_STYLES[p.estado]}`}>
-                        {ESTADO_LABEL[p.estado]}
-                      </span>
+                      <EstadoUsuarioBadge estado={p.estado} />
                     </td>
                   </tr>
                 ))
@@ -135,7 +140,7 @@ export default function AdminPacientesPage() {
           </table>
         </div>
         <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground">
-          Mostrando {pacientesFiltrados.length} de {MOCK_PACIENTES.length} pacientes
+          Mostrando {pacientesFiltrados.length} de {pacientes.length} pacientes
         </div>
       </div>
     </div>
