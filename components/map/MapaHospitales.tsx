@@ -36,6 +36,10 @@ interface Props {
   miUbicacion?: { lat: number; lng: number } | null;
   /** Id de estilo de tiles (ver lib/map/tileStyles) */
   tileStyleId?: string;
+  /** Centro/zoom con el que arranca el mapa (p.ej. al volver de otra pagina), en vez del centro por defecto */
+  initialView?: { lat: number; lng: number; zoom: number } | null;
+  /** Se dispara al terminar de mover/hacer zoom, para poder persistir la vista actual */
+  onViewChange?: (view: { lat: number; lng: number; zoom: number }) => void;
 }
 
 interface HospitalMarkerOptions {
@@ -197,6 +201,8 @@ export default function MapaHospitales({
   focusTarget,
   miUbicacion,
   tileStyleId = DEFAULT_MAP_STYLE_ID,
+  initialView,
+  onViewChange,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
@@ -206,8 +212,10 @@ export default function MapaHospitales({
 
   const onClickRef = useRef(onHospitalClick);
   const onBoundsRef = useRef(onBoundsChange);
+  const onViewChangeRef = useRef(onViewChange);
   onClickRef.current = onHospitalClick;
   onBoundsRef.current = onBoundsChange;
+  onViewChangeRef.current = onViewChange;
 
   /* ── Init mapa ── */
   useEffect(() => {
@@ -238,8 +246,8 @@ export default function MapaHospitales({
       delete (L.Icon.Default.prototype as any)._getIconUrl;
 
       const map = L.map(container, {
-        center: [40.4168, -3.7038],
-        zoom: 11,
+        center: initialView ? [initialView.lat, initialView.lng] : [40.4168, -3.7038],
+        zoom: initialView?.zoom ?? 11,
         scrollWheelZoom: true,
         zoomControl: true,
       });
@@ -283,6 +291,8 @@ export default function MapaHospitales({
           east: b.getEast(),
           west: b.getWest(),
         });
+        const center = map.getCenter();
+        onViewChangeRef.current?.({ lat: center.lat, lng: center.lng, zoom: map.getZoom() });
       };
 
       map.on("moveend", emitBounds);
