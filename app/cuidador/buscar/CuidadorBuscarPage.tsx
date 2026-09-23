@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { MapPin, CalendarDays, X } from "lucide-react";
 import { fetchTodosLosHospitales } from "@/lib/api/hospitales";
@@ -33,10 +34,49 @@ function hospitalEnBounds(h: { lat: number; lng: number }, b: MapBounds | null) 
 }
 
 export default function CuidadorBuscarPage() {
-  const [selectedHospitalId, setSelectedHospitalId] = useState<string | null>(null);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // El hospital seleccionado y la vista del mapa (centro+zoom) viven tambien
+  // en la URL (?hospital=id&lat=..&lng=..&zoom=..): asi al volver desde un
+  // anuncio (router.back()) esta pagina no vuelve a montar "en blanco" -lee
+  // el filtro y el encuadre del mapa de la propia URL. Mismo patron que
+  // PacienteBuscarPage.
+  const [selectedHospitalId, setSelectedHospitalId] = useState<string | null>(
+    () => searchParams.get("hospital"),
+  );
+  const [initialView] = useState<{ lat: number; lng: number; zoom: number } | null>(() => {
+    const lat = parseFloat(searchParams.get("lat") ?? "");
+    const lng = parseFloat(searchParams.get("lng") ?? "");
+    const zoom = parseFloat(searchParams.get("zoom") ?? "");
+    return Number.isFinite(lat) && Number.isFinite(lng) && Number.isFinite(zoom) ? { lat, lng, zoom } : null;
+  });
+  const [currentView, setCurrentView] = useState(initialView);
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   const [focusTarget, setFocusTarget] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
   const [miUbicacion, setMiUbicacion] = useState<{ lat: number; lng: number } | null>(null);
+
+  const handleViewChange = useCallback((view: { lat: number; lng: number; zoom: number }) => {
+    setCurrentView(view);
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (selectedHospitalId) params.set("hospital", selectedHospitalId);
+    else params.delete("hospital");
+    if (currentView) {
+      params.set("lat", currentView.lat.toFixed(5));
+      params.set("lng", currentView.lng.toFixed(5));
+      params.set("zoom", String(currentView.zoom));
+    }
+    const query = params.toString();
+    router.replace(`${pathname}${query ? `?${query}` : ""}`, { scroll: false });
+    // Solo cuando cambian el hospital o la vista del mapa: si se metieran
+    // searchParams o router aqui, el propio replace() dispararia el efecto
+    // otra vez.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedHospitalId, currentView]);
 
   const { data: hospitales = [] } = useQuery({
     queryKey: ["hospitales", "todos"],
@@ -126,6 +166,8 @@ export default function CuidadorBuscarPage() {
             selectedHospitalId={selectedHospitalId}
             focusTarget={focusTarget}
             miUbicacion={miUbicacion}
+            initialView={initialView}
+            onViewChange={handleViewChange}
           />
         </div>
 
