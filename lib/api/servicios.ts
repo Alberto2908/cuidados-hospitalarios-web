@@ -1,6 +1,10 @@
 import { apiFetch } from "@/lib/api/client";
 
-export type EstadoServicio = "en_curso" | "pendiente_confirmacion" | "confirmado" | "pagado" | "cancelado";
+// aceptado (precio acordado, sin pago) -> confirmado (pago realizado) ->
+// pendiente_confirmacion (turno terminado, esperando confirmacion) ->
+// completado (el paciente confirma, o la futura auto-confirmacion) |
+// cancelado. Ver V12 en el backend.
+export type EstadoServicio = "aceptado" | "confirmado" | "pendiente_confirmacion" | "completado" | "cancelado";
 export type EstadoPago = "pendiente" | "procesado" | "fallido";
 export type CanceladoPor = "paciente" | "cuidador" | "sistema";
 
@@ -17,8 +21,6 @@ export interface Servicio {
   importeTotal: number;
   fechaFinPrevista: string;
   estado: EstadoServicio;
-  valoracion: number | null;
-  comentarioValoracion: string | null;
   estadoPago: EstadoPago;
   canceladoPor: CanceladoPor | null;
   motivoCancelacion: string | null;
@@ -35,11 +37,10 @@ export function misServicios(rol: "paciente" | "cuidador"): Promise<Servicio[]> 
   return apiFetch<Servicio[]>(`/api/servicios/mios?rol=${rol}`);
 }
 
-export function confirmarServicio(id: string, valoracion?: number, comentario?: string): Promise<Servicio> {
-  return apiFetch<Servicio>(`/api/servicios/${id}/confirmar`, {
-    method: "POST",
-    body: JSON.stringify({ valoracion, comentario }),
-  });
+// La valoracion ya no se envia aqui: vivira en un flujo de resenas aparte,
+// despues de confirmar (ver lib/api/resenas.ts).
+export function confirmarServicio(id: string): Promise<Servicio> {
+  return apiFetch<Servicio>(`/api/servicios/${id}/confirmar`, { method: "POST" });
 }
 
 export function cancelarServicio(id: string, motivo?: string): Promise<Servicio> {

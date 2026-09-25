@@ -12,10 +12,10 @@ import { formatearFecha } from "@/lib/fecha";
 import { Button } from "@/components/ui/button";
 
 const ESTADO_SERVICIO_LABEL: Record<EstadoServicio, string> = {
-  en_curso: "En curso",
+  aceptado: "Aceptado",
+  confirmado: "Confirmado (pagado)",
   pendiente_confirmacion: "Pendiente de confirmación",
-  confirmado: "Confirmado",
-  pagado: "Pagado",
+  completado: "Completado",
   cancelado: "Cancelado",
 };
 
