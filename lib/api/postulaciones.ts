@@ -17,6 +17,12 @@ export interface Postulacion {
   /** Quien propone un precio lo acepta implicitamente: estos dos flags reflejan el consentimiento de cada parte. */
   aceptadoPorCuidador: boolean;
   aceptadoPorPaciente: boolean;
+  /** Id del servicio creado al aceptar (null si sigue pendiente/rechazada/retirada). */
+  servicioId: string | null;
+  /** Estado del servicio creado al aceptar (null si sigue pendiente/rechazada/retirada). estado se queda en "aceptada" para siempre, este campo es el que avanza (ver V12). */
+  estadoServicio: EstadoServicio | null;
+  /** Si el servicio ya tiene una reseña puesta (solo puede haber una). */
+  tieneResena: boolean;
   creadoEn: string;
   actualizadoEn: string;
 }
@@ -75,6 +81,8 @@ export interface MiPostulacion {
   estadoServicio: EstadoServicio | null;
   /** Pago ya procesado/retenido y todavía no visto — ver TODO.md (aviso solo tras el cobro real, no al aceptar). */
   nuevoServicioAceptado: boolean;
+  /** La valoración que el paciente/familiar le ha puesto a este cuidador por este servicio (null si todavía no ha valorado). */
+  miValoracion: number | null;
   creadoEn: string;
 }
 
