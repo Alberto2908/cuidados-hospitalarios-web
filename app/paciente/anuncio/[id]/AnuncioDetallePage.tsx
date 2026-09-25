@@ -9,6 +9,7 @@ import { ArrowLeft, CalendarDays, Lock, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Button, buttonVariants } from "@/components/ui/button";
 import ModalContraoferta from "@/components/anuncio/ModalContraoferta";
+import ModalResena from "@/components/anuncio/ModalResena";
 import { horasTotales } from "@/lib/anuncio/horas";
 import { formatearFecha } from "@/lib/fecha";
 import type { FranjaHoraria } from "@/lib/anuncio/schema";
@@ -28,10 +29,14 @@ import {
   retirarPostulacion,
   type Postulacion,
 } from "@/lib/api/postulaciones";
+import { crearResena } from "@/lib/api/resenas";
+import type { EstadoServicio } from "@/lib/api/servicios";
 
-// "Cubierto" (nombre interno del backend) se muestra como "Aceptado": es lo
-// que entiende el paciente/familiar. El pago real via Stripe llegara mas
-// adelante sin cambiar este estado.
+// "Cubierto" (nombre interno del backend) se muestra como "Aceptado" SOLO
+// cuando no hay ningun servicio todavia del que sacar un estado mas fino
+// (no deberia pasar en la practica: un anuncio 'cubierto' siempre tiene
+// servicio). El pago real via Stripe llegara mas adelante sin cambiar este
+// estado del anuncio.
 const ESTADO_LABEL: Record<Anuncio["estado"], string> = {
   activo: "Activo",
   cubierto: "Aceptado",
@@ -42,6 +47,26 @@ const ESTADO_COLOR: Record<Anuncio["estado"], string> = {
   activo: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
   cubierto:
     "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+};
+
+// Una vez el anuncio esta 'cubierto', su propio estado se queda en
+// "Aceptado" para siempre aunque el servicio avance a confirmado/
+// pendiente_confirmacion/completado/cancelado (ver V12 en el backend) -> se
+// usa este, mas fino, en cuanto existe.
+const ESTADO_SERVICIO_LABEL: Record<EstadoServicio, string> = {
+  aceptado: "Aceptado",
+  confirmado: "Confirmado (pagado)",
+  pendiente_confirmacion: "Pendiente de confirmación",
+  completado: "Completado",
+  cancelado: "Cancelado",
+};
+
+const ESTADO_SERVICIO_COLOR: Record<EstadoServicio, string> = {
+  aceptado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  confirmado: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
+  pendiente_confirmacion: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  completado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
 };
 
@@ -76,6 +101,14 @@ export default function AnuncioDetallePage() {
   const miPostulacion = misPostulacionesQuery.data?.find(
     (p) => p.anuncioId === anuncioId,
   );
+
+  // Estado del servicio (mas fino que anuncio.estado, ver ESTADO_SERVICIO_LABEL):
+  // desde el lado autor, la postulacion aceptada (como mucho una); desde el
+  // lado cuidador, la propia.
+  const estadoServicio =
+    postulacionesQuery.data?.find((p) => p.estado === "aceptada")?.estadoServicio
+    ?? miPostulacion?.estadoServicio
+    ?? null;
 
   function invalidarTodo() {
     queryClient.invalidateQueries({ queryKey: ["anuncio", anuncioId] });
@@ -143,9 +176,11 @@ export default function AnuncioDetallePage() {
           </p>
         </div>
         <span
-          className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${ESTADO_COLOR[anuncio.estado]}`}
+          className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
+            estadoServicio ? ESTADO_SERVICIO_COLOR[estadoServicio] : ESTADO_COLOR[anuncio.estado]
+          }`}
         >
-          {ESTADO_LABEL[anuncio.estado]}
+          {estadoServicio ? ESTADO_SERVICIO_LABEL[estadoServicio] : ESTADO_LABEL[anuncio.estado]}
         </span>
       </div>
 
@@ -345,8 +380,23 @@ function FilaPostulacion({
   pendienteAccion: boolean;
 }) {
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [modalResenaAbierto, setModalResenaAbierto] = useState(false);
   const esPendiente = postulacion.estado === "pendiente";
   const importeTotal = Math.round(postulacion.precioHora * horas * 100) / 100;
+
+  const queryClient = useQueryClient();
+  const crearResenaMutation = useMutation({
+    mutationFn: (datos: { valoracion: number; comentario: string }) =>
+      crearResena(postulacion.servicioId as string, datos.valoracion, datos.comentario),
+    onSuccess: () => {
+      sileo.success({ title: "Reseña enviada", description: "Gracias por valorar a tu cuidador." });
+      setModalResenaAbierto(false);
+      queryClient.invalidateQueries({ queryKey: ["postulaciones", "anuncio", postulacion.anuncioId] });
+      queryClient.invalidateQueries({ queryKey: ["anuncios", "mios"] });
+      queryClient.invalidateQueries({ queryKey: ["anuncios", "notificaciones-conteo"] });
+    },
+    onError: (error: Error) => sileo.error({ title: "No se pudo enviar la reseña", description: error.message }),
+  });
 
   return (
     <div className="rounded-xl border border-border p-4">
@@ -367,7 +417,7 @@ function FilaPostulacion({
         Coste total para este servicio ({horas}h): <strong>{importeTotal} €</strong>
       </p>
 
-      {postulacion.estado === "aceptada" && (
+      {postulacion.estado === "aceptada" && postulacion.estadoServicio === "aceptado" && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/50 dark:bg-emerald-900/20">
           <p className="text-sm text-emerald-700 dark:text-emerald-400">
             {postulacion.propuestoPor === "cuidador"
@@ -383,6 +433,33 @@ function FilaPostulacion({
             Pagar
           </Button>
         </div>
+      )}
+      {postulacion.estado === "aceptada" && postulacion.estadoServicio === "confirmado" && (
+        <p className="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-700 dark:border-violet-900/50 dark:bg-violet-900/20 dark:text-violet-400">
+          Pago realizado. El cuidado está en marcha.
+        </p>
+      )}
+      {postulacion.estado === "aceptada" && postulacion.estadoServicio === "pendiente_confirmacion" && (
+        <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-400">
+          El turno ha terminado. Pendiente de que confirmes que el cuidado se realizó correctamente.
+        </p>
+      )}
+      {postulacion.estado === "aceptada" && postulacion.estadoServicio === "completado" && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/50 dark:bg-emerald-900/20">
+          <p className="text-sm text-emerald-700 dark:text-emerald-400">
+            {postulacion.tieneResena ? "Cuidado completado. Ya has valorado a este cuidador." : "Cuidado completado."}
+          </p>
+          {!postulacion.tieneResena && (
+            <Button type="button" size="sm" onClick={() => setModalResenaAbierto(true)}>
+              Añadir reseña
+            </Button>
+          )}
+        </div>
+      )}
+      {postulacion.estado === "aceptada" && postulacion.estadoServicio === "cancelado" && (
+        <p className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400">
+          Este servicio fue cancelado.
+        </p>
       )}
       {postulacion.estado === "rechazada" && (
         <p className="mt-2 text-sm text-muted-foreground">Rechazaste esta postulación.</p>
@@ -434,7 +511,7 @@ function FilaPostulacion({
       )}
 
       <ModalContraoferta
-        key={modalAbierto ? "abierto" : "cerrado"}
+        key={`contraoferta-${modalAbierto ? "abierto" : "cerrado"}`}
         open={modalAbierto}
         onOpenChange={setModalAbierto}
         horas={horas}
@@ -444,6 +521,15 @@ function FilaPostulacion({
           onContraoferta(precioHora);
           setModalAbierto(false);
         }}
+      />
+
+      <ModalResena
+        key={`resena-${modalResenaAbierto ? "abierto" : "cerrado"}`}
+        open={modalResenaAbierto}
+        onOpenChange={setModalResenaAbierto}
+        cuidadorNombre={postulacion.cuidadorNombre}
+        enviando={crearResenaMutation.isPending}
+        onEnviar={(valoracion, comentario) => crearResenaMutation.mutate({ valoracion, comentario })}
       />
     </div>
   );
