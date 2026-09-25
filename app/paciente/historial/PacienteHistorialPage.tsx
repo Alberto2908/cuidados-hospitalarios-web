@@ -1,16 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
-import { MapPin, MessageSquare } from "lucide-react";
+import { MapPin, MessageSquare, Star } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Estrellas } from "@/components/ui/estrellas";
+import ModalResena from "@/components/anuncio/ModalResena";
 import { cancelarAnuncio, misAnuncios, type MiAnuncio } from "@/lib/api/anuncios";
+import { crearResena } from "@/lib/api/resenas";
 import { formatearFecha } from "@/lib/fecha";
+import { cn } from "@/lib/utils";
 
-// "Cubierto" (nombre interno del backend) se muestra como "Aceptado": es lo
-// que entiende el paciente/familiar ("ya lo aceptó un cuidador"). El pago
-// real via Stripe llegara mas adelante sin cambiar este estado.
+// "Cubierto" (nombre interno del backend) se muestra como "Aceptado" SOLO
+// cuando no hay todavia un estado de servicio mas especifico que mostrar
+// (nunca deberia pasar en la practica, un anuncio 'cubierto' siempre tiene
+// servicio, pero por si acaso). El pago real via Stripe llegara mas
+// adelante sin cambiar este estado.
 const ESTADO_LABEL: Record<MiAnuncio["estado"], string> = {
   activo: "Activo",
   cubierto: "Aceptado",
@@ -20,6 +28,26 @@ const ESTADO_LABEL: Record<MiAnuncio["estado"], string> = {
 const ESTADO_COLOR: Record<MiAnuncio["estado"], string> = {
   activo: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
   cubierto: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+};
+
+// Una vez el anuncio esta 'cubierto' (servicio creado), su propio estado
+// del anuncio ya no basta -se queda en "Aceptado" para siempre aunque el
+// servicio avance a confirmado/completado/cancelado (ver V12 en el backend)-
+// asi que la tarjeta usa este estado, mas fino, cuando existe.
+const ESTADO_SERVICIO_LABEL: Record<NonNullable<MiAnuncio["estadoServicio"]>, string> = {
+  aceptado: "Aceptado",
+  confirmado: "Confirmado (pagado)",
+  pendiente_confirmacion: "Pendiente de confirmación",
+  completado: "Completado",
+  cancelado: "Cancelado",
+};
+
+const ESTADO_SERVICIO_COLOR: Record<NonNullable<MiAnuncio["estadoServicio"]>, string> = {
+  aceptado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  confirmado: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
+  pendiente_confirmacion: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  completado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
 };
 
@@ -116,6 +144,23 @@ function TarjetaMiAnuncio({
   onCancelar?: () => void;
   cancelando?: boolean;
 }) {
+  const queryClient = useQueryClient();
+  const [modalResenaAbierto, setModalResenaAbierto] = useState(false);
+  const [modalCancelarAbierto, setModalCancelarAbierto] = useState(false);
+
+  const crearResenaMutation = useMutation({
+    mutationFn: (datos: { valoracion: number; comentario: string }) =>
+      crearResena(anuncio.servicioId as string, datos.valoracion, datos.comentario),
+    onSuccess: () => {
+      sileo.success({ title: "Reseña enviada", description: "Gracias por valorar a tu cuidador." });
+      setModalResenaAbierto(false);
+      queryClient.invalidateQueries({ queryKey: ["anuncios", "mios"] });
+      queryClient.invalidateQueries({ queryKey: ["anuncios", "notificaciones-conteo"] });
+      queryClient.invalidateQueries({ queryKey: ["postulaciones", "anuncio", anuncio.id] });
+    },
+    onError: (error: Error) => sileo.error({ title: "No se pudo enviar la reseña", description: error.message }),
+  });
+
   return (
     <div className="flex items-stretch justify-between gap-3 rounded-2xl border border-border bg-background p-4 shadow-sm transition-all hover:bg-muted/40 hover:shadow-md">
       <Link href={`/paciente/anuncio/${anuncio.id}`} className="min-w-0 flex-1 hover:opacity-80">
@@ -137,37 +182,96 @@ function TarjetaMiAnuncio({
 
       <div className="flex shrink-0 flex-col items-end justify-between gap-2">
         <div className="flex flex-col items-end gap-1.5">
-          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_COLOR[anuncio.estado]}`}>
-            {ESTADO_LABEL[anuncio.estado]}
-          </span>
-          {anuncio.postulacionesPendientes > 0 && (
-            <span className="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
-              <MessageSquare className="h-3 w-3" />
-              {anuncio.postulacionesPendientes}
+          <div className="flex items-center gap-1.5">
+            {anuncio.postulacionesPendientes > 0 && (
+              <span className="flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
+                <MessageSquare className="h-3 w-3" />
+                {anuncio.postulacionesPendientes}
+              </span>
+            )}
+            {anuncio.puedeValorar && (
+              <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                1
+              </span>
+            )}
+            {anuncio.estadoServicio ? (
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_SERVICIO_COLOR[anuncio.estadoServicio]}`}
+              >
+                {ESTADO_SERVICIO_LABEL[anuncio.estadoServicio]}
+              </span>
+            ) : (
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_COLOR[anuncio.estado]}`}>
+                {ESTADO_LABEL[anuncio.estado]}
+              </span>
+            )}
+          </div>
+          {anuncio.miValoracion != null ? (
+            <span className="mt-2.5 flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+              <Estrellas valor={anuncio.miValoracion} />
+              {anuncio.miValoracion.toFixed(1)}
             </span>
+          ) : (
+            anuncio.puedeValorar && (
+              <button
+                type="button"
+                onClick={() => setModalResenaAbierto(true)}
+                className="mt-2.5 flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                <Star className="h-3 w-3" />
+                Añadir reseña
+              </button>
+            )
           )}
         </div>
 
         {anuncio.estado === "activo" && onCancelar && (
           <div className="flex gap-2">
-            <Link href={`/paciente/anuncio/${anuncio.id}/editar`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Link
+              href={`/paciente/anuncio/${anuncio.id}/editar`}
+              className={cn(buttonVariants({ variant: "default", size: "sm" }), "rounded-full")}
+            >
               Modificar
             </Link>
             <Button
               type="button"
               size="sm"
+              variant="destructive"
+              className="rounded-full"
               disabled={cancelando}
-              onClick={() => {
-                if (confirm("¿Seguro que quieres cancelar este anuncio?")) {
-                  onCancelar();
-                }
-              }}
+              onClick={() => setModalCancelarAbierto(true)}
             >
               Cancelar
             </Button>
           </div>
         )}
       </div>
+
+      {anuncio.puedeValorar && (
+        <ModalResena
+          key={modalResenaAbierto ? "resena-abierto" : "resena-cerrado"}
+          open={modalResenaAbierto}
+          onOpenChange={setModalResenaAbierto}
+          cuidadorNombre={anuncio.cuidadorNombre ?? "tu cuidador"}
+          enviando={crearResenaMutation.isPending}
+          onEnviar={(valoracion, comentario) => crearResenaMutation.mutate({ valoracion, comentario })}
+        />
+      )}
+
+      {onCancelar && (
+        <ConfirmDialog
+          open={modalCancelarAbierto}
+          onOpenChange={setModalCancelarAbierto}
+          titulo="Cancelar anuncio"
+          descripcion={`¿Seguro que quieres cancelar "${anuncio.titulo}"? Esta acción no se puede deshacer.`}
+          textoConfirmar="Cancelar anuncio"
+          confirmando={cancelando}
+          onConfirmar={() => {
+            onCancelar();
+            setModalCancelarAbierto(false);
+          }}
+        />
+      )}
     </div>
   );
 }

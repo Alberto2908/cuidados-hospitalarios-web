@@ -6,12 +6,14 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { MapPin, Star, X } from "lucide-react";
-import type { Hospital } from "@/lib/mock/hospitales";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchTodosLosHospitales } from "@/lib/api/hospitales";
+import { formatearAntiguedad } from "@/lib/fecha";
 import {
   fetchConteoCuidadoresPorHospitales,
   fetchCuidadoresPorHospitales,
   type CuidadorPublico,
+  type OrdenCuidadores,
 } from "@/lib/api/cuidadores";
 import type { HospitalMarker, MapBounds } from "@/components/map/MapaHospitales";
 import BuscadorUbicacion from "@/components/map/BuscadorUbicacion";
@@ -27,13 +29,18 @@ const MapaHospitales = dynamic(() => import("@/components/map/MapaHospitales"), 
   ),
 });
 
-// especialidad/experienciaAnios/valoracion todavia no existen en el modelo
-// real de cuidador (ver TODO.md, "Ampliar perfil_cuidador"). Mientras tanto
-// se muestran estos valores fijos en vez de romper la tarjeta.
+// especialidad todavia no existe en el modelo real de cuidador (ver TODO.md,
+// "Ampliar perfil_cuidador"). Mientras tanto se muestra este valor fijo en
+// vez de romper la tarjeta. La valoracion, la antiguedad y los cuidados
+// realizados SI son datos reales (ver CuidadorPublico).
 const DEFAULT_ESPECIALIDAD = "Cuidado general";
-const DEFAULT_EXPERIENCIA_ANIOS = 1;
-const DEFAULT_VALORACION = 5;
 const TAMANO_PAGINA = 20;
+
+const OPCIONES_ORDEN: { valor: OrdenCuidadores; etiqueta: string }[] = [
+  { valor: "nombre", etiqueta: "Alfabético" },
+  { valor: "valoracion", etiqueta: "Valoración" },
+  { valor: "cuidados", etiqueta: "Cuidados realizados" },
+];
 
 function hospitalEnBounds(h: { lat: number; lng: number }, b: MapBounds | null) {
   if (!b) return true;
@@ -63,6 +70,7 @@ export default function PacienteBuscarPage() {
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   const [focusTarget, setFocusTarget] = useState<{ lat: number; lng: number; zoom: number } | null>(null);
   const [miUbicacion, setMiUbicacion] = useState<{ lat: number; lng: number } | null>(null);
+  const [orden, setOrden] = useState<OrdenCuidadores>("valoracion");
 
   const handleViewChange = useCallback((view: { lat: number; lng: number; zoom: number }) => {
     setCurrentView(view);
@@ -129,9 +137,9 @@ export default function PacienteBuscarPage() {
     hasNextPage,
     isFetching: cargandoCuidadores,
   } = useInfiniteQuery({
-    queryKey: ["cuidadores", "busqueda", selectedHospitalId],
+    queryKey: ["cuidadores", "busqueda", selectedHospitalId, orden],
     queryFn: ({ pageParam }) =>
-      fetchCuidadoresPorHospitales([selectedHospitalId as string], pageParam, TAMANO_PAGINA),
+      fetchCuidadoresPorHospitales([selectedHospitalId as string], pageParam, TAMANO_PAGINA, orden),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => (lastPage.page + 1 < lastPage.totalPages ? lastPage.page + 1 : undefined),
     enabled: Boolean(selectedHospitalId),
@@ -212,9 +220,31 @@ export default function PacienteBuscarPage() {
                 </button>
               </div>
             )}
+
+            {selectedHospitalId && (
+              <div className="mb-1 flex items-center justify-end gap-2 text-xs text-muted-foreground">
+                <span className="font-medium">Ordenar por</span>
+                <Select
+                  value={orden}
+                  onValueChange={(value) => setOrden(value as OrdenCuidadores)}
+                  items={OPCIONES_ORDEN.map((opcion) => ({ value: opcion.valor, label: opcion.etiqueta }))}
+                >
+                  <SelectTrigger className="w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    {OPCIONES_ORDEN.map((opcion) => (
+                      <SelectItem key={opcion.valor} value={opcion.valor}>
+                        {opcion.etiqueta}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
-          <div className="scrollbar-subtle flex flex-1 flex-col gap-3 overflow-y-auto px-1 py-3">
+          <div className="scrollbar-subtle flex flex-1 flex-col gap-3 overflow-y-auto px-1 pb-3">
             {!selectedHospitalId ? (
               <div className="flex flex-col items-center justify-center py-16 text-center text-sm text-muted-foreground gap-2">
                 <MapPin className="h-8 w-8 opacity-30" />
@@ -229,7 +259,7 @@ export default function PacienteBuscarPage() {
             ) : (
               <>
                 {cuidadores.map((cuidador) => (
-                  <TarjetaCuidador key={cuidador.id} cuidador={cuidador} hospitalActivoId={selectedHospitalId} />
+                  <TarjetaCuidador key={cuidador.id} cuidador={cuidador} />
                 ))}
                 {hasNextPage && (
                   <button
@@ -256,13 +286,7 @@ export default function PacienteBuscarPage() {
   );
 }
 
-function TarjetaCuidador({
-  cuidador,
-  hospitalActivoId,
-}: {
-  cuidador: CuidadorPublico;
-  hospitalActivoId: string | null;
-}) {
+function TarjetaCuidador({ cuidador }: { cuidador: CuidadorPublico }) {
   return (
     <Link
       href={`/cuidadores/${cuidador.id}`}
@@ -280,26 +304,12 @@ function TarjetaCuidador({
             </p>
             <span className="shrink-0 flex items-center gap-0.5 text-xs font-medium text-amber-500">
               <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-              {DEFAULT_VALORACION}
+              {(cuidador.valoracionMedia ?? 0).toFixed(1)}
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">{DEFAULT_ESPECIALIDAD}</p>
-          <p className="text-xs text-muted-foreground">{DEFAULT_EXPERIENCIA_ANIOS} año de experiencia</p>
-          <div className="mt-2 flex flex-wrap gap-1">
-            {cuidador.hospitales.map((h: Hospital) => (
-              <span
-                key={h.id}
-                className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                  hospitalActivoId === h.id
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                <MapPin className="h-2.5 w-2.5" />
-                {h.nombre.replace("Hospital ", "").replace("Universitario ", "")}
-              </span>
-            ))}
-          </div>
+          <p className="text-xs text-muted-foreground">Antigüedad: {formatearAntiguedad(cuidador.cuidadorDesde)}</p>
+          <p className="text-xs text-muted-foreground">Cuidados realizados: {cuidador.cuidadosRealizados}</p>
         </div>
       </div>
     </Link>

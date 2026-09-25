@@ -6,17 +6,17 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Building2, ShieldCheck } from "lucide-react";
 import { fetchCuidadorDetalle } from "@/lib/api/cuidadores";
 import { fetchResenasCuidador } from "@/lib/api/resenas";
-import { formatearAntiguedad } from "@/lib/fecha";
+import { formatearAntiguedad, formatearFecha } from "@/lib/fecha";
 import { Estrellas } from "@/components/ui/estrellas";
 import { Button } from "@/components/ui/button";
 import ModalResenas from "@/components/cuidador/ModalResenas";
 
-// especialidad/valoracion todavia no existen en el modelo real de cuidador
-// (ver TODO.md, "Ampliar perfil_cuidador") -> mismo valor de relleno que ya
-// usaba la tarjeta del buscador. antiguedad y cuidadosRealizados SI son
-// datos reales (ver CuidadorDetalleResponse en el backend).
+// especialidad todavia no existe en el modelo real de cuidador (ver
+// TODO.md, "Ampliar perfil_cuidador") -> mismo valor de relleno que ya
+// usaba la tarjeta del buscador. antiguedad, cuidadosRealizados y la
+// valoracion (calculada a partir de las resenas reales, ver mas abajo) SI
+// son datos reales.
 const DEFAULT_ESPECIALIDAD = "Cuidado general";
-const DEFAULT_VALORACION = 4.5;
 
 const CANTIDAD_RESENAS_PREVIEW = 3;
 
@@ -36,6 +36,9 @@ export default function CuidadorDetallePage() {
     queryKey: ["cuidador", cuidadorId, "resenas"],
     queryFn: () => fetchResenasCuidador(cuidadorId),
   });
+
+  const valoracionMedia =
+    resenas.length > 0 ? resenas.reduce((suma, r) => suma + r.valoracion, 0) / resenas.length : 0;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
@@ -66,8 +69,8 @@ export default function CuidadorDetallePage() {
                 {cuidador.nombre} {cuidador.apellidos}
               </h1>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <Estrellas valor={DEFAULT_VALORACION} size="md" />
-                <span className="text-sm font-medium text-foreground">{DEFAULT_VALORACION}</span>
+                <Estrellas valor={valoracionMedia} size="md" />
+                <span className="text-sm font-medium text-foreground">{valoracionMedia.toFixed(1)}</span>
                 {cuidador.identidadVerificada && (
                   <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                     <ShieldCheck className="h-3.5 w-3.5" />
@@ -125,11 +128,8 @@ export default function CuidadorDetallePage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Reseñas</p>
               {resenas.length > 0 && (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Estrellas
-                    valor={resenas.reduce((suma, r) => suma + r.valoracion, 0) / resenas.length}
-                  />
-                  {(resenas.reduce((suma, r) => suma + r.valoracion, 0) / resenas.length).toFixed(1)} (
-                  {resenas.length})
+                  <Estrellas valor={valoracionMedia} />
+                  {valoracionMedia.toFixed(1)} ({resenas.length})
                 </span>
               )}
             </div>
@@ -138,13 +138,14 @@ export default function CuidadorDetallePage() {
               <p className="text-sm text-muted-foreground">Este cuidador todavía no tiene reseñas.</p>
             ) : (
               <>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-3">
                   {resenas.slice(0, CANTIDAD_RESENAS_PREVIEW).map((resena) => (
-                    <div key={resena.id} className="border-b border-border pb-4 last:border-b-0 last:pb-0">
+                    <div key={resena.id} className="rounded-xl border border-border bg-muted/20 p-3">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-foreground">{resena.autorNombre}</p>
                         <Estrellas valor={resena.valoracion} />
                       </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{formatearFecha(resena.creadoEn)}</p>
                       <p className="mt-1 text-sm text-muted-foreground">{resena.comentario}</p>
                     </div>
                   ))}

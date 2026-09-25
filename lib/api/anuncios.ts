@@ -2,6 +2,7 @@ import { API_BASE_URL } from "@/lib/api/config";
 import { apiFetch } from "@/lib/api/client";
 import type { Hospital } from "@/lib/mock/hospitales";
 import type { FranjaHoraria } from "@/lib/anuncio/schema";
+import type { EstadoServicio } from "@/lib/api/servicios";
 
 interface HospitalApi {
   id: string;
@@ -197,6 +198,15 @@ export interface MiAnuncio {
   hospital: Hospital;
   titulo: string;
   estado: EstadoAnuncio;
+  /** Estado del servicio asociado (null si todavia no se acepto ninguna postulacion). */
+  estadoServicio: EstadoServicio | null;
+  /** Id del servicio y nombre del cuidador (null si todavia no hay servicio) -para poder valorar directamente desde esta lista. */
+  servicioId: string | null;
+  cuidadorNombre: string | null;
+  /** true si el servicio esta completado y todavia no se le ha puesto una reseña. */
+  puedeValorar: boolean;
+  /** La valoración ya puesta (null si no hay reseña todavía). */
+  miValoracion: number | null;
   seccion: SeccionMiAnuncio;
   postulacionesPendientes: number;
   franjas: FranjaHoraria[];
@@ -209,6 +219,11 @@ interface MiAnuncioApi {
   hospital: HospitalApi;
   titulo: string;
   estado: EstadoAnuncio;
+  estadoServicio: EstadoServicio | null;
+  servicioId: string | null;
+  cuidadorNombre: string | null;
+  puedeValorar: boolean;
+  miValoracion: number | null;
   seccion: SeccionMiAnuncio;
   postulacionesPendientes: number;
   franjas: FranjaApi[];

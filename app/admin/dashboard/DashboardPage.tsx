@@ -72,18 +72,18 @@ const COLOR_ESTADO_POSTULACION: Record<string, string> = {
 };
 
 const LABEL_ESTADO_SERVICIO: Record<string, string> = {
-  en_curso: "En curso",
-  pendiente_confirmacion: "Pend. confirmación",
+  aceptado: "Aceptado",
   confirmado: "Confirmado",
-  pagado: "Pagado",
+  pendiente_confirmacion: "Pend. confirmación",
+  completado: "Completado",
   cancelado: "Cancelado",
 };
 
 const COLOR_ESTADO_SERVICIO: Record<string, string> = {
-  en_curso: CHART_COLORS.sky,
-  pendiente_confirmacion: CHART_COLORS.amber,
+  aceptado: CHART_COLORS.emerald,
   confirmado: CHART_COLORS.violet,
-  pagado: CHART_COLORS.emerald,
+  pendiente_confirmacion: CHART_COLORS.amber,
+  completado: CHART_COLORS.emerald,
   cancelado: CHART_COLORS.red,
 };
 
@@ -187,9 +187,9 @@ export default function DashboardPage() {
             />
             <StatTile
               icon={<Activity className="h-5 w-5" />}
-              label="Servicios en curso"
-              value={formatearNumeroCompacto(data.servicios.porEstado.en_curso ?? 0)}
-              subtext="ahora mismo"
+              label="Servicios aceptados"
+              value={formatearNumeroCompacto(data.servicios.porEstado.aceptado ?? 0)}
+              subtext="precio acordado, sin pagar"
               color="text-sky-600 dark:text-sky-400"
             />
           </div>

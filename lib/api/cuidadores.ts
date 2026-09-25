@@ -1,16 +1,23 @@
 import { API_BASE_URL } from "@/lib/api/config";
 import type { Hospital } from "@/lib/mock/hospitales";
 
-// especialidad/experienciaAnios/valoracion NO existen todavia en el backend
-// real (ver TODO.md, "Ampliar perfil_cuidador") -> este tipo solo trae lo
-// que el servidor de verdad tiene. Los valores de relleno se aplican en el
-// componente que consume esto, nunca aqui.
+// especialidad NO existe todavia en el backend real (ver TODO.md, "Ampliar
+// perfil_cuidador") -> ese relleno se aplica en el componente que consume
+// esto, nunca aqui. valoracionMedia/numResenas/cuidadosRealizados/
+// cuidadorDesde SI son datos reales.
 export interface CuidadorPublico {
   id: string;
   nombre: string;
   apellidos: string;
+  valoracionMedia: number | null;
+  numResenas: number;
+  cuidadosRealizados: number;
+  /** Desde cuando tiene perfil de cuidador (ISO datetime), para calcular la antigüedad. */
+  cuidadorDesde: string;
   hospitales: Hospital[];
 }
+
+export type OrdenCuidadores = "nombre" | "valoracion" | "cuidados";
 
 export interface CuidadorDetalle {
   id: string;
@@ -66,11 +73,13 @@ export function fetchCuidadoresPorHospitales(
   hospitalIds: string[],
   page = 0,
   size = 20,
+  orden: OrdenCuidadores = "nombre",
 ): Promise<PaginaCuidadores> {
   if (hospitalIds.length === 0) {
     return Promise.resolve({ content: [], page: 0, size, totalElements: 0, totalPages: 0 });
   }
   const params = hospitalIdsParams(hospitalIds);
+  params.set("orden", orden);
   params.set("page", String(page));
   params.set("size", String(size));
   return apiGet<PaginaCuidadores>(`/api/cuidadores?${params}`);

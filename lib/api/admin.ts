@@ -240,7 +240,7 @@ export interface DashboardPostulaciones {
   tasaAceptacion: number;
 }
 
-export type EstadoServicioDashboard = "en_curso" | "pendiente_confirmacion" | "confirmado" | "pagado" | "cancelado";
+export type EstadoServicioDashboard = "aceptado" | "confirmado" | "pendiente_confirmacion" | "completado" | "cancelado";
 
 export interface DashboardServicios {
   total: number;

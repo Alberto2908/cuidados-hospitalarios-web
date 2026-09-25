@@ -26,9 +26,9 @@ export default function ModalResenas({ open, onOpenChange, resenas }: ModalResen
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex max-h-96 flex-col gap-4 overflow-y-auto">
+        <div className="flex max-h-96 flex-col gap-3 overflow-y-auto">
           {resenas.map((resena) => (
-            <div key={resena.id} className="border-b border-border pb-4 last:border-b-0 last:pb-0">
+            <div key={resena.id} className="rounded-xl border border-border bg-muted/20 p-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-medium text-foreground">{resena.autorNombre}</p>
                 <span className="text-xs text-muted-foreground">{formatearFecha(resena.creadoEn)}</span>
