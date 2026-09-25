@@ -36,7 +36,7 @@ export default function ContrasenaPage() {
   }
 
   return (
-    <div className="flex min-h-[70vh] items-center justify-center px-4 py-16 bg-gradient-to-b from-background to-muted/30">
+    <div className="flex min-h-[70vh] items-center justify-center px-4 py-16 bg-background">
       {/*
        * min-h-[70vh] en vez de depender de min-h-full/flex-1 sobre <main>:
        * eso requeria que <main> fuera un contenedor flex (display:flex), lo
@@ -53,14 +53,14 @@ export default function ContrasenaPage() {
           <ArrowLeft className="h-4 w-4" /> Volver a mi perfil
         </Link>
 
-        <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
+        <div className="rounded-2xl bg-card p-6 shadow-float">
           <div className="mb-4 flex items-center gap-2 text-foreground">
             <KeyRound className="h-5 w-5" />
             <h1 className="text-lg font-semibold">Cambiar contraseña</h1>
           </div>
 
           {user.proveedorAuth === "GOOGLE" ? (
-            <p className="rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+            <p className="rounded-xl bg-surface-sunken px-4 py-3 text-sm text-muted-foreground shadow-inset-soft">
               Inicias sesión con Google, así que tu cuenta no tiene una contraseña que cambiar aquí.
             </p>
           ) : (
@@ -120,12 +120,12 @@ function FormularioContrasena() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+        <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
           {error}
         </div>
       )}
       {guardado && (
-        <div className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+        <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
           Contraseña actualizada correctamente.
         </div>
       )}
@@ -229,7 +229,7 @@ function FormularioContrasena() {
       <button
         type="submit"
         disabled={enviando}
-        className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+        className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
       >
         {enviando ? "Guardando..." : "Cambiar contraseña"}
       </button>

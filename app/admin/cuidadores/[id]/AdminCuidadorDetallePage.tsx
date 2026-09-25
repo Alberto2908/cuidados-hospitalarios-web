@@ -33,24 +33,24 @@ export default function AdminCuidadorDetallePage() {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Cargando cuidador…</p>
       ) : isError || !cuidador ? (
-        <div className="rounded-2xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
+        <div className="rounded-2xl bg-surface-sunken py-16 text-center text-sm text-muted-foreground shadow-inset-soft">
           No se ha encontrado este cuidador.
         </div>
       ) : (
         <div className="space-y-6">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-lg font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent text-lg font-semibold text-accent-foreground">
               {cuidador.nombre[0]}
               {cuidador.apellidos[0]}
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">
+              <h1 className="text-xl font-semibold tracking-[-0.03em] text-foreground">
                 {cuidador.nombre} {cuidador.apellidos}
               </h1>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <EstadoUsuarioBadge estado={cuidador.estado} />
                 {cuidador.identidadVerificada && (
-                  <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                  <span className="flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
                     <ShieldCheck className="h-3.5 w-3.5" />
                     Identidad verificada
                   </span>
@@ -59,7 +59,7 @@ export default function AdminCuidadorDetallePage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
+          <div className="rounded-2xl bg-card p-5 shadow-float">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contacto</p>
             <div className="flex flex-col gap-2 text-sm text-foreground">
               <p className="flex items-center gap-2">
@@ -78,12 +78,12 @@ export default function AdminCuidadorDetallePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 divide-x divide-border overflow-hidden rounded-2xl border border-border">
-            <div className="bg-background p-3.5 text-center">
+          <div className="grid grid-cols-3 divide-x divide-border overflow-hidden rounded-2xl bg-card shadow-float">
+            <div className="p-3.5 text-center">
               <p className="text-lg font-semibold text-foreground">{cuidador.cuidadosRealizados}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">cuidados</p>
             </div>
-            <div className="bg-background p-3.5 text-center">
+            <div className="p-3.5 text-center">
               <p className="text-lg font-semibold text-foreground">
                 {cuidador.tarifaHora != null ? `${cuidador.tarifaHora} €` : "—"}
               </p>
@@ -91,7 +91,7 @@ export default function AdminCuidadorDetallePage() {
                 {cuidador.tarifaHora != null ? "por hora" : "sin tarifa"}
               </p>
             </div>
-            <div className="bg-background p-3.5 text-center">
+            <div className="p-3.5 text-center">
               <p className="flex items-center justify-center gap-1 text-lg font-semibold text-foreground">
                 {cuidador.valoracionMedia != null ? (
                   <>
@@ -106,7 +106,7 @@ export default function AdminCuidadorDetallePage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
+          <div className="rounded-2xl bg-card p-5 shadow-float">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Gestión de la cuenta</p>
             <AccionesEstadoUsuario
               usuarioId={cuidador.id}
@@ -115,7 +115,7 @@ export default function AdminCuidadorDetallePage() {
             />
           </div>
 
-          <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
+          <div className="rounded-2xl bg-card p-5 shadow-float">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Hospitales donde trabaja
             </p>

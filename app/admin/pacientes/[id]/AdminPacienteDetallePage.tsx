@@ -45,25 +45,25 @@ export default function AdminPacienteDetallePage() {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Cargando paciente…</p>
       ) : isError || !paciente ? (
-        <div className="rounded-2xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
+        <div className="rounded-2xl bg-surface-sunken py-16 text-center text-sm text-muted-foreground shadow-inset-soft">
           No se ha encontrado este paciente.
         </div>
       ) : (
         <div className="space-y-6">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-sky-100 text-lg font-semibold text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent text-lg font-semibold text-accent-foreground">
                 {paciente.nombre[0]}
                 {paciente.apellidos[0]}
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">
+                <h1 className="text-xl font-semibold tracking-[-0.03em] text-foreground">
                   {paciente.nombre} {paciente.apellidos}
                 </h1>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <EstadoUsuarioBadge estado={paciente.estado} />
                   {paciente.identidadVerificada && (
-                    <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                    <span className="flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
                       <ShieldCheck className="h-3.5 w-3.5" />
                       Identidad verificada
                     </span>
@@ -73,7 +73,7 @@ export default function AdminPacienteDetallePage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
+          <div className="rounded-2xl bg-card p-5 shadow-float">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contacto</p>
             <div className="flex flex-col gap-2 text-sm text-foreground">
               <p className="flex items-center gap-2">
@@ -92,7 +92,7 @@ export default function AdminPacienteDetallePage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
+          <div className="rounded-2xl bg-card p-5 shadow-float">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Gestión de la cuenta</p>
             <AccionesEstadoUsuario
               usuarioId={paciente.id}
@@ -101,7 +101,7 @@ export default function AdminPacienteDetallePage() {
             />
           </div>
 
-          <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
+          <div className="rounded-2xl bg-card p-5 shadow-float">
             <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <FileText className="h-3.5 w-3.5" />
               Anuncios ({paciente.anuncios.length})
@@ -111,7 +111,7 @@ export default function AdminPacienteDetallePage() {
             ) : (
               <ul className="flex flex-col gap-3">
                 {paciente.anuncios.map((anuncio) => (
-                  <li key={anuncio.id} className="rounded-xl border border-border p-3">
+                  <li key={anuncio.id} className="rounded-xl bg-surface-sunken p-3 shadow-inset-soft">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-medium text-foreground">{anuncio.titulo}</p>
                       <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_ANUNCIO_COLOR[anuncio.estado]}`}>

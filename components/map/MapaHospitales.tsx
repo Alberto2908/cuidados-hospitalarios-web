@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { Map as LeafletMap, Marker, MarkerClusterGroup } from "leaflet";
 import { Hospital } from "@/lib/mock/hospitales";
-// Estilo activo: CARTO Voyager. Si se implementa modo oscuro → DARK_MAP_STYLE_ID (carto-dark).
+// Estilo activo: CARTO Positron. Si se implementa modo oscuro → DARK_MAP_STYLE_ID (carto-dark).
 import { DEFAULT_MAP_STYLE_ID, getMapTileStyle } from "@/lib/map/tileStyles";
 // Individuales: píldora. Clusters: burbuja suave con cruz de hospital.
 import {
@@ -54,16 +54,19 @@ const PULSE_CSS = `
   60%  { transform: scale(1.9); opacity: 0;    }
   100% { transform: scale(1.9); opacity: 0;    }
 }
+@media (prefers-reduced-motion: reduce) {
+  .marker-pulse-ring { animation: none !important; }
+}
 .leaflet-tooltip.custom-tooltip {
-  background: #fff !important;
-  border: 1px solid #e5e7eb !important;
+  background: var(--card) !important;
+  border: none !important;
   border-radius: 10px !important;
   padding: 7px 11px !important;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.1) !important;
+  box-shadow: var(--shadow-float) !important;
   font-family: system-ui, -apple-system, sans-serif !important;
   pointer-events: none;
 }
-.leaflet-tooltip.custom-tooltip::before { border-top-color: #e5e7eb !important; }
+.leaflet-tooltip.custom-tooltip::before { border-top-color: var(--card) !important; }
 .marker-cluster-custom {
   background: transparent !important;
   border: none !important;
@@ -158,8 +161,8 @@ function drawMarkers(
     const accentColor = color === "sky" ? "#0369a1" : "#065f46";
     marker.bindTooltip(
       `<div>
-        <div style="font-size:13px;font-weight:700;color:#111;">🏥 ${hospital.nombre}</div>
-        <div style="font-size:11px;color:#6b7280;margin-top:2px;">${hospital.direccion}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--foreground);">🏥 ${hospital.nombre}</div>
+        <div style="font-size:11px;color:var(--muted-foreground);margin-top:2px;">${hospital.direccion}</div>
         <div style="font-size:12px;font-weight:600;color:${accentColor};margin-top:4px;">
           ${count} ${count === 1 ? "resultado disponible" : "resultados disponibles"}
         </div>

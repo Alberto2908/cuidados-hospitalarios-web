@@ -75,7 +75,7 @@ export default function FranjasPorDia({ franjas, onChange }: Props) {
 
   if (franjas.length === 0) {
     return (
-      <div className="flex h-full min-h-70 flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-muted/40 px-6 py-8 text-center">
+      <div className="flex h-full min-h-70 flex-1 flex-col items-center justify-center gap-3 rounded-xl bg-surface-sunken px-6 py-8 text-center shadow-inset-soft">
         <span className="flex size-11 items-center justify-center rounded-xl bg-muted text-foreground">
           <CalendarPlus className="size-5" />
         </span>
@@ -159,7 +159,7 @@ export default function FranjasPorDia({ franjas, onChange }: Props) {
         return (
           <li
             key={fecha}
-            className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3.5 shadow-sm"
+            className="flex flex-col gap-3 rounded-xl bg-surface-sunken p-3.5 shadow-inset-soft"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">

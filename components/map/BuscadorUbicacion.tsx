@@ -163,7 +163,7 @@ export default function BuscadorUbicacion({ onSelect, hospitales, trailing }: Pr
           onFocus={() => suggestions.length > 0 && setOpen(true)}
           placeholder="Ciudad, CP, calle u hospital…"
           autoComplete="off"
-          className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-9 text-sm text-foreground outline-none ring-ring focus:ring-2"
+          className="h-10 w-full rounded-xl border-0 bg-card pl-9 pr-9 text-sm text-foreground shadow-soft outline-none ring-ring focus:ring-2"
         />
         {loading ? (
           <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
@@ -177,7 +177,7 @@ export default function BuscadorUbicacion({ onSelect, hospitales, trailing }: Pr
                 setError(null);
                 setOpen(false);
               }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
               aria-label="Limpiar búsqueda"
             >
               <X className="h-4 w-4" />
@@ -189,7 +189,7 @@ export default function BuscadorUbicacion({ onSelect, hospitales, trailing }: Pr
       {error && <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{error}</p>}
 
       {open && suggestions.length > 0 && (
-        <ul className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-border bg-background py-1 shadow-lg">
+        <ul className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-2xl bg-card py-1 shadow-float">
           {suggestions.map((s) => (
             <li key={s.id}>
               <button

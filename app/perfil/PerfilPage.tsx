@@ -130,7 +130,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
             {user.apellidos[0]}
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">
+            <h1 className="text-xl font-semibold tracking-[-0.03em] text-foreground">
               {user.nombre} {user.apellidos}
             </h1>
             <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -145,9 +145,9 @@ function PerfilContenido({ user }: { user: AuthUser }) {
       </div>
 
       {/* Datos personales */}
-      <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
+      <div className="rounded-2xl bg-card p-6 shadow-float">
         <div className="mb-4 flex items-center gap-2 text-foreground">
-          <User className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+          <User className="h-5 w-5 text-accent-foreground" />
           <h2 className="text-lg font-semibold">Datos personales</h2>
         </div>
 
@@ -160,7 +160,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 type="text"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none ring-ring focus:ring-2 transition-shadow"
+                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-soft outline-none ring-ring transition-shadow focus:ring-2"
               />
             </div>
             <div className="space-y-1.5">
@@ -170,7 +170,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 type="text"
                 value={apellidos}
                 onChange={(e) => setApellidos(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none ring-ring focus:ring-2 transition-shadow"
+                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-soft outline-none ring-ring transition-shadow focus:ring-2"
               />
             </div>
           </div>
@@ -185,7 +185,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
               placeholder="+34 600 000 000"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-ring focus:ring-2 transition-shadow"
+              className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-soft outline-none ring-ring transition-shadow focus:ring-2"
             />
           </div>
 
@@ -203,7 +203,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 value={tipoDocumento}
                 disabled={documentoBloqueado}
                 onChange={(e) => setTipoDocumento(e.target.value as TipoDocumento)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none ring-ring focus:ring-2 transition-shadow disabled:opacity-60"
+                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-soft outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
               >
                 {TIPOS_DOCUMENTO.map((tipo) => (
                   <option key={tipo} value={tipo}>
@@ -217,7 +217,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 disabled={documentoBloqueado}
                 onChange={(e) => setNumeroDocumento(e.target.value)}
                 placeholder="12345678A"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-ring focus:ring-2 transition-shadow disabled:opacity-60"
+                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-soft outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
               />
             </div>
           </div>
@@ -225,7 +225,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
           <button
             type="submit"
             disabled={guardando}
-            className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+            className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
           >
             {guardando ? "Guardando..." : "Guardar cambios"}
           </button>
@@ -233,21 +233,21 @@ function PerfilContenido({ user }: { user: AuthUser }) {
       </div>
 
       {user.rol === "CUIDADOR" && (
-        <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
+        <div className="rounded-2xl bg-card p-6 shadow-float">
           <SeccionTarifa tarifaInicial={user.tarifaHora} />
         </div>
       )}
 
       {user.rol === "CUIDADOR" && (
-        <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
+        <div className="rounded-2xl bg-card p-6 shadow-float">
           <SeccionHospitales hospitalesIniciales={user.hospitalesTrabajo ?? []} />
         </div>
       )}
 
       {user.rol === "USUARIO" && (
-        <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
+        <div className="rounded-2xl bg-card p-6 shadow-float">
           <div className="mb-4 flex items-center gap-2 text-foreground">
-            <Stethoscope className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            <Stethoscope className="h-5 w-5 text-accent-foreground" />
             <h2 className="text-lg font-semibold">Conviértete en cuidador</h2>
           </div>
           <p className="mb-5 text-sm text-muted-foreground">
@@ -260,12 +260,12 @@ function PerfilContenido({ user }: { user: AuthUser }) {
               type="button"
               onClick={handleConvertirse}
               disabled={convirtiendo}
-              className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+              className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
             >
               {convirtiendo ? "Enviando..." : "Convertirme en cuidador"}
             </button>
           ) : (
-            <p className="rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+            <p className="rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
               Completa tu documento de identidad en “Datos personales” para poder convertirte en cuidador.
             </p>
           )}
@@ -273,15 +273,15 @@ function PerfilContenido({ user }: { user: AuthUser }) {
       )}
 
       {user.rol === "CUIDADOR" && (
-        <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
+        <div className="rounded-2xl bg-card p-6 shadow-float">
           <div className="mb-4 flex items-center gap-2 text-foreground">
-            <ShieldCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            <ShieldCheck className="h-5 w-5 text-accent-foreground" />
             <h2 className="text-lg font-semibold">Datos de cobro</h2>
           </div>
 
           {user.stripeCobrosHabilitados ? (
             <>
-              <div className="mb-4 flex items-start gap-2 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+              <div className="mb-4 flex items-start gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>Pagos activados. Ya puedes recibir tus ingresos cuando completes un turno.</span>
               </div>
@@ -289,14 +289,14 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 type="button"
                 onClick={handleVerificarStripe}
                 disabled={verificando}
-                className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+                className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
               >
                 {verificando ? "Redirigiendo a Stripe..." : "Gestionar datos de cobro en Stripe"}
               </button>
             </>
           ) : (
             <>
-              <div className="mb-4 flex items-start gap-2 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+              <div className="mb-4 flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
                   Todavía no has verificado tus datos de cobro con Stripe. Puedes hacerlo ahora o más adelante,
@@ -307,7 +307,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 type="button"
                 onClick={handleVerificarStripe}
                 disabled={verificando}
-                className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+                className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
               >
                 {verificando ? "Redirigiendo a Stripe..." : "Verificar datos de cobro con Stripe"}
               </button>
@@ -383,7 +383,7 @@ function SeccionTarifa({ tarifaInicial }: { tarifaInicial: number | null }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-foreground">
-        <Euro className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+        <Euro className="h-5 w-5 text-accent-foreground" />
         <h2 className="text-lg font-semibold">Tu tarifa por hora</h2>
       </div>
       <p className="text-sm text-muted-foreground">
@@ -398,14 +398,14 @@ function SeccionTarifa({ tarifaInicial }: { tarifaInicial: number | null }) {
           value={tarifa}
           onChange={(e) => setTarifa(e.target.value)}
           placeholder="Ej. 15"
-          className="w-32 rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-ring focus:ring-2 transition-shadow"
+          className="h-10 w-32 rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-soft outline-none ring-ring transition-shadow focus:ring-2"
         />
         <span className="text-sm text-muted-foreground">€ / hora</span>
         <button
           type="button"
           onClick={handleGuardar}
           disabled={guardando}
-          className="ml-auto rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+          className="ml-auto rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
         >
           {guardando ? "Guardando..." : "Guardar tarifa"}
         </button>
@@ -453,7 +453,7 @@ function SeccionHospitales({ hospitalesIniciales }: { hospitalesIniciales: Hospi
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-foreground">
-        <Building2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+        <Building2 className="h-5 w-5 text-accent-foreground" />
         <h2 className="text-lg font-semibold">Hospitales en los que trabajas</h2>
       </div>
       <p className="text-sm text-muted-foreground">
@@ -480,7 +480,7 @@ function SeccionHospitales({ hospitalesIniciales }: { hospitalesIniciales: Hospi
           {seleccionados.map((h) => (
             <li
               key={h.id}
-              className="flex items-center gap-1.5 rounded-full border border-border bg-muted/50 py-1 pl-3 pr-1.5 text-xs text-foreground"
+              className="flex items-center gap-1.5 rounded-full bg-muted py-1 pl-3 pr-1.5 text-xs text-foreground"
             >
               <span>
                 {h.nombre} <span className="text-muted-foreground">({h.ciudad})</span>
@@ -502,7 +502,7 @@ function SeccionHospitales({ hospitalesIniciales }: { hospitalesIniciales: Hospi
         type="button"
         onClick={handleGuardar}
         disabled={guardando}
-        className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+        className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
       >
         {guardando ? "Guardando..." : "Guardar hospitales"}
       </button>

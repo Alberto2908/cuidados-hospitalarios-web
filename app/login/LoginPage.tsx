@@ -49,15 +49,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-1 items-center justify-center px-4 py-16 bg-gradient-to-b from-background to-muted/30">
+    <div className="flex flex-1 items-center justify-center px-4 py-16 bg-background">
       <div className="w-full max-w-md">
         {/* Cabecera */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-sm">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-primary">
             <HeartPulse className="h-6 w-6 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Iniciar sesión</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Iniciar sesión</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
             Accede a tu cuenta de Cuidados Hospitalarios
           </p>
         </div>
@@ -65,7 +65,7 @@ export default function LoginPage() {
         {/* Formulario */}
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-border bg-background p-6 shadow-sm space-y-5"
+          className="rounded-2xl bg-card p-6 shadow-float space-y-5"
         >
           <GoogleLoginButton onCredential={handleGoogleCredential} />
 
@@ -116,7 +116,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={enviando}
-            className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+            className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
           >
             {enviando ? "Entrando..." : "Iniciar sesión"}
           </button>

@@ -19,7 +19,7 @@ function SelectTrigger({
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        "flex cursor-pointer items-center justify-between gap-1.5 rounded-full border border-input bg-background py-1.5 pl-3 pr-2.5 text-xs font-medium text-foreground shadow-sm outline-none ring-ring transition-colors hover:bg-accent focus-visible:ring-2 data-disabled:cursor-not-allowed data-disabled:opacity-60",
+        "flex cursor-pointer items-center justify-between gap-1.5 rounded-full border-0 bg-card py-1.5 pl-3 pr-2.5 text-xs font-medium text-foreground shadow-soft outline-none ring-ring transition-shadow hover:shadow-float focus-visible:ring-2 data-disabled:cursor-not-allowed data-disabled:opacity-60",
         className
       )}
       {...props}
@@ -56,7 +56,7 @@ function SelectContent({
         <SelectPrimitive.Popup
           data-slot="select-content"
           className={cn(
-            "z-50 max-h-64 min-w-[var(--anchor-width)] origin-(--transform-origin) overflow-y-auto rounded-lg bg-popover p-1 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            "z-50 max-h-64 min-w-[var(--anchor-width)] origin-(--transform-origin) overflow-y-auto rounded-2xl bg-popover p-1 text-sm text-popover-foreground shadow-float outline-hidden duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
             className
           )}
           {...props}

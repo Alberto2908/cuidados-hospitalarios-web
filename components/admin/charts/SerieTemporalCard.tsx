@@ -35,19 +35,19 @@ export default function SerieTemporalCard({ titulo, series, queryKeyBase, fetchS
   });
 
   return (
-    <div className="rounded-xl border border-border bg-background p-5">
+    <div className="rounded-2xl bg-card p-5 shadow-float">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold text-foreground">{titulo}</p>
-        <div className="flex gap-1 rounded-lg border border-border bg-muted/30 p-0.5">
+        <div className="flex gap-1 rounded-full bg-muted p-1">
           {OPCIONES_GRANULARIDAD.map((op) => (
             <button
               key={op.valor}
               type="button"
               onClick={() => setGranularidad(op.valor)}
-              className={`rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
+              className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
                 granularidad === op.valor
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {op.label}

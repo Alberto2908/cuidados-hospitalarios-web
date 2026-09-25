@@ -18,7 +18,7 @@ export function formatearNumeroCompacto(valor: number): string {
 export default function StatTile({ icon, label, value, subtext, color = "text-foreground" }: StatTileProps) {
   const textoSecundario = subtext ? `${label} ${subtext}` : label;
   return (
-    <div className="rounded-xl border border-border bg-background p-4">
+    <div className="rounded-2xl bg-card p-5 shadow-float">
       <div className={`mb-2 ${color}`}>{icon}</div>
       <p className="truncate text-2xl font-semibold text-foreground" title={value}>
         {value}

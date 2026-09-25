@@ -39,9 +39,9 @@ export default function AdminCuidadoresPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       {/* Cabecera */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">Gestionar cuidadores</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <div className="mb-5">
+        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Gestionar cuidadores</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
           Listado de todos los cuidadores registrados en la plataforma
         </p>
       </div>
@@ -68,18 +68,18 @@ export default function AdminCuidadoresPage() {
             placeholder="Buscar por nombre o email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-ring focus:ring-2"
+            className="h-10 w-full rounded-xl border-0 bg-card pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground shadow-soft outline-none ring-ring focus:ring-2"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="inline-flex gap-1 rounded-full bg-card p-1 shadow-soft">
           {(["todos", "activo", "pendiente", "suspendido", "baja"] as const).map((e) => (
             <button
               key={e}
               onClick={() => setFiltroEstado(e)}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-full px-3.5 py-2 text-xs font-medium transition-colors ${
                 filtroEstado === e
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
+                  ? "bg-secondary text-secondary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {e === "todos" ? "Todos" : ESTADO_USUARIO_LABEL[e]}
@@ -89,7 +89,7 @@ export default function AdminCuidadoresPage() {
       </div>
 
       {/* Tabla */}
-      <div className="overflow-hidden rounded-xl border border-border bg-background">
+      <div className="overflow-hidden rounded-2xl bg-card shadow-float">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -124,7 +124,7 @@ export default function AdminCuidadoresPage() {
                   >
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
                           {c.nombre[0]}{c.apellidos[0]}
                         </div>
                         <div>
@@ -170,9 +170,9 @@ export default function AdminCuidadoresPage() {
 
 function StatCard({ icon, label, display, color }: { icon: React.ReactNode; label: string; display: string; color: string }) {
   return (
-    <div className="rounded-xl border border-border bg-background p-4">
+    <div className="rounded-2xl bg-card p-4 shadow-float">
       <div className={`mb-2 ${color}`}>{icon}</div>
-      <p className="text-2xl font-bold text-foreground">{display}</p>
+      <p className="text-2xl font-semibold text-foreground">{display}</p>
       <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
     </div>
   );
