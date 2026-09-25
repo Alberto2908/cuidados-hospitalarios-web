@@ -18,7 +18,8 @@ export interface MapTileStyle {
  * Estilos de mapa disponibles para comparar y elegir.
  * Todos son tiles públicos (OSM / CARTO / IGN / Esri / Stadia).
  *
- * Estilo activo en la app: CARTO Voyager (`carto-voyager`).
+ * Estilo activo en la app: CARTO Positron (`carto-positron`), claro y
+ * desaturado para que los marcadores destaquen.
  * TODO (modo oscuro): cuando se implemente dark mode en la UI, cambiar
  * el estilo del mapa a CARTO Dark Matter (`carto-dark`).
  */
@@ -44,7 +45,6 @@ export const MAP_TILE_STYLES: MapTileStyle[] = [
       '© <a href="https://www.openstreetmap.org/copyright">OSM</a> · © <a href="https://carto.com/">CARTO</a>',
     maxZoom: 20,
     subdomains: "abcd",
-    recomendado: true,
   },
   {
     id: "carto-positron",
@@ -56,6 +56,7 @@ export const MAP_TILE_STYLES: MapTileStyle[] = [
       '© <a href="https://www.openstreetmap.org/copyright">OSM</a> · © <a href="https://carto.com/">CARTO</a>',
     maxZoom: 20,
     subdomains: "abcd",
+    recomendado: true,
   },
   {
     id: "carto-positron-nolabels",
@@ -155,7 +156,7 @@ export const MAP_TILE_STYLES: MapTileStyle[] = [
 ];
 
 /** Estilo por defecto (modo claro). Para dark mode → `carto-dark`. */
-export const DEFAULT_MAP_STYLE_ID = "carto-voyager";
+export const DEFAULT_MAP_STYLE_ID = "carto-positron";
 
 /** Estilo previsto cuando se active el modo oscuro en la UI. */
 export const DARK_MAP_STYLE_ID = "carto-dark";

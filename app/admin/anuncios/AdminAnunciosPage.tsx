@@ -68,9 +68,9 @@ export default function AdminAnunciosPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       {/* Cabecera */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">Gestionar anuncios</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <div className="mb-5">
+        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Gestionar anuncios</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
           Listado de todos los anuncios publicados en la plataforma
         </p>
       </div>
@@ -93,10 +93,10 @@ export default function AdminAnunciosPage() {
               placeholder="Buscar por título, paciente u hospital..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-lg border border-input bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none ring-ring focus:ring-2"
+              className="h-10 w-full rounded-xl border-0 bg-card pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground shadow-soft outline-none ring-ring focus:ring-2"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="inline-flex gap-1 rounded-full bg-card p-1 shadow-soft">
             {(["todos", "activo", "cubierto", "cancelado"] as const).map((e) => (
               <button
                 key={e}
@@ -104,10 +104,10 @@ export default function AdminAnunciosPage() {
                   setFiltroEstado(e);
                   setPage(0);
                 }}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`rounded-full px-3.5 py-2 text-xs font-medium transition-colors ${
                   filtroEstado === e
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
+                    ? "bg-secondary text-secondary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {e === "todos" ? "Todos" : ESTADO_LABEL[e]}
@@ -127,7 +127,7 @@ export default function AdminAnunciosPage() {
                 setDesde(e.target.value);
                 setPage(0);
               }}
-              className="rounded-lg border border-input bg-background px-2 py-1 text-foreground outline-none ring-ring focus:ring-2"
+              className="rounded-xl border-0 bg-card px-2 py-1 text-foreground shadow-soft outline-none ring-ring focus:ring-2"
             />
           </label>
           <label className="flex items-center gap-1.5 text-muted-foreground">
@@ -140,7 +140,7 @@ export default function AdminAnunciosPage() {
                 setHasta(e.target.value);
                 setPage(0);
               }}
-              className="rounded-lg border border-input bg-background px-2 py-1 text-foreground outline-none ring-ring focus:ring-2"
+              className="rounded-xl border-0 bg-card px-2 py-1 text-foreground shadow-soft outline-none ring-ring focus:ring-2"
             />
           </label>
           {(desde || hasta) && (
@@ -160,7 +160,7 @@ export default function AdminAnunciosPage() {
       </div>
 
       {/* Tabla */}
-      <div className="overflow-hidden rounded-xl border border-border bg-background">
+      <div className="overflow-hidden rounded-2xl bg-card shadow-float">
         <div className={`overflow-x-auto ${isPlaceholderData ? "opacity-60" : ""}`}>
           <table className="w-full text-sm">
             <thead>
@@ -238,7 +238,7 @@ export default function AdminAnunciosPage() {
                 type="button"
                 disabled={page === 0}
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
-                className="flex items-center gap-1 rounded-lg border border-input bg-background px-2 py-1 font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-1 rounded-full bg-muted px-2 py-1 font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
                 Anterior
@@ -250,7 +250,7 @@ export default function AdminAnunciosPage() {
                 type="button"
                 disabled={page + 1 >= pagina.totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="flex items-center gap-1 rounded-lg border border-input bg-background px-2 py-1 font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-1 rounded-full bg-muted px-2 py-1 font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Siguiente
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -265,9 +265,9 @@ export default function AdminAnunciosPage() {
 
 function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color: string }) {
   return (
-    <div className="rounded-xl border border-border bg-background p-4">
+    <div className="rounded-2xl bg-card p-4 shadow-float">
       <div className={`mb-2 ${color}`}>{icon}</div>
-      <p className="text-2xl font-bold text-foreground">{value}</p>
+      <p className="text-2xl font-semibold text-foreground">{value}</p>
       <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
     </div>
   );

@@ -111,9 +111,9 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Métricas y actividad de toda la plataforma</p>
+      <div className="mb-5">
+        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Dashboard</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">Métricas y actividad de toda la plataforma</p>
       </div>
 
       {isLoading ? (
@@ -217,18 +217,18 @@ export default function DashboardPage() {
 
           {/* Desgloses por estado */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <div className="rounded-xl border border-border bg-background p-5">
+            <div className="rounded-2xl bg-card p-5 shadow-float">
               <p className="mb-4 text-sm font-semibold text-foreground">Anuncios por estado</p>
               <BarChart data={aBarras(data.anuncios.porEstado, LABEL_ESTADO_ANUNCIO, COLOR_ESTADO_ANUNCIO)} height={180} />
             </div>
-            <div className="rounded-xl border border-border bg-background p-5">
+            <div className="rounded-2xl bg-card p-5 shadow-float">
               <p className="mb-4 text-sm font-semibold text-foreground">Postulaciones por estado</p>
               <BarChart
                 data={aBarras(data.postulaciones.porEstado, LABEL_ESTADO_POSTULACION, COLOR_ESTADO_POSTULACION)}
                 height={180}
               />
             </div>
-            <div className="rounded-xl border border-border bg-background p-5">
+            <div className="rounded-2xl bg-card p-5 shadow-float">
               <p className="mb-4 text-sm font-semibold text-foreground">Servicios por estado</p>
               <BarChart data={aBarras(data.servicios.porEstado, LABEL_ESTADO_SERVICIO, COLOR_ESTADO_SERVICIO)} height={180} />
             </div>
@@ -237,7 +237,7 @@ export default function DashboardPage() {
           {/* Cuentas por estado + top hospitales */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="flex flex-col gap-4">
-              <div className="rounded-xl border border-border bg-background p-5">
+              <div className="rounded-2xl bg-card p-5 shadow-float">
                 <p className="mb-4 text-sm font-semibold text-foreground">Pacientes por estado</p>
                 <BarChart
                   data={aBarras(data.usuarios.pacientesPorEstado, LABEL_ESTADO_USUARIO, {
@@ -249,7 +249,7 @@ export default function DashboardPage() {
                   height={170}
                 />
               </div>
-              <div className="rounded-xl border border-border bg-background p-5">
+              <div className="rounded-2xl bg-card p-5 shadow-float">
                 <p className="mb-4 text-sm font-semibold text-foreground">Cuidadores por estado</p>
                 <BarChart
                   data={aBarras(data.usuarios.cuidadoresPorEstado, LABEL_ESTADO_USUARIO, {
@@ -263,7 +263,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-background p-5">
+            <div className="rounded-2xl bg-card p-5 shadow-float">
               <p className="mb-4 flex items-center gap-1.5 text-sm font-semibold text-foreground">
                 <Building2 className="h-4 w-4" />
                 Top 15 hospitales por actividad

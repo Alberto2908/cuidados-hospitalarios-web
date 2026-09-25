@@ -96,15 +96,15 @@ const ACCESOS_POR_ROL: Record<UserRole, AccesoRapido[]> = {
 };
 
 const ROLE_ACCENT: Record<UserRole, string> = {
-  USUARIO: "text-sky-600 dark:text-sky-400",
-  CUIDADOR: "text-emerald-600 dark:text-emerald-400",
-  ADMIN: "text-violet-600 dark:text-violet-400",
+  USUARIO: "text-accent-foreground",
+  CUIDADOR: "text-accent-foreground",
+  ADMIN: "text-rose-600 dark:text-rose-400",
 };
 
-const ROLE_BG: Record<UserRole, string> = {
-  USUARIO: "bg-sky-200 dark:bg-sky-950/60",
-  CUIDADOR: "bg-emerald-200 dark:bg-emerald-950/60",
-  ADMIN: "bg-violet-200 dark:bg-violet-950/60",
+const ROLE_CHIP: Record<UserRole, string> = {
+  USUARIO: "bg-accent text-accent-foreground",
+  CUIDADOR: "bg-accent text-accent-foreground",
+  ADMIN: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
 };
 
 const HERO_BULLETS = [
@@ -137,16 +137,12 @@ export default function InicioPage() {
   return (
     <div className="flex flex-1 flex-col">
       {/* ── Hero ── */}
-      <section
-        className={`relative overflow-hidden px-4 pb-24 pt-16 sm:px-6 lg:px-8 ${
-          isAuthenticated && user ? ROLE_BG[user.rol] : "bg-neutral-200 dark:bg-neutral-800/60"
-        }`}
-      >
+      <section className="relative overflow-hidden bg-neutral-200 px-4 pb-24 pt-16 dark:bg-neutral-800/60 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-md">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-primary">
             <HeartPulse className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          <h1 className="text-3xl font-semibold tracking-[-0.03em] text-foreground sm:text-4xl">
             Acompañamiento hospitalario de confianza
           </h1>
           <p className="mt-3 text-base text-muted-foreground text-pretty">
@@ -170,7 +166,7 @@ export default function InicioPage() {
               </ul>
               <Link
                 href="/registro"
-                className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90"
               >
                 Crear cuenta gratis
                 <ArrowRight className="h-4 w-4" />
@@ -190,9 +186,9 @@ export default function InicioPage() {
                   <Link
                     key={acceso.href}
                     href={acceso.href}
-                    className="group flex items-center gap-3 rounded-2xl border border-border bg-background p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                    className="group flex items-center gap-3 rounded-2xl bg-card p-4 shadow-float transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_oklch(0.29_0.05_265/0.12)]"
                   >
-                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted ${ROLE_ACCENT[user.rol]}`}>
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${ROLE_CHIP[user.rol]}`}>
                       {acceso.icon}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -215,7 +211,7 @@ export default function InicioPage() {
       {/* ── Sobre la plataforma ── */}
       <section className="px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-2xl font-bold text-foreground">Cuando no puedes estar tú, que haya alguien</h2>
+          <h2 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Cuando no puedes estar tú, que haya alguien</h2>
           <div className="mt-4 space-y-4 text-sm text-muted-foreground">
             <p>
               Cuando un familiar está ingresado, alguien tiene que acompañarle. Pero la vida no se
@@ -249,7 +245,7 @@ export default function InicioPage() {
       <section className="relative overflow-hidden bg-neutral-200 px-4 pb-20 pt-20 dark:bg-neutral-800/60 sm:px-6 lg:px-8">
         <OlaDivisor className="absolute inset-x-0 top-0 h-14 w-full rotate-180 text-background" />
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-center text-2xl font-bold text-foreground">Cómo funciona</h2>
+          <h2 className="text-center text-2xl font-semibold tracking-[-0.03em] text-foreground">Cómo funciona</h2>
           <p className="mx-auto mt-2 max-w-xl text-center text-sm text-muted-foreground">
             De publicar el turno a tenerlo cubierto, en tres pasos.
           </p>
@@ -261,7 +257,7 @@ export default function InicioPage() {
             {PASOS.map((paso, i) => (
               <div
                 key={paso.titulo}
-                className="relative overflow-hidden rounded-2xl border border-border bg-background p-6 shadow-sm"
+                className="relative overflow-hidden rounded-2xl bg-card p-6 shadow-float"
               >
                 <div className="relative mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                   {paso.icon}
@@ -282,12 +278,12 @@ export default function InicioPage() {
       {!isLoading && !isAuthenticated && (
         <section className="px-4 py-14 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-5xl">
-            <h2 className="text-center text-2xl font-bold text-foreground">Elige tu perfil</h2>
+            <h2 className="text-center text-2xl font-semibold tracking-[-0.03em] text-foreground">Elige tu perfil</h2>
 
             <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">
               {/* Paciente / familiar */}
-              <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-neutral-200 p-6 shadow-sm dark:bg-neutral-800/60">
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400">
+              <div className="flex flex-col overflow-hidden rounded-2xl bg-card p-6 shadow-float">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
                   <Search className="h-5 w-5" />
                 </div>
                 <h3 className="mb-2 text-lg font-semibold text-foreground">Necesito un cuidador</h3>
@@ -302,15 +298,15 @@ export default function InicioPage() {
                 </ul>
                 <Link
                   href="/registro"
-                  className="mt-auto rounded-full bg-primary px-5 py-2.5 text-center text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                  className="mt-auto rounded-full bg-primary px-5 py-2.5 text-center text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90"
                 >
                   Encuentra ahora un cuidador
                 </Link>
               </div>
 
               {/* Cuidador */}
-              <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-neutral-200 p-6 shadow-sm dark:bg-neutral-800/60">
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
+              <div className="flex flex-col overflow-hidden rounded-2xl bg-card p-6 shadow-float">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
                   <Stethoscope className="h-5 w-5" />
                 </div>
                 <h3 className="mb-2 text-lg font-semibold text-foreground">Soy cuidador profesional</h3>
@@ -324,7 +320,7 @@ export default function InicioPage() {
                 </ul>
                 <Link
                   href="/registro"
-                  className="mt-auto rounded-full bg-primary px-5 py-2.5 text-center text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                  className="mt-auto rounded-full bg-primary px-5 py-2.5 text-center text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90"
                 >
                   Encuentra a quien cuidar
                 </Link>
@@ -392,15 +388,15 @@ function ResumenCuenta({ user }: { user: AuthUser }) {
       {(esPaciente || esCuidador) && pendientes > 0 && (
         <Link
           href={hrefPendientes}
-          className="flex flex-1 items-center gap-2.5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-primary/10"
+          className="flex flex-1 items-center gap-2.5 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/70"
         >
-          <Bell className="h-4 w-4 shrink-0 text-primary" />
+          <Bell className="h-4 w-4 shrink-0 text-accent-foreground" />
           Tienes {pendientes} {pendientes === 1 ? "novedad pendiente" : "novedades pendientes"} de revisar
         </Link>
       )}
 
       {esCuidador && (
-        <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-muted-foreground">
+        <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-card px-4 py-2.5 text-sm text-muted-foreground shadow-soft">
           <span className="flex items-center gap-1.5">
             <Euro className="h-3.5 w-3.5" />
             {user.tarifaHora != null ? `${user.tarifaHora} €/hora` : "Sin tarifa configurada"}
@@ -446,7 +442,7 @@ function HospitalesDestacados() {
   return (
     <section className="px-4 py-14 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
-        <h2 className="text-center text-2xl font-bold text-foreground">
+        <h2 className="text-center text-2xl font-semibold tracking-[-0.03em] text-foreground">
           Hospitales donde puedes publicar tu anuncio
         </h2>
         <p className="mx-auto mt-2 max-w-xl text-center text-sm text-muted-foreground">
@@ -458,9 +454,9 @@ function HospitalesDestacados() {
           {destacados.map((hospital) => (
             <div
               key={hospital.id}
-              className="flex items-start gap-2.5 rounded-xl border border-border bg-neutral-200 p-3.5 dark:bg-neutral-800/60"
+              className="flex items-start gap-2.5 rounded-xl bg-card p-3.5 shadow-soft"
             >
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-black dark:text-white" />
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-foreground" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-foreground">{hospital.nombre}</p>
                 <p className="text-xs text-muted-foreground">{hospital.ciudad}</p>

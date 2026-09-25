@@ -20,7 +20,7 @@ import type { GeocodeResult } from "@/lib/geocoding/nominatim";
 const MapaHospitales = dynamic(() => import("@/components/map/MapaHospitales"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full w-full items-center justify-center bg-muted/40 text-sm text-muted-foreground">
+    <div className="flex h-full w-full items-center justify-center bg-surface-sunken text-sm text-muted-foreground">
       Cargando mapa…
     </div>
   ),
@@ -150,15 +150,15 @@ export default function CuidadorBuscarPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Buscar anuncios</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <div className="mb-5">
+        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Buscar anuncios</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
           Selecciona un hospital en el mapa para ver los anuncios activos ahí
         </p>
       </div>
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
 
-        <div className="relative h-[420px] lg:h-[580px] lg:flex-1 rounded-xl overflow-hidden border border-border shadow-sm">
+        <div className="relative h-[420px] lg:h-[580px] lg:flex-1 rounded-2xl overflow-hidden bg-surface-sunken shadow-inset-soft">
           <MapaHospitales
             markers={markers}
             onHospitalClick={handleMarkerClick}
@@ -182,14 +182,14 @@ export default function CuidadorBuscarPage() {
             </div>
 
             {hospitalSeleccionado && (
-              <div className="mb-3 flex items-start justify-between gap-2 rounded-lg bg-muted/40 px-3 py-2">
+              <div className="mb-3 flex items-start justify-between gap-2 rounded-xl bg-surface-sunken px-3 py-2 shadow-inset-soft">
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Filtrando por</p>
                   <p className="mt-0.5 font-semibold text-foreground leading-tight">{hospitalSeleccionado.nombre}</p>
                 </div>
                 <button
                   onClick={() => setSelectedHospitalId(null)}
-                  className="shrink-0 rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-card hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -219,7 +219,7 @@ export default function CuidadorBuscarPage() {
                     type="button"
                     onClick={() => fetchNextPage()}
                     disabled={cargandoAnuncios}
-                    className="rounded-lg border border-input bg-background py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-60"
+                    className="rounded-full bg-card py-2 text-sm font-medium text-foreground shadow-soft transition-shadow hover:shadow-float disabled:opacity-60"
                   >
                     {cargandoAnuncios ? "Cargando…" : "Cargar más"}
                   </button>
@@ -243,7 +243,7 @@ function TarjetaAnuncio({ anuncio }: { anuncio: Anuncio }) {
   return (
     <Link
       href={`/paciente/anuncio/${anuncio.id}`}
-      className="block rounded-2xl bg-muted/20 p-4 shadow-sm transition-all hover:bg-muted/40 hover:shadow-md"
+      className="block rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_8px_24px_oklch(0.29_0.05_265/0.12)]"
     >
       <p className="font-medium text-foreground text-sm leading-snug">{anuncio.titulo}</p>
       <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{anuncio.descripcion}</p>

@@ -64,9 +64,9 @@ export default function CuidadorHistorialPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Mis postulaciones</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <div className="mb-5">
+        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Mis postulaciones</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
           Tus postulaciones activas y, debajo, el historial de las ya aceptadas y terminadas, rechazadas o retiradas.
         </p>
       </div>
@@ -74,7 +74,7 @@ export default function CuidadorHistorialPage() {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Cargando…</p>
       ) : !postulaciones || postulaciones.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
+        <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-sunken py-16 text-center text-sm text-muted-foreground shadow-inset-soft">
           <p>Todavía no te has postulado a ningún anuncio.</p>
           <Link href="/cuidador/buscar" className="mt-2 font-medium text-foreground underline underline-offset-2">
             Busca anuncios activos
@@ -140,7 +140,7 @@ function TarjetaMiPostulacion({
   const [modalRetirarAbierto, setModalRetirarAbierto] = useState(false);
 
   return (
-    <div className="flex items-stretch justify-between gap-3 rounded-2xl border border-border bg-background p-4 shadow-sm">
+    <div className="flex items-stretch justify-between gap-3 rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_8px_24px_oklch(0.29_0.05_265/0.12)]">
       <Link href={`/paciente/anuncio/${postulacion.anuncioId}`} className="min-w-0 flex-1 hover:opacity-80">
         <p className="font-medium text-foreground text-sm">{postulacion.anuncioTitulo}</p>
         <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">

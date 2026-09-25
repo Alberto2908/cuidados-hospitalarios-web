@@ -13,27 +13,41 @@ type Palette = {
 };
 
 function tone(color: MarkerTone, selected: boolean): Palette {
+  if (selected) {
+    // Seleccionado / hover desde la lista: siempre marca (violeta), gane el
+    // tono que gane, para que destaque igual en pacientes y cuidadores.
+    return {
+      bg: "var(--primary)",
+      text: "var(--primary-foreground)",
+      border: "var(--primary)",
+      glow: "var(--shadow-primary)",
+      pulse: "color-mix(in oklch, var(--primary) 35%, transparent)",
+      icon: "var(--primary-foreground)",
+      accent: "var(--primary)",
+      solid: "var(--primary)",
+    };
+  }
   if (color === "sky") {
     return {
-      bg: selected ? "#0369a1" : "#ffffff",
-      text: selected ? "#ffffff" : "#0369a1",
-      border: selected ? "#0ea5e9" : "#bae6fd",
-      glow: selected ? "rgba(14,165,233,0.45)" : "rgba(14,165,233,0.18)",
+      bg: "var(--card)",
+      text: "#0369a1",
+      border: "#bae6fd",
+      glow: "var(--shadow-float)",
       pulse: "rgba(14,165,233,0.4)",
-      icon: selected ? "#ffffff" : "#0ea5e9",
+      icon: "#0ea5e9",
       accent: "#0369a1",
-      solid: selected ? "#0284c7" : "#0ea5e9",
+      solid: "#0ea5e9",
     };
   }
   return {
-    bg: selected ? "#065f46" : "#ffffff",
-    text: selected ? "#ffffff" : "#065f46",
-    border: selected ? "#10b981" : "#a7f3d0",
-    glow: selected ? "rgba(16,185,129,0.45)" : "rgba(16,185,129,0.18)",
+    bg: "var(--card)",
+    text: "#065f46",
+    border: "#a7f3d0",
+    glow: "var(--shadow-float)",
     pulse: "rgba(16,185,129,0.4)",
-    icon: selected ? "#ffffff" : "#10b981",
+    icon: "#10b981",
     accent: "#065f46",
-    solid: selected ? "#047857" : "#10b981",
+    solid: "#10b981",
   };
 }
 
@@ -80,22 +94,27 @@ export function buildMarkerHtml(
 
   const W = Math.max(38, 22 + String(count).length * 11);
   const H = 34;
-  const bg = selected ? p.solid : "#fff";
+  const bg = p.bg;
   const border = selected ? p.solid : hover ? p.solid : p.border;
-  const shadow = hover
-    ? `0 6px 16px ${p.glow}`
-    : `0 2px 10px ${p.glow},0 1px 3px rgba(0,0,0,0.06)`;
-  const textColor = selected ? "#fff" : p.accent;
+  const shadow = selected ? "var(--shadow-primary)" : hover ? "var(--shadow-float)" : "var(--shadow-soft)";
+  const textColor = p.text;
+
+  const ring = selected
+    ? `<div class="marker-pulse-ring" style="position:absolute;inset:0;border-radius:999px;background:${p.pulse};animation:marker-pulse 2.4s ease-out infinite;"></div>`
+    : "";
 
   return {
     html: `
-      <div style="
-        min-width:${W}px;height:${H}px;padding:0 12px;border-radius:999px;
-        background:${bg};border:2px solid ${border};
-        box-shadow:${shadow};display:flex;align-items:center;justify-content:center;
-        font-family:system-ui,sans-serif;font-size:13px;font-weight:800;
-        color:${textColor};cursor:pointer;${scale}
-      ">${count}</div>`,
+      <div style="position:relative;${scale}">
+        ${ring}
+        <div style="
+          position:relative;min-width:${W}px;height:${H}px;padding:0 12px;border-radius:999px;
+          background:${bg};border:2px solid ${border};
+          box-shadow:${shadow};display:flex;align-items:center;justify-content:center;
+          font-family:system-ui,sans-serif;font-size:13px;font-weight:800;
+          color:${textColor};cursor:pointer;
+        ">${count}</div>
+      </div>`,
     iconSize: [W, H],
     iconAnchor: [W / 2, H / 2],
   };
@@ -111,11 +130,11 @@ export function buildMiUbicacionHtml(): MarkerIconResult {
   return {
     html: `
       <div style="position:relative;width:${S}px;height:${S}px;">
-        <div style="position:absolute;inset:0;border-radius:50%;background:rgba(37,99,235,0.35);animation:marker-pulse 2.4s ease-out infinite;"></div>
+        <div class="marker-pulse-ring" style="position:absolute;inset:0;border-radius:50%;background:rgba(37,99,235,0.35);animation:marker-pulse 2.4s ease-out infinite;"></div>
         <div style="
           position:relative;width:${S}px;height:${S}px;border-radius:50%;
-          background:#2563eb;border:3px solid #fff;
-          box-shadow:0 1px 4px rgba(0,0,0,0.35);
+          background:#2563eb;border:3px solid var(--card);
+          box-shadow:var(--shadow-soft);
         "></div>
       </div>`,
     iconSize: [S, S],
@@ -138,11 +157,11 @@ export function buildClusterSoftBubbleHtml(
   return {
     html: `
       <div style="position:relative;width:${S}px;height:${S}px;">
-        <div style="position:absolute;inset:0;border-radius:50%;background:${p.pulse};animation:marker-pulse 2.4s ease-out infinite;"></div>
+        <div class="marker-pulse-ring" style="position:absolute;inset:0;border-radius:50%;background:${p.pulse};animation:marker-pulse 2.4s ease-out infinite;"></div>
         <div style="
           position:relative;width:${S}px;height:${S}px;border-radius:50%;
-          background:#fff;border:2.5px solid ${p.border};
-          box-shadow:0 4px 16px ${p.glow},0 1px 4px rgba(0,0,0,0.08);
+          background:var(--card);border:2.5px solid ${p.border};
+          box-shadow:var(--shadow-float);
           display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
           font-family:system-ui,sans-serif;cursor:pointer;
         ">

@@ -23,7 +23,7 @@ export const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputPro
           id={id}
           placeholder=" "
           className={cn(
-            "peer w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none ring-ring focus:ring-2 transition-shadow",
+            "peer h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-soft outline-none ring-ring focus:ring-2 transition-shadow",
             rightElement && "pr-10",
             className
           )}
@@ -32,7 +32,7 @@ export const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputPro
         <label
           htmlFor={id}
           className={cn(
-            "pointer-events-none absolute left-3 top-0 -translate-y-1/2 -translate-x-1 bg-background px-1 text-xs font-normal text-muted-foreground transition-all duration-150",
+            "pointer-events-none absolute left-3 top-0 -translate-y-1/2 -translate-x-1 bg-card px-1 text-xs font-normal text-muted-foreground transition-all duration-150",
             "peer-[&:placeholder-shown:not(:focus)]:top-1/2 peer-[&:placeholder-shown:not(:focus)]:translate-x-0 peer-[&:placeholder-shown:not(:focus)]:bg-transparent peer-[&:placeholder-shown:not(:focus)]:px-0 peer-[&:placeholder-shown:not(:focus)]:text-sm"
           )}
         >
