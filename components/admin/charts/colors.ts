@@ -3,7 +3,7 @@
 // consumir clases Tailwind directamente en stroke/fill, asi que se repiten
 // aqui como constantes en vez de inventar una paleta nueva. Los roles
 // coinciden con los que ya tiene la app (paciente=sky, cuidador=emerald,
-// activo=sky, aceptado=emerald, cancelado/rechazado=red, pendiente=amber).
+// activo=sky, aceptado=emerald, borrado/rechazado=red, pendiente=amber).
 export const CHART_COLORS = {
   sky: "#0ea5e9",
   emerald: "#10b981",

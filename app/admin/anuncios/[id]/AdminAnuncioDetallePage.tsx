@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
 import { ArrowLeft, CalendarDays, Lock, MapPin } from "lucide-react";
-import { fetchAdminAnuncio, cancelarAnuncioAdmin } from "@/lib/api/admin";
+import { fetchAdminAnuncio, borrarAnuncioAdmin } from "@/lib/api/admin";
 import type { Postulacion } from "@/lib/api/postulaciones";
 import type { EstadoAnuncio } from "@/lib/api/anuncios";
 import type { EstadoPago, EstadoServicio } from "@/lib/api/servicios";
@@ -28,13 +28,13 @@ const ESTADO_PAGO_LABEL: Record<EstadoPago, string> = {
 const ESTADO_ANUNCIO_LABEL: Record<EstadoAnuncio, string> = {
   activo: "Activo",
   cubierto: "Aceptado",
-  cancelado: "Cancelado",
+  borrado: "Borrado",
 };
 
 const ESTADO_ANUNCIO_COLOR: Record<EstadoAnuncio, string> = {
   activo: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
   cubierto: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  borrado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
 };
 
 const ESTADO_POSTULACION_LABEL: Record<Postulacion["estado"], string> = {
@@ -63,14 +63,14 @@ export default function AdminAnuncioDetallePage() {
     retry: false,
   });
 
-  const cancelarMutation = useMutation({
-    mutationFn: () => cancelarAnuncioAdmin(anuncioId),
+  const borrarMutation = useMutation({
+    mutationFn: () => borrarAnuncioAdmin(anuncioId),
     onSuccess: () => {
-      sileo.success({ title: "Anuncio cancelado" });
+      sileo.success({ title: "Anuncio borrado" });
       queryClient.invalidateQueries({ queryKey: ["admin", "anuncios"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "anuncios", anuncioId] });
     },
-    onError: (error: Error) => sileo.error({ title: "No se pudo cancelar", description: error.message }),
+    onError: (error: Error) => sileo.error({ title: "No se pudo borrar", description: error.message }),
   });
 
   return (
@@ -138,14 +138,14 @@ export default function AdminAnuncioDetallePage() {
                   type="button"
                   size="sm"
                   variant="destructive"
-                  disabled={cancelarMutation.isPending}
+                  disabled={borrarMutation.isPending}
                   onClick={() => {
-                    if (confirm("¿Seguro que quieres cancelar este anuncio? Se rechazarán sus postulaciones pendientes.")) {
-                      cancelarMutation.mutate();
+                    if (confirm("¿Seguro que quieres borrar este anuncio? Se rechazarán sus postulaciones pendientes.")) {
+                      borrarMutation.mutate();
                     }
                   }}
                 >
-                  Cancelar anuncio
+                  Borrar anuncio
                 </Button>
               </div>
             )}

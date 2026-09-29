@@ -36,7 +36,7 @@ export interface AdminCuidador {
 export interface AdminAnuncioResumen {
   id: string;
   titulo: string;
-  estado: "activo" | "cubierto" | "cancelado";
+  estado: "activo" | "cubierto" | "borrado";
   hospital: { nombre: string; ciudad: string };
   creadoEn: string;
 }
@@ -144,7 +144,7 @@ export interface AdminAnunciosResumen {
   total: number;
   activos: number;
   cubiertos: number;
-  cancelados: number;
+  borrados: number;
 }
 
 export interface FiltrosAdminAnuncios {
@@ -190,9 +190,9 @@ export function fetchAdminAnuncio(id: string): Promise<AdminAnuncioDetalle> {
   return apiFetch<AdminAnuncioDetalle>(`/api/admin/anuncios/${id}`);
 }
 
-/** Moderacion: a diferencia de cancelarAnuncio (lib/api/anuncios.ts), el admin puede cancelar cualquier anuncio activo, no solo el propio. */
-export function cancelarAnuncioAdmin(id: string): Promise<void> {
-  return apiFetch<void>(`/api/admin/anuncios/${id}/cancelar`, { method: "POST" });
+/** Moderacion: a diferencia de borrarAnuncio (lib/api/anuncios.ts), el admin puede borrar cualquier anuncio activo, no solo el propio. */
+export function borrarAnuncioAdmin(id: string): Promise<void> {
+  return apiFetch<void>(`/api/admin/anuncios/${id}/borrar`, { method: "POST" });
 }
 
 export type GranularidadDashboard = "dias" | "meses" | "anios";

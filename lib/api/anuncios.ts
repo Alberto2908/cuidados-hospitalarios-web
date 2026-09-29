@@ -41,7 +41,7 @@ function toFranja(f: FranjaApi): FranjaHoraria {
   return { fecha: f.fecha, horaDesde: f.horaDesde.slice(0, 5), horaHasta: f.horaHasta.slice(0, 5), diaEntero: f.diaEntero };
 }
 
-export type EstadoAnuncio = "activo" | "cubierto" | "cancelado";
+export type EstadoAnuncio = "activo" | "cubierto" | "borrado";
 
 export interface Anuncio {
   id: string;
@@ -184,14 +184,20 @@ export async function actualizarAnuncio(id: string, payload: CrearAnuncioPayload
   return toAnuncio(data);
 }
 
-export function cancelarAnuncio(id: string, motivo?: string) {
-  return apiFetch<void>(`/api/anuncios/${id}/cancelar`, {
+export function borrarAnuncio(id: string, opciones: { motivo?: string; confirmaCancelacionTardia?: boolean } = {}) {
+  return apiFetch<void>(`/api/anuncios/${id}/borrar`, {
     method: "POST",
-    body: JSON.stringify({ motivo }),
+    body: JSON.stringify(opciones),
   });
 }
 
 export type SeccionMiAnuncio = "activo" | "completado";
+
+/**
+ * Que pasa si el autor intenta borrar el anuncio ahora (lo calcula el backend):
+ * "aviso" = permitido, pero hay que avisar de que no habra devolucion integra.
+ */
+export type PoliticaBorrado = "libre" | "aviso" | "bloqueado";
 
 export interface MiAnuncio {
   id: string;
@@ -212,6 +218,7 @@ export interface MiAnuncio {
   franjas: FranjaHoraria[];
   fechaInicioPrevista: string;
   creadoEn: string;
+  politicaBorrado: PoliticaBorrado;
 }
 
 interface MiAnuncioApi {
@@ -229,6 +236,7 @@ interface MiAnuncioApi {
   franjas: FranjaApi[];
   fechaInicioPrevista: string;
   creadoEn: string;
+  politicaBorrado: PoliticaBorrado;
 }
 
 export async function misAnuncios(): Promise<MiAnuncio[]> {

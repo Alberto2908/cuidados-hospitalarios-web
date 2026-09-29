@@ -9,7 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Estrellas } from "@/components/ui/estrellas";
 import ModalResena from "@/components/anuncio/ModalResena";
-import { cancelarAnuncio, misAnuncios, type MiAnuncio } from "@/lib/api/anuncios";
+import { borrarAnuncio, misAnuncios, type MiAnuncio } from "@/lib/api/anuncios";
 import { crearResena } from "@/lib/api/resenas";
 import { formatearFecha } from "@/lib/fecha";
 import { cn } from "@/lib/utils";
@@ -22,13 +22,13 @@ import { cn } from "@/lib/utils";
 const ESTADO_LABEL: Record<MiAnuncio["estado"], string> = {
   activo: "Activo",
   cubierto: "Aceptado",
-  cancelado: "Cancelado",
+  borrado: "Borrado",
 };
 
 const ESTADO_COLOR: Record<MiAnuncio["estado"], string> = {
   activo: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
   cubierto: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  borrado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
 };
 
 // Una vez el anuncio esta 'cubierto' (servicio creado), su propio estado
@@ -66,25 +66,31 @@ export default function PacienteHistorialPage() {
     refetchInterval: 30 * 1000,
   });
 
-  const cancelarMutation = useMutation({
-    mutationFn: (id: string) => cancelarAnuncio(id),
+  const borrarMutation = useMutation({
+    mutationFn: ({ id, confirmaCancelacionTardia }: { id: string; confirmaCancelacionTardia: boolean }) =>
+      borrarAnuncio(id, { confirmaCancelacionTardia }),
     onSuccess: () => {
-      sileo.success({ title: "Anuncio cancelado" });
-      queryClient.invalidateQueries({ queryKey: ["anuncios", "mios"] });
-      queryClient.invalidateQueries({ queryKey: ["anuncios", "notificaciones-conteo"] });
+      sileo.success({ title: "Anuncio borrado" });
+      // Prefijo entero: ademas de "Mis anuncios" y las notificaciones, el
+      // mapa/buscador ("busqueda", "conteo") no puede seguir mostrando el
+      // anuncio recien borrado hasta que caduque su staleTime.
+      queryClient.invalidateQueries({ queryKey: ["anuncios"] });
     },
-    onError: (error: Error) => sileo.error({ title: "No se pudo cancelar", description: error.message }),
+    onError: (error: Error) => sileo.error({ title: "No se pudo borrar", description: error.message }),
   });
 
-  const activos = anuncios?.filter((a) => a.seccion === "activo") ?? [];
-  const completados = anuncios?.filter((a) => a.seccion === "completado") ?? [];
+  // Por fecha del cuidado (no de publicacion): arriba el primero que hay que
+  // llevar a cabo en "Activos", y en el historial el mas reciente arriba.
+  const porInicio = (a: MiAnuncio) => new Date(a.fechaInicioPrevista).getTime();
+  const activos = (anuncios?.filter((a) => a.seccion === "activo") ?? []).sort((a, b) => porInicio(a) - porInicio(b));
+  const completados = (anuncios?.filter((a) => a.seccion === "completado") ?? []).sort((a, b) => porInicio(b) - porInicio(a));
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-5">
         <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Mis anuncios</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Tus anuncios activos y, debajo, el historial de los que ya se completaron o cancelaron.
+          Tus anuncios activos y, debajo, el historial de los que ya se completaron.
         </p>
       </div>
 
@@ -109,8 +115,8 @@ export default function PacienteHistorialPage() {
                   <TarjetaMiAnuncio
                     key={anuncio.id}
                     anuncio={anuncio}
-                    onCancelar={() => cancelarMutation.mutate(anuncio.id)}
-                    cancelando={cancelarMutation.isPending}
+                    onBorrar={(confirmaCancelacionTardia) => borrarMutation.mutate({ id: anuncio.id, confirmaCancelacionTardia })}
+                    borrando={borrarMutation.isPending}
                   />
                 ))}
               </div>
@@ -120,7 +126,7 @@ export default function PacienteHistorialPage() {
           <section>
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Historial</h2>
             {completados.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aquí aparecerán los anuncios ya completados o cancelados.</p>
+              <p className="text-sm text-muted-foreground">Aquí aparecerán los anuncios ya completados.</p>
             ) : (
               <div className="flex flex-col gap-3">
                 {completados.map((anuncio) => (
@@ -137,16 +143,20 @@ export default function PacienteHistorialPage() {
 
 function TarjetaMiAnuncio({
   anuncio,
-  onCancelar,
-  cancelando,
+  onBorrar,
+  borrando,
 }: {
   anuncio: MiAnuncio;
-  onCancelar?: () => void;
-  cancelando?: boolean;
+  onBorrar?: (confirmaCancelacionTardia: boolean) => void;
+  borrando?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [modalResenaAbierto, setModalResenaAbierto] = useState(false);
-  const [modalCancelarAbierto, setModalCancelarAbierto] = useState(false);
+  const [modalBorrarAbierto, setModalBorrarAbierto] = useState(false);
+  // Que se puede hacer con el anuncio lo decide el backend (politicaBorrado):
+  // "aviso" = aceptado y sin pagar, con menos de 24 h para el inicio.
+  const puedeBorrar = anuncio.politicaBorrado !== "bloqueado";
+  const borradoConAviso = anuncio.politicaBorrado === "aviso";
 
   const crearResenaMutation = useMutation({
     mutationFn: (datos: { valoracion: number; comentario: string }) =>
@@ -225,23 +235,25 @@ function TarjetaMiAnuncio({
           )}
         </div>
 
-        {anuncio.estado === "activo" && onCancelar && (
+        {onBorrar && puedeBorrar && (
           <div className="flex gap-2">
-            <Link
-              href={`/paciente/anuncio/${anuncio.id}/editar`}
-              className={cn(buttonVariants({ variant: "default", size: "sm" }), "rounded-full")}
-            >
-              Modificar
-            </Link>
+            {anuncio.estado === "activo" && (
+              <Link
+                href={`/paciente/anuncio/${anuncio.id}/editar`}
+                className={cn(buttonVariants({ variant: "default", size: "sm" }), "rounded-full")}
+              >
+                Modificar
+              </Link>
+            )}
             <Button
               type="button"
               size="sm"
               variant="destructive"
               className="rounded-full"
-              disabled={cancelando}
-              onClick={() => setModalCancelarAbierto(true)}
+              disabled={borrando}
+              onClick={() => setModalBorrarAbierto(true)}
             >
-              Cancelar
+              Borrar
             </Button>
           </div>
         )}
@@ -258,17 +270,21 @@ function TarjetaMiAnuncio({
         />
       )}
 
-      {onCancelar && (
+      {onBorrar && (
         <ConfirmDialog
-          open={modalCancelarAbierto}
-          onOpenChange={setModalCancelarAbierto}
-          titulo="Cancelar anuncio"
-          descripcion={`¿Seguro que quieres cancelar "${anuncio.titulo}"? Esta acción no se puede deshacer.`}
-          textoConfirmar="Cancelar anuncio"
-          confirmando={cancelando}
+          open={modalBorrarAbierto}
+          onOpenChange={setModalBorrarAbierto}
+          titulo="Borrar anuncio"
+          descripcion={
+            borradoConAviso
+              ? `Si borras "${anuncio.titulo}" con tan poco tiempo de antelación, la devolución no será íntegra por las molestias causadas al cuidador. ¿Quieres borrarlo igualmente? Esta acción no se puede deshacer.`
+              : `¿Seguro que quieres borrar "${anuncio.titulo}"? Esta acción no se puede deshacer.`
+          }
+          textoConfirmar="Borrar anuncio"
+          confirmando={borrando}
           onConfirmar={() => {
-            onCancelar();
-            setModalCancelarAbierto(false);
+            onBorrar(borradoConAviso);
+            setModalBorrarAbierto(false);
           }}
         />
       )}

@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
 import { ArrowLeft, CalendarDays, Lock, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import ModalContraoferta from "@/components/anuncio/ModalContraoferta";
 import ModalResena from "@/components/anuncio/ModalResena";
@@ -14,7 +15,7 @@ import { horasTotales } from "@/lib/anuncio/horas";
 import { formatearFecha } from "@/lib/fecha";
 import type { FranjaHoraria } from "@/lib/anuncio/schema";
 import {
-  cancelarAnuncio,
+  borrarAnuncio,
   obtenerAnuncio,
   type Anuncio,
 } from "@/lib/api/anuncios";
@@ -40,14 +41,14 @@ import type { EstadoServicio } from "@/lib/api/servicios";
 const ESTADO_LABEL: Record<Anuncio["estado"], string> = {
   activo: "Activo",
   cubierto: "Aceptado",
-  cancelado: "Cancelado",
+  borrado: "Borrado",
 };
 
 const ESTADO_COLOR: Record<Anuncio["estado"], string> = {
   activo: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
   cubierto:
     "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  borrado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
 };
 
 // Una vez el anuncio esta 'cubierto', su propio estado se queda en
@@ -116,7 +117,7 @@ export default function AnuncioDetallePage() {
       queryKey: ["postulaciones", "anuncio", anuncioId],
     });
     queryClient.invalidateQueries({ queryKey: ["postulaciones", "mias"] });
-    // El estado de este anuncio (activo/cubierto/cancelado) tambien se
+    // El estado de este anuncio (activo/cubierto/borrado) tambien se
     // muestra en "Mis anuncios" y en el badge de notificaciones del navbar;
     // sin esto quedaban con datos obsoletos hasta que expirase el
     // staleTime global (5 min, ver QueryProvider.tsx).
@@ -129,14 +130,19 @@ export default function AnuncioDetallePage() {
     });
   }
 
-  const cancelarAnuncioMutation = useMutation({
-    mutationFn: () => cancelarAnuncio(anuncioId),
+  const borrarAnuncioMutation = useMutation({
+    mutationFn: () => borrarAnuncio(anuncioId),
     onSuccess: () => {
-      sileo.success({ title: "Anuncio cancelado" });
-      invalidarTodo();
+      sileo.success({ title: "Anuncio borrado" });
+      // El detalle de un anuncio borrado ya no existe (404): no tiene
+      // sentido quedarse aqui refrescandolo.
+      queryClient.removeQueries({ queryKey: ["anuncio", anuncioId] });
+      queryClient.invalidateQueries({ queryKey: ["anuncios"] });
+      queryClient.invalidateQueries({ queryKey: ["postulaciones"] });
+      router.push("/paciente/historial");
     },
     onError: (error: Error) =>
-      sileo.error({ title: "No se pudo cancelar", description: error.message }),
+      sileo.error({ title: "No se pudo borrar", description: error.message }),
   });
 
   if (anuncioQuery.isLoading) {
@@ -236,14 +242,14 @@ export default function AnuncioDetallePage() {
               type="button"
               size="sm"
               variant="destructive"
-              disabled={cancelarAnuncioMutation.isPending}
+              disabled={borrarAnuncioMutation.isPending}
               onClick={() => {
-                if (confirm("¿Seguro que quieres cancelar este anuncio?")) {
-                  cancelarAnuncioMutation.mutate();
+                if (confirm("¿Seguro que quieres borrar este anuncio?")) {
+                  borrarAnuncioMutation.mutate();
                 }
               }}
             >
-              Cancelar anuncio
+              Borrar anuncio
             </Button>
           </div>
         )}
@@ -469,47 +475,55 @@ function FilaPostulacion({
         <p className="mt-2 text-sm text-muted-foreground">{postulacion.cuidadorNombre} retiró su postulación.</p>
       )}
 
-      {esPendiente && puedeActuar && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={pendienteAccion}
-            onClick={() => setModalAbierto(true)}
-          >
-            Contraofertar
-          </Button>
-          {postulacion.propuestoPor === "cuidador" ? (
-            // TODO(stripe): este boton finaliza la postulacion "en seco" hoy
-            // (onAceptar -> POST /api/postulaciones/{id}/aceptar). Cuando se
-            // integre el cobro real, debe abrir antes la ventana de pago de
-            // Stripe y solo llamar a "aceptar" (o un endpoint equivalente)
-            // tras un pago confirmado — ver TODO.md, "Cobro real via Stripe".
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {esPendiente && puedeActuar && (
+          <>
             <Button
               type="button"
               size="sm"
+              variant="outline"
               disabled={pendienteAccion}
-              onClick={onAceptar}
+              onClick={() => setModalAbierto(true)}
             >
-              Aceptar y pagar
+              Contraofertar
             </Button>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              Esperando la respuesta del cuidador a tu propuesta.
-            </p>
-          )}
-          <Button
-            type="button"
-            size="sm"
-            variant="destructive"
-            disabled={pendienteAccion}
-            onClick={onRechazar}
-          >
-            Rechazar
-          </Button>
-        </div>
-      )}
+            {postulacion.propuestoPor === "cuidador" ? (
+              // TODO(stripe): este boton finaliza la postulacion "en seco" hoy
+              // (onAceptar -> POST /api/postulaciones/{id}/aceptar). Cuando se
+              // integre el cobro real, debe abrir antes la ventana de pago de
+              // Stripe y solo llamar a "aceptar" (o un endpoint equivalente)
+              // tras un pago confirmado — ver TODO.md, "Cobro real via Stripe".
+              <Button
+                type="button"
+                size="sm"
+                disabled={pendienteAccion}
+                onClick={onAceptar}
+              >
+                Aceptar y pagar
+              </Button>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Esperando la respuesta del cuidador a tu propuesta.
+              </p>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              disabled={pendienteAccion}
+              onClick={onRechazar}
+            >
+              Rechazar
+            </Button>
+          </>
+        )}
+        <Link
+          href={`/cuidadores/${postulacion.cuidadorUsuarioId}`}
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "ml-auto")}
+        >
+          Ver perfil
+        </Link>
+      </div>
 
       <ModalContraoferta
         key={`contraoferta-${modalAbierto ? "abierto" : "cerrado"}`}

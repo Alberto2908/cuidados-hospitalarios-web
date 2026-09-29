@@ -11,13 +11,13 @@ import { formatearFecha } from "@/lib/fecha";
 const ESTADO_STYLES: Record<EstadoAnuncio, string> = {
   activo: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
   cubierto: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  borrado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
 };
 
 const ESTADO_LABEL: Record<EstadoAnuncio, string> = {
   activo: "Activo",
   cubierto: "Aceptado",
-  cancelado: "Cancelado",
+  borrado: "Borrado",
 };
 
 const TAMANO_PAGINA = 20;
@@ -80,7 +80,7 @@ export default function AdminAnunciosPage() {
         <StatCard icon={<FileText className="h-5 w-5" />} label="Total anuncios" value={resumen?.total ?? 0} color="text-foreground" />
         <StatCard icon={<CalendarDays className="h-5 w-5" />} label="Activos" value={resumen?.activos ?? 0} color="text-sky-600 dark:text-sky-400" />
         <StatCard icon={<FileText className="h-5 w-5" />} label="Aceptados" value={resumen?.cubiertos ?? 0} color="text-emerald-600 dark:text-emerald-400" />
-        <StatCard icon={<XCircle className="h-5 w-5" />} label="Cancelados" value={resumen?.cancelados ?? 0} color="text-red-600 dark:text-red-400" />
+        <StatCard icon={<XCircle className="h-5 w-5" />} label="Borrados" value={resumen?.borrados ?? 0} color="text-red-600 dark:text-red-400" />
       </div>
 
       {/* Filtros */}
@@ -97,7 +97,7 @@ export default function AdminAnunciosPage() {
             />
           </div>
           <div className="inline-flex gap-1 rounded-full bg-card p-1 shadow-soft">
-            {(["todos", "activo", "cubierto", "cancelado"] as const).map((e) => (
+            {(["todos", "activo", "cubierto", "borrado"] as const).map((e) => (
               <button
                 key={e}
                 onClick={() => {
