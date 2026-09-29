@@ -4,8 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
-import { CalendarDays, MapPin, MessageSquare } from "lucide-react";
+import { CalendarDays, MapPin, MessageSquare, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import BotonVerPerfil from "@/components/perfil/BotonVerPerfil";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Estrellas } from "@/components/ui/estrellas";
 import {
@@ -63,7 +64,7 @@ export default function CuidadorHistorialPage() {
   const historial = postulaciones?.filter((p) => p.seccion === "historial") ?? [];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-5">
         <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Mis postulaciones</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
@@ -151,6 +152,10 @@ function TarjetaMiPostulacion({
           <CalendarDays className="h-3 w-3 shrink-0" />
           <span>{postulacion.precioHora} €/hora</span>
         </div>
+        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+          <User className="h-3 w-3 shrink-0" />
+          <span className="truncate">Publicado por {postulacion.anuncianteNombre}</span>
+        </div>
       </Link>
 
       <div className="flex shrink-0 flex-col items-end justify-between gap-2">
@@ -182,18 +187,21 @@ function TarjetaMiPostulacion({
           )}
         </div>
 
-        {onRetirar && (
-          <Button
-            type="button"
-            size="sm"
-            variant="destructive"
-            className="rounded-full"
-            disabled={retirando}
-            onClick={() => setModalRetirarAbierto(true)}
-          >
-            Retirar
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <BotonVerPerfil href={`/pacientes/${postulacion.anuncianteId}`} className="rounded-full" />
+          {onRetirar && (
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              className="rounded-full"
+              disabled={retirando}
+              onClick={() => setModalRetirarAbierto(true)}
+            >
+              Retirar
+            </Button>
+          )}
+        </div>
       </div>
 
       {onRetirar && (
