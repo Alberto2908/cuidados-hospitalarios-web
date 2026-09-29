@@ -235,12 +235,13 @@ export default function AnuncioDetallePage() {
 
         {esAutor && anuncio.estado === "activo" && (
           <div className="mt-5 flex justify-end gap-2">
-            <Link href={`/paciente/anuncio/${anuncioId}/editar`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Link href={`/paciente/anuncio/${anuncioId}/editar`} className={buttonVariants({ variant: "default", size: "sm" })}>
               Modificar anuncio
             </Link>
             <Button
               type="button"
               size="sm"
+              variant="destructive"
               disabled={borrarAnuncioMutation.isPending}
               onClick={() => {
                 if (confirm("¿Seguro que quieres borrar este anuncio?")) {
@@ -389,6 +390,22 @@ function FilaPostulacion({
   const [modalResenaAbierto, setModalResenaAbierto] = useState(false);
   const esPendiente = postulacion.estado === "pendiente";
   const importeTotal = Math.round(postulacion.precioHora * horas * 100) / 100;
+  // Se coloca junto al texto/boton de cada estado (Pagar, Añadir reseña,
+  // "Rechazaste esta postulación"…) en vez de siempre en su propia fila al
+  // final, para que no quede huérfano. Solo se usa la fila de abajo cuando
+  // no hay ningun bloque de estado (pendiente, o algun estado sin manejar).
+  const tieneBloqueDeEstado =
+    postulacion.estado === "aceptada" ||
+    postulacion.estado === "rechazada" ||
+    postulacion.estado === "retirada";
+  const botonVerPerfil = (
+    <Link
+      href={`/cuidadores/${postulacion.cuidadorUsuarioId}`}
+      className={cn(buttonVariants({ variant: "outline", size: "sm" }), "border-0 bg-foreground text-background hover:bg-foreground/90")}
+    >
+      Ver perfil
+    </Link>
+  );
 
   const queryClient = useQueryClient();
   const crearResenaMutation = useMutation({
@@ -405,7 +422,7 @@ function FilaPostulacion({
   });
 
   return (
-    <div className="rounded-xl bg-surface-sunken p-4 shadow-inset-soft">
+    <div className="rounded-xl bg-accent p-4 shadow-inset-soft">
       <div className="flex items-center justify-between gap-2">
         <p className="font-medium text-foreground text-sm">
           {postulacion.cuidadorNombre}
@@ -430,48 +447,69 @@ function FilaPostulacion({
               ? `Aceptaste la propuesta de ${postulacion.cuidadorNombre}. Falta completar el pago.`
               : `${postulacion.cuidadorNombre} aceptó tu propuesta. Falta completar el pago.`}
           </p>
-          {/* TODO(stripe): abrir el pago real en vez de este placeholder, ver TODO.md "Cobro real via Stripe" */}
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => sileo.warning({ title: "Disponible próximamente", description: "El cobro real llegará con la integración de pagos." })}
-          >
-            Pagar
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* TODO(stripe): abrir el pago real en vez de este placeholder, ver TODO.md "Cobro real via Stripe" */}
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => sileo.warning({ title: "Disponible próximamente", description: "El cobro real llegará con la integración de pagos." })}
+            >
+              Pagar
+            </Button>
+            {botonVerPerfil}
+          </div>
         </div>
       )}
       {postulacion.estado === "aceptada" && postulacion.estadoServicio === "confirmado" && (
-        <p className="mt-3 rounded-xl bg-violet-50 p-3 text-sm text-violet-700 dark:bg-violet-900/20 dark:text-violet-400">
-          Pago realizado. El cuidado está en marcha.
-        </p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-violet-50 p-3 dark:bg-violet-900/20">
+          <p className="text-sm text-violet-700 dark:text-violet-400">
+            Pago realizado. El cuidado está en marcha.
+          </p>
+          {botonVerPerfil}
+        </div>
       )}
       {postulacion.estado === "aceptada" && postulacion.estadoServicio === "pendiente_confirmacion" && (
-        <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-          El turno ha terminado. Pendiente de que confirmes que el cuidado se realizó correctamente.
-        </p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-amber-50 p-3 dark:bg-amber-900/20">
+          <p className="text-sm text-amber-700 dark:text-amber-400">
+            El turno ha terminado. Pendiente de que confirmes que el cuidado se realizó correctamente.
+          </p>
+          {botonVerPerfil}
+        </div>
       )}
       {postulacion.estado === "aceptada" && postulacion.estadoServicio === "completado" && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-emerald-50 p-3 dark:bg-emerald-900/20">
           <p className="text-sm text-emerald-700 dark:text-emerald-400">
             {postulacion.tieneResena ? "Cuidado completado. Ya has valorado a este cuidador." : "Cuidado completado."}
           </p>
-          {!postulacion.tieneResena && (
-            <Button type="button" size="sm" onClick={() => setModalResenaAbierto(true)}>
-              Añadir reseña
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {!postulacion.tieneResena && (
+              <Button type="button" size="sm" onClick={() => setModalResenaAbierto(true)}>
+                Añadir reseña
+              </Button>
+            )}
+            {botonVerPerfil}
+          </div>
         </div>
       )}
       {postulacion.estado === "aceptada" && postulacion.estadoServicio === "cancelado" && (
-        <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
-          Este servicio fue cancelado.
-        </p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-red-50 p-3 dark:bg-red-900/20">
+          <p className="text-sm text-red-700 dark:text-red-400">
+            Este servicio fue cancelado.
+          </p>
+          {botonVerPerfil}
+        </div>
       )}
       {postulacion.estado === "rechazada" && (
-        <p className="mt-2 text-sm text-muted-foreground">Rechazaste esta postulación.</p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-muted-foreground">Rechazaste esta postulación.</p>
+          {botonVerPerfil}
+        </div>
       )}
       {postulacion.estado === "retirada" && (
-        <p className="mt-2 text-sm text-muted-foreground">{postulacion.cuidadorNombre} retiró su postulación.</p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-muted-foreground">{postulacion.cuidadorNombre} retiró su postulación.</p>
+          {botonVerPerfil}
+        </div>
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -481,6 +519,7 @@ function FilaPostulacion({
               type="button"
               size="sm"
               variant="outline"
+              className="border-0 bg-foreground text-background hover:bg-foreground/90"
               disabled={pendienteAccion}
               onClick={() => setModalAbierto(true)}
             >
@@ -516,12 +555,7 @@ function FilaPostulacion({
             </Button>
           </>
         )}
-        <Link
-          href={`/cuidadores/${postulacion.cuidadorUsuarioId}`}
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "ml-auto")}
-        >
-          Ver perfil
-        </Link>
+        {!tieneBloqueDeEstado && <div className="ml-auto">{botonVerPerfil}</div>}
       </div>
 
       <ModalContraoferta

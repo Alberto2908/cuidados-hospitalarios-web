@@ -38,13 +38,18 @@ interface NavLink {
   label: string;
   href: string;
   icon: React.ReactNode;
+  /** Prefijos de ruta que tambien cuentan como "activo" para este link
+   * (p.ej. el detalle de un anuncio, que no vive bajo /paciente/historial
+   * pero se abre siempre desde "Mis anuncios"). El propio href ya se
+   * comprueba aparte, no hace falta repetirlo aqui. */
+  tambienActivoEn?: string[];
 }
 
 const NAV_LINKS: Record<UserRole, NavLink[]> = {
   USUARIO: [
     { label: "Poner anuncio",   href: "/paciente/anuncio/nuevo", icon: <Megaphone className="h-4 w-4" /> },
     { label: "Buscar cuidador", href: "/paciente/buscar",        icon: <Search     className="h-4 w-4" /> },
-    { label: "Mis anuncios",    href: "/paciente/historial",     icon: <History    className="h-4 w-4" /> },
+    { label: "Mis anuncios",    href: "/paciente/historial",     icon: <History    className="h-4 w-4" />, tambienActivoEn: ["/paciente/anuncio/"] },
   ],
   CUIDADOR: [
     { label: "Buscar anuncio", href: "/cuidador/buscar",    icon: <Search  className="h-4 w-4" /> },
@@ -52,11 +57,24 @@ const NAV_LINKS: Record<UserRole, NavLink[]> = {
   ],
   ADMIN: [
     { label: "Dashboard",           href: "/admin/dashboard", icon: <BarChart3       className="h-4 w-4" /> },
-    { label: "Gestionar anuncios",  href: "/admin/anuncios",  icon: <LayoutDashboard className="h-4 w-4" /> },
-    { label: "Gestionar cuidadores",href: "/admin/cuidadores",icon: <UserCheck       className="h-4 w-4" /> },
-    { label: "Gestionar pacientes", href: "/admin/pacientes", icon: <Users           className="h-4 w-4" /> },
+    { label: "Gestionar anuncios",  href: "/admin/anuncios",  icon: <LayoutDashboard className="h-4 w-4" />, tambienActivoEn: ["/admin/anuncios/"] },
+    { label: "Gestionar cuidadores",href: "/admin/cuidadores",icon: <UserCheck       className="h-4 w-4" />, tambienActivoEn: ["/admin/cuidadores/"] },
+    { label: "Gestionar pacientes", href: "/admin/pacientes", icon: <Users           className="h-4 w-4" />, tambienActivoEn: ["/admin/pacientes/"] },
   ],
 };
+
+/**
+ * El exacto siempre gana (así "Poner anuncio" en /paciente/anuncio/nuevo no
+ * se lo roba "Mis anuncios" por su prefijo /paciente/anuncio/). Solo si
+ * ningún link hace match exacto se prueba por prefijo, para paginas de
+ * detalle que no viven bajo el href pero se abren siempre desde ese link.
+ */
+function linkActivo(pathname: string, links: NavLink[]): string | null {
+  const exacto = links.find((l) => l.href === pathname);
+  if (exacto) return exacto.href;
+  const porPrefijo = links.find((l) => l.tambienActivoEn?.some((p) => pathname.startsWith(p)));
+  return porPrefijo?.href ?? null;
+}
 
 /* ─── componente principal ───────────────────────────────────────── */
 export default function Navbar() {
@@ -78,6 +96,7 @@ export default function Navbar() {
   }, []);
 
   const links = user ? NAV_LINKS[user.rol] : [];
+  const hrefActivo = linkActivo(pathname, links);
 
   const esPaciente = user?.rol === "USUARIO";
   const esCuidador = user?.rol === "CUIDADOR";
@@ -119,7 +138,7 @@ export default function Navbar() {
           {isAuthenticated && (
             <nav className="hidden md:flex items-center gap-1 rounded-full bg-card p-1 shadow-soft">
               {links.map((link) => {
-                const activo = pathname === link.href;
+                const activo = link.href === hrefActivo;
                 return (
                   <Link
                     key={link.href}
@@ -133,7 +152,11 @@ export default function Navbar() {
                     {link.icon}
                     {link.label}
                     {(notificacionesPorHref[link.href] ?? 0) > 0 && (
-                      <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                      <span
+                        className={`flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[10px] font-semibold ${
+                          activo ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"
+                        }`}
+                      >
                         {notificacionesPorHref[link.href]}
                       </span>
                     )}
@@ -248,7 +271,7 @@ export default function Navbar() {
         <div className="md:hidden px-4 pb-3">
           <nav className="flex flex-col gap-1 rounded-2xl bg-card p-3 shadow-float">
             {links.map((link) => {
-              const activo = pathname === link.href;
+              const activo = link.href === hrefActivo;
               return (
                 <Link
                   key={link.href}
@@ -263,7 +286,11 @@ export default function Navbar() {
                   {link.icon}
                   {link.label}
                   {(notificacionesPorHref[link.href] ?? 0) > 0 && (
-                    <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                    <span
+                      className={`flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[10px] font-semibold ${
+                        activo ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"
+                      }`}
+                    >
                       {notificacionesPorHref[link.href]}
                     </span>
                   )}
