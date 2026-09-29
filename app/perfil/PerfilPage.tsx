@@ -160,7 +160,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 type="text"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-soft outline-none ring-ring transition-shadow focus:ring-2"
+                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2"
               />
             </div>
             <div className="space-y-1.5">
@@ -170,7 +170,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 type="text"
                 value={apellidos}
                 onChange={(e) => setApellidos(e.target.value)}
-                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-soft outline-none ring-ring transition-shadow focus:ring-2"
+                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2"
               />
             </div>
           </div>
@@ -185,7 +185,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
               placeholder="+34 600 000 000"
-              className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-soft outline-none ring-ring transition-shadow focus:ring-2"
+              className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2"
             />
           </div>
 
@@ -203,7 +203,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 value={tipoDocumento}
                 disabled={documentoBloqueado}
                 onChange={(e) => setTipoDocumento(e.target.value as TipoDocumento)}
-                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-soft outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
+                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
               >
                 {TIPOS_DOCUMENTO.map((tipo) => (
                   <option key={tipo} value={tipo}>
@@ -217,7 +217,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 disabled={documentoBloqueado}
                 onChange={(e) => setNumeroDocumento(e.target.value)}
                 placeholder="12345678A"
-                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-soft outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
+                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
               />
             </div>
           </div>
@@ -398,7 +398,7 @@ function SeccionTarifa({ tarifaInicial }: { tarifaInicial: number | null }) {
           value={tarifa}
           onChange={(e) => setTarifa(e.target.value)}
           placeholder="Ej. 15"
-          className="h-10 w-32 rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-soft outline-none ring-ring transition-shadow focus:ring-2"
+          className="h-10 w-32 rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2"
         />
         <span className="text-sm text-muted-foreground">€ / hora</span>
         <button
