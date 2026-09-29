@@ -7,8 +7,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
 import { ArrowLeft, CalendarDays, Lock, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
+import BotonVerPerfil from "@/components/perfil/BotonVerPerfil";
 import ModalContraoferta from "@/components/anuncio/ModalContraoferta";
 import ModalResena from "@/components/anuncio/ModalResena";
 import { horasTotales } from "@/lib/anuncio/horas";
@@ -147,21 +147,21 @@ export default function AnuncioDetallePage() {
 
   if (anuncioQuery.isLoading) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center text-sm text-muted-foreground">
+      <div className="mx-auto max-w-7xl px-4 py-16 text-center text-sm text-muted-foreground">
         Cargando anuncio…
       </div>
     );
   }
   if (!anuncio) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center text-sm text-muted-foreground">
+      <div className="mx-auto max-w-7xl px-4 py-16 text-center text-sm text-muted-foreground">
         No se ha encontrado el anuncio.
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <button
         type="button"
         onClick={() => router.back()}
@@ -180,14 +180,21 @@ export default function AnuncioDetallePage() {
             <MapPin className="h-3.5 w-3.5" />
             {anuncio.hospital.nombre}
           </p>
+          {!esAutor && (
+            <p className="mt-2 text-sm text-muted-foreground">Publicado por {anuncio.pacienteNombre}</p>
+          )}
         </div>
-        <span
-          className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
-            estadoServicio ? ESTADO_SERVICIO_COLOR[estadoServicio] : ESTADO_COLOR[anuncio.estado]
-          }`}
-        >
-          {estadoServicio ? ESTADO_SERVICIO_LABEL[estadoServicio] : ESTADO_LABEL[anuncio.estado]}
-        </span>
+        {/* Estado arriba y, debajo, "Ver perfil" a la altura de "Publicado por…" */}
+        <div className="flex shrink-0 flex-col items-end justify-between gap-2 self-stretch">
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-medium ${
+              estadoServicio ? ESTADO_SERVICIO_COLOR[estadoServicio] : ESTADO_COLOR[anuncio.estado]
+            }`}
+          >
+            {estadoServicio ? ESTADO_SERVICIO_LABEL[estadoServicio] : ESTADO_LABEL[anuncio.estado]}
+          </span>
+          {!esAutor && <BotonVerPerfil href={`/pacientes/${anuncio.usuarioId}`} />}
+        </div>
       </div>
 
       <div className="rounded-2xl bg-card p-6 shadow-float">
@@ -398,14 +405,7 @@ function FilaPostulacion({
     postulacion.estado === "aceptada" ||
     postulacion.estado === "rechazada" ||
     postulacion.estado === "retirada";
-  const botonVerPerfil = (
-    <Link
-      href={`/cuidadores/${postulacion.cuidadorUsuarioId}`}
-      className={cn(buttonVariants({ variant: "outline", size: "sm" }), "border-0 bg-foreground text-background hover:bg-foreground/90")}
-    >
-      Ver perfil
-    </Link>
-  );
+  const botonVerPerfil = <BotonVerPerfil href={`/cuidadores/${postulacion.cuidadorUsuarioId}`} />;
 
   const queryClient = useQueryClient();
   const crearResenaMutation = useMutation({

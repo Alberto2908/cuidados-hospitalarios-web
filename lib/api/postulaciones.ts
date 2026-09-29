@@ -71,6 +71,9 @@ export interface MiPostulacion {
   id: string;
   anuncioId: string;
   anuncioTitulo: string;
+  /** Quien publicó el anuncio (solo el nombre) y su id, para abrir su perfil (/pacientes/[id]). */
+  anuncianteId: string;
+  anuncianteNombre: string;
   hospital: Hospital;
   precioHora: number;
   propuestoPor: PropuestoPor;

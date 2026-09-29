@@ -86,7 +86,7 @@ export default function PacienteHistorialPage() {
   const completados = (anuncios?.filter((a) => a.seccion === "completado") ?? []).sort((a, b) => porInicio(b) - porInicio(a));
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-5">
         <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Mis anuncios</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">

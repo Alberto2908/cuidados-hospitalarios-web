@@ -52,13 +52,13 @@ const MI_PERFIL: NavLink = { label: "Mi perfil", href: "/mi-perfil", icon: <Circ
 const NAV_LINKS: Record<UserRole, NavLink[]> = {
   USUARIO: [
     { label: "Poner anuncio",   href: "/paciente/anuncio/nuevo", icon: <Megaphone className="h-4 w-4" /> },
-    { label: "Buscar cuidador", href: "/paciente/buscar",        icon: <Search     className="h-4 w-4" /> },
+    { label: "Buscar cuidador", href: "/paciente/buscar",        icon: <Search     className="h-4 w-4" />, tambienActivoEn: ["/cuidadores/"] },
     { label: "Mis anuncios",    href: "/paciente/historial",     icon: <History    className="h-4 w-4" />, tambienActivoEn: ["/paciente/anuncio/"] },
     MI_PERFIL,
   ],
   CUIDADOR: [
-    { label: "Buscar anuncio", href: "/cuidador/buscar",    icon: <Search  className="h-4 w-4" /> },
-    { label: "Mis postulaciones", href: "/cuidador/historial", icon: <History className="h-4 w-4" /> },
+    { label: "Buscar anuncio", href: "/cuidador/buscar",    icon: <Search  className="h-4 w-4" />, tambienActivoEn: ["/paciente/anuncio/"] },
+    { label: "Mis postulaciones", href: "/cuidador/historial", icon: <History className="h-4 w-4" />, tambienActivoEn: ["/pacientes/"] },
     MI_PERFIL,
   ],
   ADMIN: [
@@ -75,11 +75,46 @@ const NAV_LINKS: Record<UserRole, NavLink[]> = {
  * ningún link hace match exacto se prueba por prefijo, para paginas de
  * detalle que no viven bajo el href pero se abren siempre desde ese link.
  */
-function linkActivo(pathname: string, links: NavLink[]): string | null {
+function linkActivo(pathname: string, links: NavLink[], origen: string | null): string | null {
   const exacto = links.find((l) => l.href === pathname);
   if (exacto) return exacto.href;
+  // Detalle de anuncio y perfiles publicos se abren desde varios sitios: se
+  // queda marcado el link desde el que se llego (guardado abajo), tambien al
+  // ir de un detalle a un perfil y viceversa. Sin origen conocido (URL
+  // abierta directamente) se usa el link por defecto de tambienActivoEn.
+  if (origen && RUTAS_DETALLE.some((p) => pathname.startsWith(p)) && links.some((l) => l.href === origen)) {
+    return origen;
+  }
   const porPrefijo = links.find((l) => l.tambienActivoEn?.some((p) => pathname.startsWith(p)));
   return porPrefijo?.href ?? null;
+}
+
+const RUTAS_DETALLE = ["/paciente/anuncio/", "/cuidadores/", "/pacientes/"];
+const ORIGENES_DETALLE = ["/paciente/buscar", "/paciente/historial", "/cuidador/buscar", "/cuidador/historial"];
+const CLAVE_ORIGEN_NAV = "nav-origen";
+
+function borrarOrigenNav() {
+  try {
+    sessionStorage.removeItem(CLAVE_ORIGEN_NAV);
+  } catch {
+    // sessionStorage no disponible
+  }
+}
+
+function guardarOrigenNav(href: string) {
+  try {
+    sessionStorage.setItem(CLAVE_ORIGEN_NAV, href);
+  } catch {
+    // sessionStorage no disponible: se usa el link por defecto de tambienActivoEn
+  }
+}
+
+function leerOrigenNav(): string | null {
+  try {
+    return typeof window === "undefined" ? null : sessionStorage.getItem(CLAVE_ORIGEN_NAV);
+  } catch {
+    return null;
+  }
 }
 
 /* ─── componente principal ───────────────────────────────────────── */
@@ -102,7 +137,30 @@ export default function Navbar() {
   }, []);
 
   const links = user ? NAV_LINKS[user.rol] : [];
-  const hrefActivo = linkActivo(pathname, links);
+  const rol = user?.rol;
+  useEffect(() => {
+    // Recuerda el ultimo listado del nav en el que se estuvo (por pestana) para
+    // mantenerlo marcado en las paginas de detalle que cuelgan de el.
+    const enlaces = rol ? NAV_LINKS[rol] : [];
+    const exacto = enlaces.find((l) => l.href === pathname);
+    if (exacto) {
+      // Solo los listados desde los que se abre un detalle; cualquier otro
+      // link (Poner anuncio, Mi perfil...) borra el origen para que el
+      // siguiente detalle use el link por defecto.
+      if (ORIGENES_DETALLE.includes(exacto.href)) guardarOrigenNav(exacto.href);
+      else borrarOrigenNav();
+      return;
+    }
+    // Detalle abierto sin origen conocido (URL directa, tras crear un
+    // anuncio...): se fija el link por defecto para que los perfiles que se
+    // abran desde aqui lo hereden.
+    if (RUTAS_DETALLE.some((p) => pathname.startsWith(p)) && !enlaces.some((l) => l.href === leerOrigenNav())) {
+      const porDefecto = enlaces.find((l) => l.tambienActivoEn?.some((p) => pathname.startsWith(p)));
+      if (porDefecto) guardarOrigenNav(porDefecto.href);
+    }
+  }, [pathname, rol]);
+  const origen = leerOrigenNav();
+  const hrefActivo = linkActivo(pathname, links, origen);
 
   const esPaciente = user?.rol === "USUARIO";
   const esCuidador = user?.rol === "CUIDADOR";
