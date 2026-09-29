@@ -81,9 +81,9 @@ export default function PacienteHistorialPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Mis anuncios</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <div className="mb-5">
+        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Mis anuncios</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
           Tus anuncios activos y, debajo, el historial de los que ya se completaron o cancelaron.
         </p>
       </div>
@@ -91,7 +91,7 @@ export default function PacienteHistorialPage() {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Cargando…</p>
       ) : !anuncios || anuncios.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
+        <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-sunken py-16 text-center text-sm text-muted-foreground shadow-inset-soft">
           <p>Todavía no has publicado ningún anuncio.</p>
           <Link href="/paciente/anuncio/nuevo" className="mt-2 font-medium text-foreground underline underline-offset-2">
             Publica tu primer anuncio
@@ -162,7 +162,7 @@ function TarjetaMiAnuncio({
   });
 
   return (
-    <div className="flex items-stretch justify-between gap-3 rounded-2xl border border-border bg-background p-4 shadow-sm transition-all hover:bg-muted/40 hover:shadow-md">
+    <div className="flex items-stretch justify-between gap-3 rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_8px_24px_oklch(0.29_0.05_265/0.12)]">
       <Link href={`/paciente/anuncio/${anuncio.id}`} className="min-w-0 flex-1 hover:opacity-80">
         <p className="font-medium text-foreground text-sm">{anuncio.titulo}</p>
         <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">

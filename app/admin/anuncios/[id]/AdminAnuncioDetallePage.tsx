@@ -87,14 +87,14 @@ export default function AdminAnuncioDetallePage() {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Cargando anuncio…</p>
       ) : isError || !data ? (
-        <div className="rounded-2xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
+        <div className="rounded-2xl bg-surface-sunken py-16 text-center text-sm text-muted-foreground shadow-inset-soft">
           No se ha encontrado este anuncio.
         </div>
       ) : (
         <div className="space-y-6">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h1 className="text-xl font-bold text-foreground">{data.anuncio.titulo}</h1>
+              <h1 className="text-xl font-semibold tracking-[-0.03em] text-foreground">{data.anuncio.titulo}</h1>
               <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
                 <MapPin className="h-3.5 w-3.5" />
                 {data.anuncio.hospital.nombre} · {data.anuncio.hospital.ciudad}
@@ -106,7 +106,7 @@ export default function AdminAnuncioDetallePage() {
             </span>
           </div>
 
-          <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
+          <div className="rounded-2xl bg-card p-6 shadow-float">
             <p className="text-sm leading-relaxed text-foreground">{data.anuncio.descripcion}</p>
 
             {data.anuncio.franjas.length > 0 && (
@@ -125,7 +125,7 @@ export default function AdminAnuncioDetallePage() {
               </div>
             )}
 
-            <div className="mt-4 flex items-center gap-2 rounded-xl border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+            <div className="mt-4 flex items-center gap-2 rounded-xl bg-surface-sunken p-3 text-xs text-muted-foreground shadow-inset-soft">
               <Lock className="h-3.5 w-3.5 shrink-0" />
               <span>
                 Planta {data.anuncio.planta ?? "—"} · Habitación {data.anuncio.habitacion ?? "—"} · Cama {data.anuncio.cama ?? "—"}
@@ -152,7 +152,7 @@ export default function AdminAnuncioDetallePage() {
           </div>
 
           {data.servicio && (
-            <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
+            <div className="rounded-2xl bg-card p-5 shadow-float">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Servicio</p>
               <div className="flex flex-col gap-1 text-sm text-foreground">
                 <p>
@@ -166,7 +166,7 @@ export default function AdminAnuncioDetallePage() {
             </div>
           )}
 
-          <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
+          <div className="rounded-2xl bg-card p-5 shadow-float">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Postulaciones ({data.postulaciones.length})
             </p>
@@ -175,7 +175,7 @@ export default function AdminAnuncioDetallePage() {
             ) : (
               <ul className="flex flex-col gap-3">
                 {data.postulaciones.map((p) => (
-                  <li key={p.id} className="rounded-xl border border-border p-3">
+                  <li key={p.id} className="rounded-xl bg-surface-sunken p-3 shadow-inset-soft">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-medium text-foreground">{p.cuidadorNombre}</p>
                       <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_POSTULACION_COLOR[p.estado]}`}>

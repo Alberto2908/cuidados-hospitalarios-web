@@ -92,19 +92,19 @@ export default function AnuncioFormulario({ modo, anuncioId, valoresIniciales }:
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">{modo === "crear" ? "Crear anuncio" : "Modificar anuncio"}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <div className="mb-5">
+        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">{modo === "crear" ? "Crear anuncio" : "Modificar anuncio"}</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
           Indica qué necesitas, dónde y en qué días y horarios.
         </p>
       </div>
 
       <form
         onSubmit={handleSubmit(onSubmit, onInvalid)}
-        className="flex flex-col gap-6"
+        className="flex flex-col gap-4"
         noValidate
       >
-        <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
+        <div className="grid gap-4 lg:grid-cols-2 lg:items-stretch">
           <FormSection
             step={1}
             title="Qué necesitas"
@@ -198,7 +198,7 @@ export default function AnuncioFormulario({ modo, anuncioId, valoresIniciales }:
                 </div>
               </div>
 
-              <div className="rounded-xl border border-dashed border-border bg-muted/40 p-4">
+              <div className="rounded-xl bg-surface-sunken p-4 shadow-inset-soft">
                 <div className="mb-3 flex gap-2.5">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
                     <Lock className="size-4" />

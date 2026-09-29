@@ -165,12 +165,12 @@ export default function AnuncioDetallePage() {
         Volver
       </button>
 
-      <div className="mb-6 flex items-start justify-between gap-3">
+      <div className="mb-5 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
+          <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">
             {anuncio.titulo}
           </h1>
-          <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+          <p className="mt-1.5 flex items-center gap-1 text-sm text-muted-foreground">
             <MapPin className="h-3.5 w-3.5" />
             {anuncio.hospital.nombre}
           </p>
@@ -184,7 +184,7 @@ export default function AnuncioDetallePage() {
         </span>
       </div>
 
-      <div className="rounded-2xl border border-border bg-background p-6 shadow-sm">
+      <div className="rounded-2xl bg-card p-6 shadow-float">
         <p className="text-sm leading-relaxed text-foreground">
           {anuncio.descripcion}
         </p>
@@ -210,7 +210,7 @@ export default function AnuncioDetallePage() {
         )}
 
         {anuncio.planta || anuncio.habitacion || anuncio.cama ? (
-          <div className="mt-4 flex items-center gap-2 rounded-xl border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+          <div className="mt-4 flex items-center gap-2 rounded-xl bg-surface-sunken p-3 text-xs text-muted-foreground shadow-inset-soft">
             <Lock className="h-3.5 w-3.5 shrink-0" />
             <span>
               Planta {anuncio.planta ?? "—"} · Habitación{" "}
@@ -218,7 +218,7 @@ export default function AnuncioDetallePage() {
             </span>
           </div>
         ) : !esAutor && anuncio.estado === "activo" ? (
-          <div className="mt-4 flex items-center gap-2 rounded-xl border border-dashed border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+          <div className="mt-4 flex items-center gap-2 rounded-xl bg-surface-sunken p-3 text-xs text-muted-foreground shadow-inset-soft">
             <Lock className="h-3.5 w-3.5 shrink-0" />
             <span>
               La planta, habitación y cama son privadas hasta que se acepte una
@@ -322,7 +322,7 @@ function SeccionPostulacionesAutor({
   });
 
   return (
-    <div className="mt-6 rounded-2xl border border-border bg-background p-6 shadow-sm">
+    <div className="mt-6 rounded-2xl bg-card p-6 shadow-float">
       <h2 className="text-lg font-semibold text-foreground">Postulaciones</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {anuncioActivo
@@ -399,7 +399,7 @@ function FilaPostulacion({
   });
 
   return (
-    <div className="rounded-xl border border-border p-4">
+    <div className="rounded-xl bg-surface-sunken p-4 shadow-inset-soft">
       <div className="flex items-center justify-between gap-2">
         <p className="font-medium text-foreground text-sm">
           {postulacion.cuidadorNombre}
@@ -418,7 +418,7 @@ function FilaPostulacion({
       </p>
 
       {postulacion.estado === "aceptada" && postulacion.estadoServicio === "aceptado" && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/50 dark:bg-emerald-900/20">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-emerald-50 p-3 dark:bg-emerald-900/20">
           <p className="text-sm text-emerald-700 dark:text-emerald-400">
             {postulacion.propuestoPor === "cuidador"
               ? `Aceptaste la propuesta de ${postulacion.cuidadorNombre}. Falta completar el pago.`
@@ -435,17 +435,17 @@ function FilaPostulacion({
         </div>
       )}
       {postulacion.estado === "aceptada" && postulacion.estadoServicio === "confirmado" && (
-        <p className="mt-3 rounded-xl border border-violet-200 bg-violet-50 p-3 text-sm text-violet-700 dark:border-violet-900/50 dark:bg-violet-900/20 dark:text-violet-400">
+        <p className="mt-3 rounded-xl bg-violet-50 p-3 text-sm text-violet-700 dark:bg-violet-900/20 dark:text-violet-400">
           Pago realizado. El cuidado está en marcha.
         </p>
       )}
       {postulacion.estado === "aceptada" && postulacion.estadoServicio === "pendiente_confirmacion" && (
-        <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-400">
+        <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
           El turno ha terminado. Pendiente de que confirmes que el cuidado se realizó correctamente.
         </p>
       )}
       {postulacion.estado === "aceptada" && postulacion.estadoServicio === "completado" && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/50 dark:bg-emerald-900/20">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-emerald-50 p-3 dark:bg-emerald-900/20">
           <p className="text-sm text-emerald-700 dark:text-emerald-400">
             {postulacion.tieneResena ? "Cuidado completado. Ya has valorado a este cuidador." : "Cuidado completado."}
           </p>
@@ -457,7 +457,7 @@ function FilaPostulacion({
         </div>
       )}
       {postulacion.estado === "aceptada" && postulacion.estadoServicio === "cancelado" && (
-        <p className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400">
+        <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
           Este servicio fue cancelado.
         </p>
       )}
@@ -606,7 +606,7 @@ function SeccionPostularse({
 
   if (cargando) {
     return (
-      <div className="mt-6 rounded-2xl border border-border bg-background p-6 shadow-sm text-sm text-muted-foreground">
+      <div className="mt-6 rounded-2xl bg-card p-6 shadow-float text-sm text-muted-foreground">
         Cargando…
       </div>
     );
@@ -617,13 +617,13 @@ function SeccionPostularse({
   }
 
   return (
-    <div className="mt-6 rounded-2xl border border-border bg-background p-6 shadow-sm">
+    <div className="mt-6 rounded-2xl bg-card p-6 shadow-float">
       <h2 className="text-lg font-semibold text-foreground">Tu postulación</h2>
 
       {!miPostulacion ? (
         anuncioActivo &&
         (miTarifaHora == null ? (
-          <p className="mt-3 rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+          <p className="mt-3 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
             Antes de postularte, fija tu tarifa por hora en{" "}
             <Link
               href="/perfil"

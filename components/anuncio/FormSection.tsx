@@ -22,7 +22,7 @@ export default function FormSection({
   return (
     <section
       className={cn(
-        "rounded-xl border border-border bg-card p-5 shadow-sm sm:p-6",
+        "rounded-2xl bg-card p-5 shadow-float sm:p-6",
         fill && "flex h-full min-h-0 flex-col",
         className,
       )}

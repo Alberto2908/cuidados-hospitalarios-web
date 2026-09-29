@@ -34,8 +34,10 @@ const CARTO_KEY_QS = process.env.NEXT_PUBLIC_CARTO_API_KEY
  *
  * Estilo activo en la app: ver DEFAULT_MAP_STYLE_ID más abajo -CARTO Voyager
  * si hay NEXT_PUBLIC_CARTO_API_KEY, si no IGN Base como alternativa sin key.
- * TODO (modo oscuro): cuando se implemente dark mode en la UI, cambiar
- * el estilo del mapa a CARTO Dark Matter (también necesita la key).
+ * Elegido tras comparar los 10 estilos sin key de Stadia en una pagina de
+ * prueba (app/estilosmapas, ya borrada).
+ * TODO (modo oscuro): cuando se implemente dark mode en la UI, cambiar el
+ * estilo del mapa a CARTO Dark Matter (también necesita la key).
  */
 export const MAP_TILE_STYLES: MapTileStyle[] = [
   {

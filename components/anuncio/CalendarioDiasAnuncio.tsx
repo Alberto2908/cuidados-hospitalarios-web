@@ -58,7 +58,7 @@ export default function CalendarioDiasAnuncio({ franjas, onChange }: Props) {
   }
 
   return (
-    <div className="flex h-full w-fit shrink-0 flex-col rounded-xl border border-border bg-card p-2 shadow-sm">
+    <div className="flex h-full w-fit shrink-0 flex-col rounded-xl bg-surface-sunken p-2 shadow-inset-soft">
       <Calendar
         mode="multiple"
         locale={es}

@@ -1,0 +1,261 @@
+---
+description: Estilo visual "Superficies suaves" (1h) para cuidados-hospitalarios-web. Sustituye la identidad visual de frontend-design.mdc §0, §1 (tokens/tipografía), §3 (cards/sombras) y §7 (marcadores). El resto de frontend-design.mdc sigue vigente.
+globs: app/**/*.tsx,app/**/*.css,components/**/*.tsx,lib/map/**/*.ts
+alwaysApply: true
+---
+
+# ESTILO 1h — SUPERFICIES SUAVES
+
+Gris azulado de fondo, capas blancas que flotan con sombras suaves y difusas, un
+único acento violeta y forma de píldora en todo lo que es navegable o filtrable.
+Moderno pero tranquilo: sigue siendo un producto sanitario, **no** una landing.
+
+> PRECEDENCIA: este archivo **anula** las secciones de `frontend-design.mdc`
+> indicadas abajo. Todo lo demás (estructura de rutas, formularios, sileo,
+> datos sensibles, accesibilidad, checklist) sigue igual.
+
+| frontend-design.mdc | Qué cambia |
+|---|---|
+| §0 "sin glassmorphism" | Permitido **solo** en overlays sobre el mapa (ver §6) |
+| §1 Tipografía "no importes otra fuente" | Sora sustituye a Geist Sans. Geist Mono se queda |
+| §1 Tokens | Paleta nueva en `globals.css` (abajo). Sigue prohibido el hex en componentes |
+| §2 Color por rol | `violet` pasa a ser marca → ADMIN pasa a `rose` (ver §2) |
+| §3 Card / sombras | `shadow-soft` / `shadow-float` sustituyen a `shadow-sm` / `shadow-md`, sin borde |
+| §7 Contenedor del mapa | Sin borde, `rounded-2xl shadow-inset-soft` |
+
+---
+
+## 1. TOKENS — pega esto en `app/globals.css`
+
+Sustituye los bloques `:root` y `.dark` completos (valores `sidebar-*` y `chart-*`
+incluidos) y añade las sombras a `@theme inline`.
+
+```css
+@theme inline {
+  /* …mapeos existentes… */
+  --font-sans: var(--font-sora);
+  --font-heading: var(--font-sora);
+  --shadow-soft: var(--shadow-soft);
+  --shadow-float: var(--shadow-float);
+  --shadow-primary: var(--shadow-primary);
+  --shadow-inset-soft: var(--shadow-inset-soft);
+  --color-surface-sunken: var(--surface-sunken);
+}
+
+:root {
+  --background: oklch(0.957 0.008 260);        /* #eef1f6 lienzo */
+  --foreground: oklch(0.29 0.05 265);          /* #1e2942 tinta */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.29 0.05 265);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.29 0.05 265);
+  --primary: oklch(0.58 0.21 285);             /* #7c5cf0 violeta */
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.29 0.05 265);           /* píldora "activa" oscura (filtro Todos) */
+  --secondary-foreground: oklch(0.99 0 0);
+  --muted: oklch(0.957 0.008 260);
+  --muted-foreground: oklch(0.52 0.035 265);   /* ≥4.5:1 sobre card y background */
+  --accent: oklch(0.95 0.03 290);              /* #efeaff */
+  --accent-foreground: oklch(0.47 0.2 285);    /* #5b45c9 */
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.92 0.012 260);
+  --input: oklch(0.92 0.012 260);
+  --ring: oklch(0.58 0.21 285);
+  --surface-sunken: oklch(0.93 0.014 260);     /* #e3e8f2 fondo del mapa, wells */
+  --radius: 0.875rem;                          /* lg=14px · xl≈20px · 2xl≈25px */
+
+  --shadow-soft: 0 2px 8px oklch(0.29 0.05 265 / 0.07);
+  --shadow-float: 0 4px 14px oklch(0.29 0.05 265 / 0.08);
+  --shadow-primary: 0 6px 18px oklch(0.58 0.21 285 / 0.35);
+  --shadow-inset-soft: inset 0 1px 3px oklch(0.29 0.05 265 / 0.08);
+
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.29 0.05 265);
+  --sidebar-primary: oklch(0.58 0.21 285);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.95 0.03 290);
+  --sidebar-accent-foreground: oklch(0.47 0.2 285);
+  --sidebar-border: oklch(0.92 0.012 260);
+  --sidebar-ring: oklch(0.58 0.21 285);
+  --chart-1: oklch(0.58 0.21 285);
+  --chart-2: oklch(0.7 0.14 285);
+  --chart-3: oklch(0.52 0.035 265);
+  --chart-4: oklch(0.8 0.03 265);
+  --chart-5: oklch(0.29 0.05 265);
+}
+
+.dark {
+  --background: oklch(0.19 0.025 265);
+  --foreground: oklch(0.96 0.01 260);
+  --card: oklch(0.24 0.03 265);
+  --card-foreground: oklch(0.96 0.01 260);
+  --popover: oklch(0.24 0.03 265);
+  --popover-foreground: oklch(0.96 0.01 260);
+  --primary: oklch(0.72 0.15 285);
+  --primary-foreground: oklch(0.2 0.04 285);
+  --secondary: oklch(0.96 0.01 260);
+  --secondary-foreground: oklch(0.2 0.03 265);
+  --muted: oklch(0.28 0.03 265);
+  --muted-foreground: oklch(0.75 0.03 265);
+  --accent: oklch(0.32 0.07 285);
+  --accent-foreground: oklch(0.88 0.07 285);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.72 0.15 285);
+  --surface-sunken: oklch(0.16 0.022 265);
+
+  --shadow-soft: 0 2px 8px oklch(0 0 0 / 0.25);
+  --shadow-float: 0 6px 18px oklch(0 0 0 / 0.35);
+  --shadow-primary: 0 6px 18px oklch(0.72 0.15 285 / 0.3);
+  --shadow-inset-soft: inset 0 1px 3px oklch(0 0 0 / 0.35);
+
+  --sidebar: oklch(0.24 0.03 265);
+  --sidebar-foreground: oklch(0.96 0.01 260);
+  --sidebar-primary: oklch(0.72 0.15 285);
+  --sidebar-primary-foreground: oklch(0.2 0.04 285);
+  --sidebar-accent: oklch(0.32 0.07 285);
+  --sidebar-accent-foreground: oklch(0.88 0.07 285);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  --sidebar-ring: oklch(0.72 0.15 285);
+  --chart-1: oklch(0.72 0.15 285);
+  --chart-2: oklch(0.6 0.12 285);
+  --chart-3: oklch(0.75 0.03 265);
+  --chart-4: oklch(0.45 0.03 265);
+  --chart-5: oklch(0.96 0.01 260);
+}
+```
+
+**No toques** el bloque de sileo ni `.scrollbar-subtle`.
+
+### Tipografía — `app/layout.tsx`
+```tsx
+import { Sora, Geist_Mono } from "next/font/google";
+const sora = Sora({ variable: "--font-sora", subsets: ["latin"], weight: ["400", "500", "600", "700"] });
+// <html className={`${sora.variable} ${geistMono.variable} h-full antialiased`}>
+```
+Escala (sustituye la tabla de §1):
+
+| Uso | Clases |
+|---|---|
+| H1 de página | `text-2xl font-semibold tracking-[-0.03em] text-foreground` |
+| H1 de portada | `text-3xl font-semibold tracking-[-0.03em] sm:text-4xl` |
+| Título de card | `text-sm font-semibold tracking-[-0.01em]` |
+| Cuerpo / controles | `text-sm` (descripciones de card: `text-xs leading-relaxed`) |
+| Metadatos | `text-xs text-muted-foreground` |
+| Badges | `text-[11px] font-medium` |
+
+Sora es ancha: baja un escalón de peso respecto a Geist (bold → semibold).
+Nunca `font-bold` en cuerpo.
+
+---
+
+## 2. COLOR
+
+- **Violeta = marca.** Solo en: CTA principal, pestaña activa del nav, marcador
+  destacado del mapa, anillo de foco, enlaces. Nunca de fondo en áreas grandes.
+- **Tinta oscura (`bg-secondary`)** = selección activa en filtros/segmentados
+  (el "Todos"). Así el violeta no se repite en cada fila.
+- **Turnos** (badges de anuncio): Mañana `bg-amber-100 text-amber-800`,
+  Tarde `bg-sky-100 text-sky-800`, Noche `bg-accent text-accent-foreground`,
+  con sus `dark:` (`dark:bg-amber-900/40 dark:text-amber-200`, etc.).
+- **Roles:** PACIENTE `sky`, CUIDADOR `emerald` sin cambios.
+  **ADMIN pasa de `violet` a `rose`** (`bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300`)
+  para no confundirse con la marca. Actualiza `Navbar.tsx`, `InicioPage.tsx`
+  y cualquier insignia de rol.
+
+---
+
+## 3. SUPERFICIES Y FORMA
+
+La profundidad sale de **sombra + contraste de fondo**, no de bordes.
+
+| Pieza | Clases |
+|---|---|
+| Card / sección (sustituye a FormSection) | `rounded-2xl bg-card p-5 shadow-float sm:p-6` — sin `border` |
+| Card de anuncio en lista | `rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_8px_24px_oklch(0.29_0.05_265/0.12)]` |
+| Card seleccionada (sincronizada con mapa) | añade `ring-2 ring-primary/40` |
+| Input / buscador | `h-10 rounded-xl bg-card shadow-soft border-0 px-3.5` + icono `Search` `text-muted-foreground` |
+| Contenedor segmentado / filtros | `inline-flex gap-1 rounded-full bg-card p-1 shadow-soft` |
+| Opción del segmentado | `rounded-full px-3.5 py-2 text-xs font-medium text-muted-foreground` · activa: `bg-secondary text-secondary-foreground` |
+| Badge | `rounded-full px-2.5 py-1 text-[11px] font-medium` |
+| Botón secundario en card ("Ver") | `rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent` |
+| Well / zona hundida | `rounded-2xl bg-surface-sunken shadow-inset-soft` |
+
+Sombras permitidas: `shadow-soft`, `shadow-float`, `shadow-primary` (solo sobre
+elementos `bg-primary`), `shadow-inset-soft`. Nada de `shadow-lg/xl/2xl`.
+
+### Botón (`components/ui/button.tsx`)
+Edita las variantes `cva`, no crees otro botón:
+- base: `rounded-full` en lugar de `rounded-lg`
+- `default`: `bg-primary text-primary-foreground shadow-primary hover:bg-primary/90`
+- `secondary`: `bg-card text-foreground shadow-soft hover:bg-accent`
+- `outline`: `bg-transparent border border-border hover:bg-card hover:shadow-soft`
+- `ghost`: `hover:bg-card/70`
+Mantén `focus-visible:ring-3 focus-visible:ring-ring/50` y `active:translate-y-px`.
+
+---
+
+## 4. NAVBAR (`components/layout/Navbar.tsx`)
+
+La barra deja de ser una franja con borde: es fondo `bg-background` con **tres
+píldoras flotantes**.
+
+```
+header: sticky top-0 z-50 bg-background/80 backdrop-blur-md   (sin border-b)
+  contenedor: mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8
+  [logo]  rounded-full bg-card px-3.5 py-2 shadow-soft  → punto h-2 w-2 rounded-full bg-primary + "Cuidados" text-sm font-semibold
+  [nav]   inline-flex gap-1 rounded-full bg-card p-1 shadow-soft
+          ítem: rounded-full px-3.5 py-2 text-[13px] font-medium text-muted-foreground hover:text-foreground
+          activo: bg-primary text-primary-foreground
+  [avatar] ml-auto h-9 w-9 rounded-full bg-card shadow-soft
+```
+El `backdrop-blur` del header es la segunda (y última) excepción al veto de
+glassmorphism. Menú móvil: mismo panel, con `rounded-2xl bg-card shadow-float`.
+
+---
+
+## 5. PÁGINA
+
+Contenedor de §3 igual (`mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8`).
+Cabecera: `mb-5`, subtítulo `mt-1.5 text-sm text-muted-foreground`.
+Separación entre columnas y cards: `gap-4` (más prieto que antes: las sombras
+ya separan).
+
+---
+
+## 6. MAPA
+
+- Contenedor: `rounded-2xl overflow-hidden bg-surface-sunken shadow-inset-soft`
+  (sin `border`), alturas iguales a las actuales.
+- Tiles: en `lib/map/tileStyles.ts` usa un estilo claro y desaturado
+  (p. ej. CARTO Positron / `light_nolabels` + `light_only_labels`) y en `.dark` su
+  variante oscura. Nada de OSM estándar a todo color.
+- Marcadores en `lib/map/markerStyles.ts` (divIcon con HTML, sin colores en el componente):
+  - normal: `rounded-full bg-card/85 backdrop-blur px-3 py-1.5 text-xs font-semibold text-accent-foreground shadow-float` → "Hospital · N"
+  - seleccionado / hover desde la lista: `bg-primary text-primary-foreground shadow-primary`
+    + anillo pulsante (`animate-ping` de un span `bg-primary/35` detrás), **desactivado con `motion-reduce:animate-none`**.
+  - clusters: mismo estilo que "normal", con el número.
+- Overlays sobre el mapa (contador "3 hospitales en la vista", controles de zoom):
+  `rounded-xl bg-card/80 backdrop-blur-md shadow-float px-3.5 py-2 text-xs`.
+  Es el **único** sitio con cristal además del header.
+
+---
+
+## 7. LO QUE SIGUE PROHIBIDO
+
+- Gradientes de color, sombras de color salvo `shadow-primary`, blur fuera de header/mapa.
+- Violeta como fondo de secciones, tarjetas o hero.
+- Bordes y sombra a la vez en la misma card.
+- Hex / oklch a mano en componentes (todo por token).
+- Radios fuera de escala salvo `rounded-full`.
+
+## 8. CHECKLIST EXTRA (además del de frontend-design.mdc §11)
+
+□ ¿Cards sin `border`, con `shadow-float` y `rounded-2xl`?
+□ ¿Filtros/nav en contenedor píldora con activo `bg-secondary` (filtros) o `bg-primary` (nav)?
+□ ¿Violeta solo en CTA, nav activo, marcador destacado, foco y enlaces?
+□ ¿ADMIN en `rose`?
+□ ¿Blur solo en header y overlays del mapa?
+□ ¿Sora cargada vía `next/font` y ningún `font-bold` en cuerpo?
+□ ¿Probado en `.dark`: las sombras siguen separando las capas?
