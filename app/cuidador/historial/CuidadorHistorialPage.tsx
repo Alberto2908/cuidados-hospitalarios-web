@@ -37,7 +37,7 @@ const ESTADO_SERVICIO_LABEL: Record<string, string> = {
 
 const ESTADO_SERVICIO_COLOR: Record<string, string> = {
   aceptado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  confirmado: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
+  confirmado: "bg-accent text-accent-foreground",
   pendiente_confirmacion: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   completado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
