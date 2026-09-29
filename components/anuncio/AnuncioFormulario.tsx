@@ -200,7 +200,7 @@ export default function AnuncioFormulario({ modo, anuncioId, valoresIniciales }:
 
               <div className="rounded-xl bg-surface-sunken p-4 shadow-inset-soft">
                 <div className="mb-3 flex gap-2.5">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
                     <Lock className="size-4" />
                   </span>
                   <div>

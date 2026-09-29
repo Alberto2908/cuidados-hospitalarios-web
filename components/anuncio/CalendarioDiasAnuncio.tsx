@@ -66,6 +66,9 @@ export default function CalendarioDiasAnuncio({ franjas, onChange }: Props) {
         onSelect={handleSelect}
         disabled={{ before: today }}
         numberOfMonths={1}
+        classNames={{
+          today: "rounded-(--cell-radius) bg-accent text-accent-foreground data-[selected=true]:rounded-none",
+        }}
       />
       {dias.length > 0 ? (
         <p className="mt-auto border-t border-border px-2 pt-2 pb-1 text-center text-[11px] text-muted-foreground">
