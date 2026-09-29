@@ -166,7 +166,7 @@ export default function FranjasPorDia({ franjas, onChange }: Props) {
                 <p className="text-sm font-semibold capitalize text-foreground">
                   {label}
                 </p>
-                <p className="mt-1 text-[11px] tabular-nums text-muted-foreground">
+                <p className="mt-1.5 inline-flex items-center rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium tabular-nums text-accent-foreground">
                   {resumenDia(turnos)}
                 </p>
                 {overnight ? (
@@ -188,10 +188,10 @@ export default function FranjasPorDia({ franjas, onChange }: Props) {
               </Button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-end gap-x-4 gap-y-2.5">
               <label
                 htmlFor={`dia-entero-${fecha}`}
-                className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+                className="flex shrink-0 cursor-pointer items-center gap-2 pb-1.5 text-sm text-foreground"
               >
                 <Checkbox
                   id={`dia-entero-${fecha}`}
@@ -199,16 +199,15 @@ export default function FranjasPorDia({ franjas, onChange }: Props) {
                   onCheckedChange={(checked) =>
                     toggleDiaEntero(fecha, turnosConIndex, checked === true)
                   }
+                  className="border-foreground/25 bg-card"
                 />
                 Día entero
               </label>
-            </div>
 
-            <div className="flex flex-col gap-2">
               {turnosConIndex.map(({ franja: t, index }, turnoIdx) => (
                 <div
                   key={`${fecha}-${index}`}
-                  className="flex flex-wrap items-end gap-2 sm:gap-3"
+                  className="flex shrink-0 items-end gap-2"
                 >
                   {turnosConIndex.length > 1 ? (
                     <span className="mb-2 w-14 shrink-0 text-[11px] font-medium text-muted-foreground">
@@ -261,20 +260,20 @@ export default function FranjasPorDia({ franjas, onChange }: Props) {
                   ) : null}
                 </div>
               ))}
-            </div>
 
-            {!diaEntero ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => addTurno(fecha, turnos)}
-                className="w-fit gap-1.5"
-              >
-                <Plus className="size-4" />
-                Añadir turno
-              </Button>
-            ) : null}
+              {!diaEntero ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addTurno(fecha, turnos)}
+                  className="w-fit shrink-0 gap-1.5"
+                >
+                  <Plus className="size-4" />
+                  Añadir turno
+                </Button>
+              ) : null}
+            </div>
           </li>
         );
       })}
