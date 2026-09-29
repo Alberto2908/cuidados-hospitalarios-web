@@ -14,8 +14,6 @@ import {
   ShieldCheck,
   Stethoscope,
   ArrowRight,
-  Euro,
-  Building2,
   Bell,
   MapPin,
   BarChart3,
@@ -358,8 +356,7 @@ export default function InicioPage() {
 
 /**
  * Datos reales del usuario (no inventados): notificaciones pendientes -misma
- * consulta que ya usa el Navbar, así no hay una segunda fuente de verdad- y,
- * para el cuidador, la tarifa y los hospitales ya guardados en su perfil.
+ * consulta que ya usa el Navbar, así no hay una segunda fuente de verdad-.
  */
 function ResumenCuenta({ user }: { user: AuthUser }) {
   const esPaciente = user.rol === "USUARIO";
@@ -388,25 +385,11 @@ function ResumenCuenta({ user }: { user: AuthUser }) {
       {(esPaciente || esCuidador) && pendientes > 0 && (
         <Link
           href={hrefPendientes}
-          className="flex flex-1 items-center gap-2.5 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/70"
+          className="flex flex-1 items-center justify-center gap-2.5 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/70"
         >
           <Bell className="h-4 w-4 shrink-0 text-accent-foreground" />
-          Tienes {pendientes} {pendientes === 1 ? "novedad pendiente" : "novedades pendientes"} de revisar
+          Tienes {pendientes} {pendientes === 1 ? "notificación" : "notificaciones"}
         </Link>
-      )}
-
-      {esCuidador && (
-        <div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-card px-4 py-2.5 text-sm text-muted-foreground shadow-soft">
-          <span className="flex items-center gap-1.5">
-            <Euro className="h-3.5 w-3.5" />
-            {user.tarifaHora != null ? `${user.tarifaHora} €/hora` : "Sin tarifa configurada"}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Building2 className="h-3.5 w-3.5" />
-            {user.hospitalesTrabajo?.length ?? 0}{" "}
-            {(user.hospitalesTrabajo?.length ?? 0) === 1 ? "hospital" : "hospitales"}
-          </span>
-        </div>
       )}
     </div>
   );

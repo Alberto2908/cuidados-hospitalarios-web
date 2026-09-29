@@ -18,9 +18,7 @@ export interface MapTileStyle {
  * CARTO exige API key desde hace poco para sus tiles anónimos
  * (`basemaps.cartocdn.com`, incluye Voyager y Positron): sin ella devuelven
  * una tesela de aviso "API KEY REQUIRED" en vez del mapa -comprobado por HTTP
- * directo, mismo PNG "wm-...-light/dark" sin importar la URL pedida-. Esto
- * afecta a main/develop igual (ya usaban carto-voyager), no es algo que
- * rompiera esta rama.
+ * directo, mismo PNG "wm-...-light/dark" sin importar la URL pedida-.
  *
  * Gratis en https://carto.com/basemaps (sin tarjeta, key al momento por
  * email): hasta 5M peticiones/mes no comercial, 1M/mes comercial. Se añade
