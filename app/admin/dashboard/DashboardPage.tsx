@@ -48,13 +48,13 @@ const LABEL_ESTADO_USUARIO: Record<string, string> = {
 const LABEL_ESTADO_ANUNCIO: Record<string, string> = {
   activo: "Activo",
   cubierto: "Aceptado",
-  cancelado: "Cancelado",
+  borrado: "Borrado",
 };
 
 const COLOR_ESTADO_ANUNCIO: Record<string, string> = {
   activo: CHART_COLORS.sky,
   cubierto: CHART_COLORS.emerald,
-  cancelado: CHART_COLORS.red,
+  borrado: CHART_COLORS.red,
 };
 
 const LABEL_ESTADO_POSTULACION: Record<string, string> = {

@@ -11,13 +11,13 @@ import AccionesEstadoUsuario from "@/components/admin/AccionesEstadoUsuario";
 const ESTADO_ANUNCIO_LABEL: Record<AdminAnuncioResumen["estado"], string> = {
   activo: "Activo",
   cubierto: "Aceptado",
-  cancelado: "Cancelado",
+  borrado: "Borrado",
 };
 
 const ESTADO_ANUNCIO_COLOR: Record<AdminAnuncioResumen["estado"], string> = {
   activo: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
   cubierto: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+  borrado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
 };
 
 export default function AdminPacienteDetallePage() {
