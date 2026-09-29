@@ -32,6 +32,8 @@ construya ahora no haya que rehacerlo entonces.
 | CUIDADOR | `/cuidador/buscar`, `/cuidador/historial`                        |
 | ADMIN    | `/admin/anuncios`, `/admin/cuidadores`, `/admin/pacientes`, `/admin/configuracion` |
 
+Perfiles públicos: `/cuidadores/[id]` (también sin login) y `/pacientes/[id]` (requiere login); `/mi-perfil` muestra el propio según rol (CUIDADOR y USUARIO, no ADMIN).
+
 Hoy no hay `middleware.ts`: nada impide que un usuario navegue a una ruta de otro rol
 cambiando la URL. **Cuando se añada backend/auth real, cada ruta de la tabla debe quedar
 protegida por rol** (middleware o guard equivalente) — no asumir que ocultar el enlace en
