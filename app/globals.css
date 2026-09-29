@@ -17,6 +17,7 @@
   --shadow-float: var(--shadow-float);
   --shadow-primary: var(--shadow-primary);
   --shadow-inset-soft: var(--shadow-inset-soft);
+  --shadow-input: var(--shadow-input);
   --color-surface-sunken: var(--surface-sunken);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -82,6 +83,10 @@
   --shadow-float: 0 4px 14px oklch(0.29 0.05 265 / 0.08);
   --shadow-primary: 0 6px 18px oklch(0.58 0.21 285 / 0.35);
   --shadow-inset-soft: inset 0 1px 3px oklch(0.29 0.05 265 / 0.08);
+  /* Para inputs sobre una card ya bg-card: shadow-soft es casi invisible ahi
+     (mismo blanco contra mismo blanco). Este añade un toque del violeta de
+     marca para que el campo se despegue de la card sin necesitar borde. */
+  --shadow-input: 0 1px 2px oklch(0.29 0.05 265 / 0.05), 0 3px 10px oklch(0.58 0.21 285 / 0.16);
 
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.29 0.05 265);
@@ -123,6 +128,7 @@
   --shadow-float: 0 6px 18px oklch(0 0 0 / 0.35);
   --shadow-primary: 0 6px 18px oklch(0.72 0.15 285 / 0.3);
   --shadow-inset-soft: inset 0 1px 3px oklch(0 0 0 / 0.35);
+  --shadow-input: 0 1px 2px oklch(0 0 0 / 0.3), 0 3px 12px oklch(0.72 0.15 285 / 0.22);
 
   --sidebar: oklch(0.24 0.03 265);
   --sidebar-foreground: oklch(0.96 0.01 260);

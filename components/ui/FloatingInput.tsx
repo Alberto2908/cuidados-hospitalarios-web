@@ -23,7 +23,7 @@ export const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputPro
           id={id}
           placeholder=" "
           className={cn(
-            "peer h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-soft outline-none ring-ring focus:ring-2 transition-shadow",
+            "peer h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-input outline-none ring-ring focus:ring-2 transition-shadow",
             rightElement && "pr-10",
             className
           )}

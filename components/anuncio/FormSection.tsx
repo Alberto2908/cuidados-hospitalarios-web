@@ -28,7 +28,7 @@ export default function FormSection({
       )}
     >
       <header className="mb-5 flex shrink-0 items-center gap-3">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-primary">
           {step}
         </span>
         <div className="min-w-0 flex-1">
