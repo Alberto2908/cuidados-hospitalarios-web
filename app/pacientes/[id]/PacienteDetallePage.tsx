@@ -2,9 +2,9 @@
 
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import PerfilCuidadorVista from "@/components/perfil/PerfilCuidadorVista";
+import PerfilPacienteVista from "@/components/perfil/PerfilPacienteVista";
 
-export default function CuidadorDetallePage() {
+export default function PacienteDetallePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
 
@@ -19,7 +19,7 @@ export default function CuidadorDetallePage() {
         Volver
       </button>
 
-      <PerfilCuidadorVista cuidadorId={params.id} columnas />
+      <PerfilPacienteVista pacienteId={params.id} />
     </div>
   );
 }

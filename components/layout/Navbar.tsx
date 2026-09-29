@@ -19,6 +19,7 @@ import {
   KeyRound,
   LogOut,
   Settings,
+  CircleUserRound,
 } from "lucide-react";
 import { useAuth, UserRole } from "@/lib/auth/AuthContext";
 import { misNotificacionesConteo as misNotificacionesConteoAnuncios } from "@/lib/api/anuncios";
@@ -45,15 +46,20 @@ interface NavLink {
   tambienActivoEn?: string[];
 }
 
+// Perfil publico propio (como lo ven los demas). ADMIN no tiene.
+const MI_PERFIL: NavLink = { label: "Mi perfil", href: "/mi-perfil", icon: <CircleUserRound className="h-4 w-4" /> };
+
 const NAV_LINKS: Record<UserRole, NavLink[]> = {
   USUARIO: [
     { label: "Poner anuncio",   href: "/paciente/anuncio/nuevo", icon: <Megaphone className="h-4 w-4" /> },
     { label: "Buscar cuidador", href: "/paciente/buscar",        icon: <Search     className="h-4 w-4" /> },
     { label: "Mis anuncios",    href: "/paciente/historial",     icon: <History    className="h-4 w-4" />, tambienActivoEn: ["/paciente/anuncio/"] },
+    MI_PERFIL,
   ],
   CUIDADOR: [
     { label: "Buscar anuncio", href: "/cuidador/buscar",    icon: <Search  className="h-4 w-4" /> },
     { label: "Mis postulaciones", href: "/cuidador/historial", icon: <History className="h-4 w-4" /> },
+    MI_PERFIL,
   ],
   ADMIN: [
     { label: "Dashboard",           href: "/admin/dashboard", icon: <BarChart3       className="h-4 w-4" /> },
