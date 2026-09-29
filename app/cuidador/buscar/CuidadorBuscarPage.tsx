@@ -158,7 +158,7 @@ export default function CuidadorBuscarPage() {
       </div>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
 
-        <div className="relative h-[420px] lg:h-[580px] lg:flex-1 rounded-2xl overflow-hidden bg-surface-sunken shadow-inset-soft">
+        <div className="relative h-[420px] lg:h-[580px] lg:flex-1 rounded-2xl overflow-hidden border-2 border-primary bg-surface-sunken shadow-inset-soft">
           <MapaHospitales
             markers={markers}
             onHospitalClick={handleMarkerClick}

@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 import type { Map as LeafletMap, Marker, MarkerClusterGroup } from "leaflet";
 import { Hospital } from "@/lib/mock/hospitales";
-// Estilo activo: CARTO Positron. Si se implementa modo oscuro → DARK_MAP_STYLE_ID (carto-dark).
+// Estilo activo: ver DEFAULT_MAP_STYLE_ID en lib/map/tileStyles.ts (depende de NEXT_PUBLIC_CARTO_API_KEY).
+// Si se implementa modo oscuro → DARK_MAP_STYLE_ID (carto-dark, necesita la misma key).
 import { DEFAULT_MAP_STYLE_ID, getMapTileStyle } from "@/lib/map/tileStyles";
 // Individuales: píldora. Clusters: burbuja suave con cruz de hospital.
 import {

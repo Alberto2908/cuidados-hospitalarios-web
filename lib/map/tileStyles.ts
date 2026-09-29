@@ -15,13 +15,31 @@ export interface MapTileStyle {
 }
 
 /**
+ * CARTO exige API key desde hace poco para sus tiles anónimos
+ * (`basemaps.cartocdn.com`, incluye Voyager y Positron): sin ella devuelven
+ * una tesela de aviso "API KEY REQUIRED" en vez del mapa -comprobado por HTTP
+ * directo, mismo PNG "wm-...-light/dark" sin importar la URL pedida-. Esto
+ * afecta a main/develop igual (ya usaban carto-voyager), no es algo que
+ * rompiera esta rama.
+ *
+ * Gratis en https://carto.com/basemaps (sin tarjeta, key al momento por
+ * email): hasta 5M peticiones/mes no comercial, 1M/mes comercial. Se añade
+ * como `?key=` al final de la URL — variable NEXT_PUBLIC_CARTO_API_KEY.
+ */
+const CARTO_KEY_QS = process.env.NEXT_PUBLIC_CARTO_API_KEY
+  ? `?key=${process.env.NEXT_PUBLIC_CARTO_API_KEY}`
+  : "";
+
+/**
  * Estilos de mapa disponibles para comparar y elegir.
  * Todos son tiles públicos (OSM / CARTO / IGN / Esri / Stadia).
  *
- * Estilo activo en la app: CARTO Positron (`carto-positron`), claro y
- * desaturado para que los marcadores destaquen.
- * TODO (modo oscuro): cuando se implemente dark mode en la UI, cambiar
- * el estilo del mapa a CARTO Dark Matter (`carto-dark`).
+ * Estilo activo en la app: ver DEFAULT_MAP_STYLE_ID más abajo -CARTO Voyager
+ * si hay NEXT_PUBLIC_CARTO_API_KEY, si no IGN Base como alternativa sin key.
+ * Elegido tras comparar los 10 estilos sin key de Stadia en una pagina de
+ * prueba (app/estilosmapas, ya borrada).
+ * TODO (modo oscuro): cuando se implemente dark mode en la UI, cambiar el
+ * estilo del mapa a CARTO Dark Matter (también necesita la key).
  */
 export const MAP_TILE_STYLES: MapTileStyle[] = [
   {
@@ -40,18 +58,7 @@ export const MAP_TILE_STYLES: MapTileStyle[] = [
     nombre: "CARTO Voyager",
     proveedor: "CARTO",
     descripcion: "Estilo colorido y legible, parecido a Google Maps. Buen contraste para marcadores.",
-    url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-    attribution:
-      '© <a href="https://www.openstreetmap.org/copyright">OSM</a> · © <a href="https://carto.com/">CARTO</a>',
-    maxZoom: 20,
-    subdomains: "abcd",
-  },
-  {
-    id: "carto-positron",
-    nombre: "CARTO Positron",
-    proveedor: "CARTO",
-    descripcion: "Fondo muy claro y minimalista. Ideal si los marcadores deben destacar al máximo.",
-    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    url: `https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png${CARTO_KEY_QS}`,
     attribution:
       '© <a href="https://www.openstreetmap.org/copyright">OSM</a> · © <a href="https://carto.com/">CARTO</a>',
     maxZoom: 20,
@@ -59,11 +66,22 @@ export const MAP_TILE_STYLES: MapTileStyle[] = [
     recomendado: true,
   },
   {
+    id: "carto-positron",
+    nombre: "CARTO Positron",
+    proveedor: "CARTO",
+    descripcion: "Fondo muy claro y minimalista. Ideal si los marcadores deben destacar al máximo.",
+    url: `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png${CARTO_KEY_QS}`,
+    attribution:
+      '© <a href="https://www.openstreetmap.org/copyright">OSM</a> · © <a href="https://carto.com/">CARTO</a>',
+    maxZoom: 20,
+    subdomains: "abcd",
+  },
+  {
     id: "carto-positron-nolabels",
     nombre: "CARTO Positron (sin etiquetas)",
     proveedor: "CARTO",
     descripcion: "Igual que Positron pero sin nombres de calles. Mapa limpio solo de forma.",
-    url: "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
+    url: `https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png${CARTO_KEY_QS}`,
     attribution:
       '© <a href="https://www.openstreetmap.org/copyright">OSM</a> · © <a href="https://carto.com/">CARTO</a>',
     maxZoom: 20,
@@ -75,7 +93,7 @@ export const MAP_TILE_STYLES: MapTileStyle[] = [
     nombre: "CARTO Dark Matter",
     proveedor: "CARTO",
     descripcion: "Mapa oscuro. Útil si la UI de la app pasa a modo noche.",
-    url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    url: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png${CARTO_KEY_QS}`,
     attribution:
       '© <a href="https://www.openstreetmap.org/copyright">OSM</a> · © <a href="https://carto.com/">CARTO</a>',
     maxZoom: 20,
@@ -155,10 +173,13 @@ export const MAP_TILE_STYLES: MapTileStyle[] = [
   },
 ];
 
-/** Estilo por defecto (modo claro). Para dark mode → `carto-dark`. */
-export const DEFAULT_MAP_STYLE_ID = "carto-positron";
+/**
+ * Estilo por defecto: CARTO Voyager si hay NEXT_PUBLIC_CARTO_API_KEY: si no
+ * la hay, IGN Base (sin key) para que el mapa nunca se quede sin tiles.
+ */
+export const DEFAULT_MAP_STYLE_ID = process.env.NEXT_PUBLIC_CARTO_API_KEY ? "carto-voyager" : "ign-base";
 
-/** Estilo previsto cuando se active el modo oscuro en la UI. */
+/** Estilo previsto cuando se active el modo oscuro en la UI (necesita la key). */
 export const DARK_MAP_STYLE_ID = "carto-dark";
 
 export function getMapTileStyle(id: string): MapTileStyle {
