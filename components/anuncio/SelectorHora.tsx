@@ -57,7 +57,7 @@ export default function SelectorHora({
         aria-expanded={open}
         className={cn(
           buttonVariants({ variant: "outline" }),
-          "h-9 w-29 justify-between px-2.5 font-normal tabular-nums",
+          "h-9 w-29 justify-between border-0 bg-accent px-2.5 font-normal tabular-nums text-accent-foreground shadow-soft hover:bg-accent/70 hover:shadow-float aria-expanded:bg-accent aria-expanded:text-accent-foreground",
           !value && "text-muted-foreground",
         )}
       >
