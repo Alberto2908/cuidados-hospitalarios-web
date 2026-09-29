@@ -229,12 +229,13 @@ export default function AnuncioDetallePage() {
 
         {esAutor && anuncio.estado === "activo" && (
           <div className="mt-5 flex justify-end gap-2">
-            <Link href={`/paciente/anuncio/${anuncioId}/editar`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Link href={`/paciente/anuncio/${anuncioId}/editar`} className={buttonVariants({ variant: "default", size: "sm" })}>
               Modificar anuncio
             </Link>
             <Button
               type="button"
               size="sm"
+              variant="destructive"
               disabled={cancelarAnuncioMutation.isPending}
               onClick={() => {
                 if (confirm("¿Seguro que quieres cancelar este anuncio?")) {

@@ -133,7 +133,11 @@ export default function Navbar() {
                     {link.icon}
                     {link.label}
                     {(notificacionesPorHref[link.href] ?? 0) > 0 && (
-                      <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                      <span
+                        className={`flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[10px] font-semibold ${
+                          activo ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"
+                        }`}
+                      >
                         {notificacionesPorHref[link.href]}
                       </span>
                     )}
@@ -263,7 +267,11 @@ export default function Navbar() {
                   {link.icon}
                   {link.label}
                   {(notificacionesPorHref[link.href] ?? 0) > 0 && (
-                    <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                    <span
+                      className={`flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[10px] font-semibold ${
+                        activo ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"
+                      }`}
+                    >
                       {notificacionesPorHref[link.href]}
                     </span>
                   )}
