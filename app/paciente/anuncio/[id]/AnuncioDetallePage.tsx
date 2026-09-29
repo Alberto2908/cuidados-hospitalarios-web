@@ -406,7 +406,7 @@ function FilaPostulacion({
   });
 
   return (
-    <div className="rounded-xl bg-surface-sunken p-4 shadow-inset-soft">
+    <div className="rounded-xl bg-accent p-4 shadow-inset-soft">
       <div className="flex items-center justify-between gap-2">
         <p className="font-medium text-foreground text-sm">
           {postulacion.cuidadorNombre}
@@ -482,6 +482,7 @@ function FilaPostulacion({
               type="button"
               size="sm"
               variant="outline"
+              className="border-0 bg-foreground text-background hover:bg-foreground/90"
               disabled={pendienteAccion}
               onClick={() => setModalAbierto(true)}
             >
@@ -519,7 +520,7 @@ function FilaPostulacion({
         )}
         <Link
           href={`/cuidadores/${postulacion.cuidadorUsuarioId}`}
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "ml-auto")}
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "ml-auto border-0 bg-foreground text-background hover:bg-foreground/90")}
         >
           Ver perfil
         </Link>
