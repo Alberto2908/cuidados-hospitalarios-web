@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Map as LeafletMap, Marker, MarkerClusterGroup } from "leaflet";
+import type { Map as LeafletMap, Layer, Marker, MarkerClusterGroup, TileLayer } from "leaflet";
 import { Hospital } from "@/lib/mock/hospitales";
 // Estilo activo: ver DEFAULT_MAP_STYLE_ID en lib/map/tileStyles.ts (depende de NEXT_PUBLIC_CARTO_API_KEY).
 // Si se implementa modo oscuro → DARK_MAP_STYLE_ID (carto-dark, necesita la misma key).
-import { DEFAULT_MAP_STYLE_ID, getMapTileStyle } from "@/lib/map/tileStyles";
+import { useTheme } from "next-themes";
+import { DARK_MAP_STYLE_ID, DEFAULT_MAP_STYLE_ID, getMapTileStyle } from "@/lib/map/tileStyles";
 // Individuales: píldora. Clusters: burbuja suave con cruz de hospital.
 import {
   buildClusterSoftBubbleHtml,
@@ -95,6 +96,91 @@ function isMapAlive(map: LeafletMap | null): map is LeafletMap {
   }
 }
 
+function estiloParaTema(oscuro: boolean, claroId: string): string {
+  return oscuro && process.env.NEXT_PUBLIC_CARTO_API_KEY ? DARK_MAP_STYLE_ID : claroId;
+}
+
+function crearTileLayer(
+  L: typeof import("leaflet"),
+  estiloId: string,
+  options: import("leaflet").TileLayerOptions = {},
+): TileLayer {
+  const style = getMapTileStyle(estiloId);
+  return L.tileLayer(style.url, {
+    attribution: style.attribution,
+    maxZoom: style.maxZoom ?? 19,
+    minZoom: style.minZoom ?? 3,
+    ...(style.subdomains ? { subdomains: style.subdomains } : {}),
+    ...options,
+  });
+}
+
+const PANE_ETIQUETAS = "etiquetas-oscuro";
+const PANE_FONDO = "fondo-oscuro";
+// Azul de las tarjetas de la app (--card en oscuro): mientras cargan las teselas
+// el mapa ya se ve del mismo color que la UI.
+const FONDO_CARGANDO = "#1c2338";
+// Azul marino que se suma (screen) al mapa invertido: sube el negro al tono de la app.
+const LEVANTE_AZUL = "#141b30";
+// Invertir Voyager da un oscuro con la misma jerarquía de carreteras, parques y agua; el
+// sepia + hue-rotate lo lleva del naranja/verde de origen al azul de la marca.
+const FILTRO_BASE_OSCURA =
+  "invert(1) hue-rotate(180deg) brightness(1.15) contrast(1.05) sepia(.4) hue-rotate(195deg) saturate(1.1)";
+// Las etiquetas (texto oscuro) se invierten aparte para dejarlas en blanco azulado.
+const FILTRO_ETIQUETAS_OSCURAS = "invert(1) hue-rotate(180deg) brightness(1.6) contrast(1.1)";
+
+/**
+ * Añade al mapa la capa base del estilo indicado y la devuelve.
+ *
+ * En oscuro no hay teselas oscuras: se toma Voyager (sin etiquetas) y se
+ * compone con CSS, sin tocar las teselas:
+ *  1. base invertida y teñida de azul (FILTRO_BASE_OSCURA);
+ *  2. un pane azul con `mix-blend-mode: screen` que levanta los negros;
+ *  3. etiquetas en su propia capa, con su propio filtro, para que se lean.
+ */
+function crearCapaBase(L: typeof import("leaflet"), map: LeafletMap, estiloId: string): Layer {
+  const oscuro = estiloId === DARK_MAP_STYLE_ID;
+  const tilePane = map.getPane("tilePane");
+  if (tilePane) tilePane.style.filter = oscuro ? FILTRO_BASE_OSCURA : "";
+  map.getContainer().style.background = oscuro ? FONDO_CARGANDO : "";
+
+  for (const [nombre, z, configurar] of [
+    [
+      PANE_FONDO,
+      "210",
+      (pane: HTMLElement) => {
+        pane.style.mixBlendMode = "screen";
+        const relleno = document.createElement("div");
+        // Enorme porque el pane se desplaza con el mapa al arrastrar.
+        relleno.style.cssText = `position:absolute;left:-50000px;top:-50000px;width:100000px;height:100000px;background:${LEVANTE_AZUL}`;
+        pane.appendChild(relleno);
+      },
+    ],
+    [
+      PANE_ETIQUETAS,
+      "250", // por encima de las teselas (200), bajo marcadores (600)
+      (pane: HTMLElement) => {
+        pane.style.filter = FILTRO_ETIQUETAS_OSCURAS;
+      },
+    ],
+  ] as const) {
+    const pane = map.getPane(nombre) ?? map.createPane(nombre);
+    if (!pane.dataset.listo) {
+      pane.style.zIndex = z;
+      pane.style.pointerEvents = "none";
+      configurar(pane);
+      pane.dataset.listo = "1";
+    }
+    pane.style.display = oscuro ? "" : "none";
+  }
+
+  if (!oscuro) return crearTileLayer(L, estiloId).addTo(map);
+  return L.layerGroup([
+    crearTileLayer(L, "carto-voyager-nolabels"),
+    crearTileLayer(L, "carto-voyager-labels", { pane: PANE_ETIQUETAS }),
+  ]).addTo(map);
+}
+
 function buildIcon(
   L: typeof import("leaflet"),
   count: number,
@@ -159,7 +245,7 @@ function drawMarkers(
       markerColor: color,
     } as L.MarkerOptions);
 
-    const accentColor = color === "sky" ? "#0369a1" : "#065f46";
+    const accentColor = color === "sky" ? "var(--marker-sky-accent)" : "var(--marker-emerald-accent)";
     marker.bindTooltip(
       `<div>
         <div style="font-size:13px;font-weight:700;color:var(--foreground);">🏥 ${hospital.nombre}</div>
@@ -213,6 +299,12 @@ export default function MapaHospitales({
   const markerGroupRef = useRef<MarkerClusterGroup | null>(null);
   const miUbicacionMarkerRef = useRef<Marker | null>(null);
   const mapGenRef = useRef(0);
+  const tileLayerRef = useRef<Layer | null>(null);
+
+  // Dark Matter (CARTO) exige la API key; sin ella se queda el estilo claro
+  // para que el mapa no muestre la tesela de aviso.
+  const { resolvedTheme } = useTheme();
+  const estiloId = estiloParaTema(resolvedTheme === "dark", tileStyleId);
 
   const onClickRef = useRef(onHospitalClick);
   const onBoundsRef = useRef(onBoundsChange);
@@ -256,13 +348,12 @@ export default function MapaHospitales({
         zoomControl: true,
       });
 
-      const style = getMapTileStyle(tileStyleId);
-      L.tileLayer(style.url, {
-        attribution: style.attribution,
-        maxZoom: style.maxZoom ?? 19,
-        minZoom: style.minZoom ?? 3,
-        ...(style.subdomains ? { subdomains: style.subdomains } : {}),
-      }).addTo(map);
+      tileLayerRef.current = crearCapaBase(
+        L,
+        map,
+        // Se lee del DOM (no del estado) porque este efecto solo corre al montar.
+        estiloParaTema(document.documentElement.classList.contains("dark"), tileStyleId),
+      );
 
       const markerGroup = L.markerClusterGroup({
         maxClusterRadius: clusterRadiusForZoom,
@@ -311,6 +402,7 @@ export default function MapaHospitales({
       mapGenRef.current += 1;
 
       markerGroupRef.current = null;
+      tileLayerRef.current = null;
       if (mapRef.current) {
         mapRef.current.off();
         mapRef.current.remove();
@@ -325,6 +417,27 @@ export default function MapaHospitales({
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* ── Cambiar estilo del mapa al cambiar el tema ── */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!isMapAlive(map) || !tileLayerRef.current) return;
+
+    const gen = mapGenRef.current;
+    let cancelled = false;
+
+    loadLeafletWithCluster().then((L) => {
+      if (cancelled || gen !== mapGenRef.current || !isMapAlive(mapRef.current)) return;
+      const actual = tileLayerRef.current;
+      if (!actual) return;
+      tileLayerRef.current = crearCapaBase(L, map, estiloId);
+      map.removeLayer(actual);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [estiloId]);
 
   /* ── Actualizar marcadores ── */
   useEffect(() => {

@@ -30,23 +30,23 @@ function tone(color: MarkerTone, selected: boolean): Palette {
   if (color === "sky") {
     return {
       bg: "var(--card)",
-      text: "#0369a1",
-      border: "#bae6fd",
+      text: "var(--marker-sky-accent)",
+      border: "var(--marker-sky-border)",
       glow: "var(--shadow-float)",
       pulse: "rgba(14,165,233,0.4)",
       icon: "#0ea5e9",
-      accent: "#0369a1",
+      accent: "var(--marker-sky-accent)",
       solid: "#0ea5e9",
     };
   }
   return {
     bg: "var(--card)",
-    text: "#065f46",
-    border: "#a7f3d0",
+    text: "var(--marker-emerald-accent)",
+    border: "var(--marker-emerald-border)",
     glow: "var(--shadow-float)",
     pulse: "rgba(16,185,129,0.4)",
     icon: "#10b981",
-    accent: "#065f46",
+    accent: "var(--marker-emerald-accent)",
     solid: "#10b981",
   };
 }
