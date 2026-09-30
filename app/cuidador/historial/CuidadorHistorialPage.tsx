@@ -141,7 +141,7 @@ function TarjetaMiInscripcion({
   const [modalRetirarAbierto, setModalRetirarAbierto] = useState(false);
 
   return (
-    <div className="flex items-stretch justify-between gap-3 rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_8px_24px_oklch(0.29_0.05_265/0.12)]">
+    <div className="flex items-stretch justify-between gap-3 rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_5px_16px_oklch(0.29_0.05_265/0.08)]">
       <Link href={`/paciente/anuncio/${inscripcion.anuncioId}`} className="min-w-0 flex-1 hover:opacity-80">
         <p className="font-medium text-foreground text-sm">{inscripcion.anuncioTitulo}</p>
         <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">

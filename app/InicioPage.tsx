@@ -184,7 +184,7 @@ export default function InicioPage() {
                   <Link
                     key={acceso.href}
                     href={acceso.href}
-                    className="group flex items-center gap-3 rounded-2xl bg-card p-4 shadow-float transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_oklch(0.29_0.05_265/0.12)]"
+                    className="group flex items-center gap-3 rounded-2xl bg-card p-4 shadow-float transition-all hover:-translate-y-0.5 hover:shadow-[0_5px_16px_oklch(0.29_0.05_265/0.08)]"
                   >
                     <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${ROLE_CHIP[user.rol]}`}>
                       {acceso.icon}

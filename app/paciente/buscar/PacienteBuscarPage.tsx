@@ -290,7 +290,7 @@ function TarjetaCuidador({ cuidador }: { cuidador: CuidadorPublico }) {
   return (
     <Link
       href={`/cuidadores/${cuidador.id}`}
-      className="block rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_8px_24px_oklch(0.29_0.05_265/0.12)]"
+      className="block rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_5px_16px_oklch(0.29_0.05_265/0.08)]"
     >
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-semibold text-accent-foreground">
