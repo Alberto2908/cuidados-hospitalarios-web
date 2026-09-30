@@ -57,14 +57,14 @@ const COLOR_ESTADO_ANUNCIO: Record<string, string> = {
   borrado: CHART_COLORS.red,
 };
 
-const LABEL_ESTADO_POSTULACION: Record<string, string> = {
+const LABEL_ESTADO_INSCRIPCION: Record<string, string> = {
   pendiente: "Pendiente",
   aceptada: "Aceptada",
   rechazada: "Rechazada",
   retirada: "Retirada",
 };
 
-const COLOR_ESTADO_POSTULACION: Record<string, string> = {
+const COLOR_ESTADO_INSCRIPCION: Record<string, string> = {
   pendiente: CHART_COLORS.amber,
   aceptada: CHART_COLORS.emerald,
   rechazada: CHART_COLORS.red,
@@ -159,16 +159,16 @@ export default function DashboardPage() {
             />
             <StatTile
               icon={<AlertTriangle className="h-5 w-5" />}
-              label="Sin postulaciones"
-              value={formatearNumeroCompacto(data.anuncios.sinPostulaciones)}
+              label="Sin inscripciones"
+              value={formatearNumeroCompacto(data.anuncios.sinInscripciones)}
               subtext="anuncios activos"
               color="text-amber-500 dark:text-amber-400"
             />
             <StatTile
               icon={<MessageSquare className="h-5 w-5" />}
-              label="Postulaciones"
-              value={formatearNumeroCompacto(data.postulaciones.total)}
-              subtext={`${data.postulaciones.tasaAceptacion}% aceptadas`}
+              label="Inscripciones"
+              value={formatearNumeroCompacto(data.inscripciones.total)}
+              subtext={`${data.inscripciones.tasaAceptacion}% aceptadas`}
               color="text-violet-600 dark:text-violet-400"
             />
             <StatTile
@@ -222,9 +222,9 @@ export default function DashboardPage() {
               <BarChart data={aBarras(data.anuncios.porEstado, LABEL_ESTADO_ANUNCIO, COLOR_ESTADO_ANUNCIO)} height={180} />
             </div>
             <div className="rounded-2xl bg-card p-5 shadow-float">
-              <p className="mb-4 text-sm font-semibold text-foreground">Postulaciones por estado</p>
+              <p className="mb-4 text-sm font-semibold text-foreground">Inscripciones por estado</p>
               <BarChart
-                data={aBarras(data.postulaciones.porEstado, LABEL_ESTADO_POSTULACION, COLOR_ESTADO_POSTULACION)}
+                data={aBarras(data.inscripciones.porEstado, LABEL_ESTADO_INSCRIPCION, COLOR_ESTADO_INSCRIPCION)}
                 height={180}
               />
             </div>

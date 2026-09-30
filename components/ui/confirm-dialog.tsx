@@ -22,7 +22,7 @@ interface ConfirmDialogProps {
 
 // Reemplaza al confirm() nativo del navegador (bloqueante, sin estilo propio)
 // y a las acciones destructivas sin ninguna confirmacion -mismo componente
-// para "Borrar anuncio" (paciente) y "Retirar postulacion" (cuidador).
+// para "Borrar anuncio" (paciente) y "Retirar inscripcion" (cuidador).
 export function ConfirmDialog({
   open,
   onOpenChange,

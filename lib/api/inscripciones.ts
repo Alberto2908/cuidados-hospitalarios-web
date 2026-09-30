@@ -2,18 +2,18 @@ import { apiFetch } from "@/lib/api/client";
 import type { EstadoServicio, Servicio } from "@/lib/api/servicios";
 import type { Hospital } from "@/lib/mock/hospitales";
 
-export type EstadoPostulacion = "pendiente" | "rechazada" | "retirada" | "aceptada";
+export type EstadoInscripcion = "pendiente" | "rechazada" | "retirada" | "aceptada";
 export type PropuestoPor = "cuidador" | "paciente";
-export type SeccionMiPostulacion = "activo" | "historial";
+export type SeccionMiInscripcion = "activo" | "historial";
 
-export interface Postulacion {
+export interface Inscripcion {
   id: string;
   anuncioId: string;
   cuidadorUsuarioId: string;
   cuidadorNombre: string;
   precioHora: number;
   propuestoPor: PropuestoPor;
-  estado: EstadoPostulacion;
+  estado: EstadoInscripcion;
   /** Quien propone un precio lo acepta implicitamente: estos dos flags reflejan el consentimiento de cada parte. */
   aceptadoPorCuidador: boolean;
   aceptadoPorPaciente: boolean;
@@ -28,17 +28,17 @@ export interface Postulacion {
 }
 
 // Sin precioHora: la tarifa de partida es la que el cuidador tiene fijada
-// en su perfil (decision explicita, no se elige caso por caso al postularse).
-export function postularse(anuncioId: string): Promise<Postulacion> {
-  return apiFetch<Postulacion>(`/api/anuncios/${anuncioId}/postulaciones`, { method: "POST" });
+// en su perfil (decision explicita, no se elige caso por caso al inscribirse).
+export function inscribirse(anuncioId: string): Promise<Inscripcion> {
+  return apiFetch<Inscripcion>(`/api/anuncios/${anuncioId}/inscripciones`, { method: "POST" });
 }
 
-export function listarPostulacionesPorAnuncio(anuncioId: string): Promise<Postulacion[]> {
-  return apiFetch<Postulacion[]>(`/api/anuncios/${anuncioId}/postulaciones`);
+export function listarInscripcionesPorAnuncio(anuncioId: string): Promise<Inscripcion[]> {
+  return apiFetch<Inscripcion[]>(`/api/anuncios/${anuncioId}/inscripciones`);
 }
 
-export function listarMisPostulaciones(): Promise<Postulacion[]> {
-  return apiFetch<Postulacion[]>("/api/postulaciones/mias");
+export function listarMisInscripciones(): Promise<Inscripcion[]> {
+  return apiFetch<Inscripcion[]>("/api/inscripciones/mias");
 }
 
 interface HospitalApi {
@@ -67,7 +67,7 @@ function toHospital(h: HospitalApi): Hospital {
   };
 }
 
-export interface MiPostulacion {
+export interface MiInscripcion {
   id: string;
   anuncioId: string;
   anuncioTitulo: string;
@@ -77,10 +77,10 @@ export interface MiPostulacion {
   hospital: Hospital;
   precioHora: number;
   propuestoPor: PropuestoPor;
-  estado: EstadoPostulacion;
+  estado: EstadoInscripcion;
   aceptadoPorCuidador: boolean;
   aceptadoPorPaciente: boolean;
-  seccion: SeccionMiPostulacion;
+  seccion: SeccionMiInscripcion;
   estadoServicio: EstadoServicio | null;
   /** Pago ya procesado/retenido y todavía no visto — ver TODO.md (aviso solo tras el cobro real, no al aceptar). */
   nuevoServicioAceptado: boolean;
@@ -89,59 +89,59 @@ export interface MiPostulacion {
   creadoEn: string;
 }
 
-interface MiPostulacionApi extends Omit<MiPostulacion, "hospital"> {
+interface MiInscripcionApi extends Omit<MiInscripcion, "hospital"> {
   hospital: HospitalApi;
 }
 
-/** Postulaciones propias del cuidador: activas arriba, historial debajo (ver /cuidador/historial). */
-export async function misPostulacionesConSeccion(): Promise<MiPostulacion[]> {
-  const data = await apiFetch<MiPostulacionApi[]>("/api/postulaciones/mias/historial");
+/** Inscripciones propias del cuidador: activas arriba, historial debajo (ver /cuidador/historial). */
+export async function misInscripcionesConSeccion(): Promise<MiInscripcion[]> {
+  const data = await apiFetch<MiInscripcionApi[]>("/api/inscripciones/mias/historial");
   return data.map((p) => ({ ...p, hospital: toHospital(p.hospital) }));
 }
 
 /** Contraoferta: la puede mandar tanto el cuidador como el autor del anuncio. */
-export function actualizarPrecioPostulacion(id: string, precioHora: number): Promise<Postulacion> {
-  return apiFetch<Postulacion>(`/api/postulaciones/${id}/precio`, {
+export function actualizarPrecioInscripcion(id: string, precioHora: number): Promise<Inscripcion> {
+  return apiFetch<Inscripcion>(`/api/inscripciones/${id}/precio`, {
     method: "PATCH",
     body: JSON.stringify({ precioHora }),
   });
 }
 
-export function aceptarPostulacion(id: string): Promise<Servicio> {
-  return apiFetch<Servicio>(`/api/postulaciones/${id}/aceptar`, { method: "POST" });
+export function aceptarInscripcion(id: string): Promise<Servicio> {
+  return apiFetch<Servicio>(`/api/inscripciones/${id}/aceptar`, { method: "POST" });
 }
 
-export function rechazarPostulacion(id: string): Promise<void> {
-  return apiFetch<void>(`/api/postulaciones/${id}/rechazar`, { method: "POST" });
+export function rechazarInscripcion(id: string): Promise<void> {
+  return apiFetch<void>(`/api/inscripciones/${id}/rechazar`, { method: "POST" });
 }
 
-export function retirarPostulacion(id: string): Promise<void> {
-  return apiFetch<void>(`/api/postulaciones/${id}/retirar`, { method: "POST" });
+export function retirarInscripcion(id: string): Promise<void> {
+  return apiFetch<void>(`/api/inscripciones/${id}/retirar`, { method: "POST" });
 }
 
 /** Badge del navbar (cuidador): contraofertas del paciente que esperan su respuesta. */
 export function misNotificacionesConteo(): Promise<{ total: number }> {
-  return apiFetch<{ total: number }>("/api/postulaciones/mias/notificaciones-conteo");
+  return apiFetch<{ total: number }>("/api/inscripciones/mias/notificaciones-conteo");
 }
 
 /**
- * Etiqueta del estado de una postulacion vista desde un lado concreto
+ * Etiqueta del estado de una inscripcion vista desde un lado concreto
  * (cuidador o paciente/familiar): quien propone un precio lo acepta
  * implicitamente, la otra parte tiene que aceptarlo tambien para pasar a
  * "aceptada" -> mientras tanto se distingue de quien es la aceptacion
  * pendiente, en vez de un generico "Pendiente" o "Aceptada" que no dice nada
  * de en que punto de la negociacion esta cada uno.
  */
-export function etiquetaEstadoPostulacion(
-  postulacion: Pick<Postulacion, "estado" | "aceptadoPorCuidador" | "aceptadoPorPaciente">,
+export function etiquetaEstadoInscripcion(
+  inscripcion: Pick<Inscripcion, "estado" | "aceptadoPorCuidador" | "aceptadoPorPaciente">,
   viendoComoCuidador: boolean,
 ): string {
-  if (postulacion.estado === "rechazada") return "Rechazada";
-  if (postulacion.estado === "retirada") return "Retirada";
-  if (postulacion.estado === "aceptada") return "Aceptado por ambas partes";
+  if (inscripcion.estado === "rechazada") return "Rechazada";
+  if (inscripcion.estado === "retirada") return "Retirada";
+  if (inscripcion.estado === "aceptada") return "Aceptado por ambas partes";
 
-  const miAceptacion = viendoComoCuidador ? postulacion.aceptadoPorCuidador : postulacion.aceptadoPorPaciente;
-  const otraAceptacion = viendoComoCuidador ? postulacion.aceptadoPorPaciente : postulacion.aceptadoPorCuidador;
+  const miAceptacion = viendoComoCuidador ? inscripcion.aceptadoPorCuidador : inscripcion.aceptadoPorPaciente;
+  const otraAceptacion = viendoComoCuidador ? inscripcion.aceptadoPorPaciente : inscripcion.aceptadoPorCuidador;
   if (miAceptacion && !otraAceptacion) return "Aceptado por tu parte";
   if (otraAceptacion && !miAceptacion) return "Aceptado por la otra parte";
   return "Pendiente";

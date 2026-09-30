@@ -23,14 +23,14 @@ import {
 } from "lucide-react";
 import { useAuth, UserRole } from "@/lib/auth/AuthContext";
 import { misNotificacionesConteo as misNotificacionesConteoAnuncios } from "@/lib/api/anuncios";
-import { misNotificacionesConteo as misNotificacionesConteoPostulaciones } from "@/lib/api/postulaciones";
+import { misNotificacionesConteo as misNotificacionesConteoInscripciones } from "@/lib/api/inscripciones";
 
-// Notificaciones por rol: para USUARIO/CUIDADOR-como-paciente, postulaciones
+// Notificaciones por rol: para USUARIO/CUIDADOR-como-paciente, inscripciones
 // que esperan su respuesta en sus anuncios activos (ver backend
 // AnuncioService.contarNotificacionesPendientes); para CUIDADOR, sus propias
-// postulaciones donde el paciente acaba de contraofertar (ver backend
-// PostulacionService.contarNotificacionesPendientes). Cada href de "mis
-// anuncios/postulaciones" tiene como mucho un contador activo a la vez.
+// inscripciones donde el paciente acaba de contraofertar (ver backend
+// InscripcionService.contarNotificacionesPendientes). Cada href de "mis
+// anuncios/inscripciones" tiene como mucho un contador activo a la vez.
 const HREF_NOTIFICACIONES_PACIENTE = "/paciente/historial";
 const HREF_NOTIFICACIONES_CUIDADOR = "/cuidador/historial";
 
@@ -58,7 +58,7 @@ const NAV_LINKS: Record<UserRole, NavLink[]> = {
   ],
   CUIDADOR: [
     { label: "Buscar anuncio", href: "/cuidador/buscar",    icon: <Search  className="h-4 w-4" />, tambienActivoEn: ["/paciente/anuncio/"] },
-    { label: "Mis postulaciones", href: "/cuidador/historial", icon: <History className="h-4 w-4" />, tambienActivoEn: ["/pacientes/"] },
+    { label: "Mis inscripciones", href: "/cuidador/historial", icon: <History className="h-4 w-4" />, tambienActivoEn: ["/pacientes/"] },
     MI_PERFIL,
   ],
   ADMIN: [
@@ -172,9 +172,9 @@ export default function Navbar() {
     staleTime: 20 * 1000,
     refetchInterval: 30 * 1000,
   });
-  const { data: notificacionesPostulaciones } = useQuery({
-    queryKey: ["postulaciones", "notificaciones-conteo"],
-    queryFn: misNotificacionesConteoPostulaciones,
+  const { data: notificacionesInscripciones } = useQuery({
+    queryKey: ["inscripciones", "notificaciones-conteo"],
+    queryFn: misNotificacionesConteoInscripciones,
     enabled: isAuthenticated && esCuidador,
     staleTime: 20 * 1000,
     refetchInterval: 30 * 1000,
@@ -182,7 +182,7 @@ export default function Navbar() {
 
   const notificacionesPorHref: Record<string, number> = {
     [HREF_NOTIFICACIONES_PACIENTE]: notificacionesAnuncios?.total ?? 0,
-    [HREF_NOTIFICACIONES_CUIDADOR]: notificacionesPostulaciones?.total ?? 0,
+    [HREF_NOTIFICACIONES_CUIDADOR]: notificacionesInscripciones?.total ?? 0,
   };
 
   return (
