@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api/client";
 import type { EstadoAnuncio } from "@/lib/api/anuncios";
-import type { Postulacion } from "@/lib/api/postulaciones";
+import type { Inscripcion } from "@/lib/api/inscripciones";
 import type { Servicio } from "@/lib/api/servicios";
 
 export type EstadoUsuario = "pendiente" | "activo" | "suspendido" | "baja";
@@ -66,7 +66,7 @@ export interface AdminAnuncio {
   hospital: { nombre: string; ciudad: string };
   pacienteId: string;
   pacienteNombre: string;
-  totalPostulaciones: number;
+  totalInscripciones: number;
   fechaInicioPrevista: string;
   creadoEn: string;
 }
@@ -98,7 +98,7 @@ export interface AdminAnuncioDetalleAnuncio {
 
 export interface AdminAnuncioDetalle {
   anuncio: AdminAnuncioDetalleAnuncio;
-  postulaciones: Postulacion[];
+  inscripciones: Inscripcion[];
   servicio: Servicio | null;
 }
 
@@ -226,17 +226,17 @@ export interface PuntoConteo {
 
 export interface DashboardAnuncios {
   total: number;
-  /** Anuncios activos sin ninguna postulacion todavia. */
-  sinPostulaciones: number;
+  /** Anuncios activos sin ninguna inscripcion todavia. */
+  sinInscripciones: number;
   porEstado: Partial<Record<EstadoAnuncio, number>>;
 }
 
-export type EstadoPostulacionDashboard = "pendiente" | "aceptada" | "rechazada" | "retirada";
+export type EstadoInscripcionDashboard = "pendiente" | "aceptada" | "rechazada" | "retirada";
 
-export interface DashboardPostulaciones {
+export interface DashboardInscripciones {
   total: number;
-  porEstado: Partial<Record<EstadoPostulacionDashboard, number>>;
-  /** % de postulaciones resueltas (ni pendientes) que acabaron aceptadas. */
+  porEstado: Partial<Record<EstadoInscripcionDashboard, number>>;
+  /** % de inscripciones resueltas (ni pendientes) que acabaron aceptadas. */
   tasaAceptacion: number;
 }
 
@@ -260,7 +260,7 @@ export interface DashboardTopHospital {
 export interface Dashboard {
   usuarios: DashboardUsuarios;
   anuncios: DashboardAnuncios;
-  postulaciones: DashboardPostulaciones;
+  inscripciones: DashboardInscripciones;
   servicios: DashboardServicios;
   topHospitales: DashboardTopHospital[];
 }

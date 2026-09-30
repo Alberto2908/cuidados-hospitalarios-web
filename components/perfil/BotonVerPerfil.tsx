@@ -2,8 +2,8 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-// Mismo boton "Ver perfil" en todas partes (Mis postulaciones, detalle de un
-// anuncio, postulaciones de un anuncio): en negro para que se distinga bien
+// Mismo boton "Ver perfil" en todas partes (Mis inscripciones, detalle de un
+// anuncio, inscripciones de un anuncio): en negro para que se distinga bien
 // del resto de acciones.
 export default function BotonVerPerfil({ href, className }: { href: string; className?: string }) {
   return (

@@ -151,7 +151,7 @@ export async function fetchConteoAnunciosPorHospitales(hospitalIds: string[]): P
 
 // apiFetch (no apiGetPublico) a proposito: envia la cookie de sesion, asi el
 // backend puede revelar planta/habitacion/cama cuando quien mira es el autor
-// o el cuidador con la postulacion aceptada.
+// o el cuidador con la inscripcion aceptada.
 export async function obtenerAnuncio(id: string): Promise<Anuncio> {
   const data = await apiFetch<AnuncioApi>(`/api/anuncios/${id}`);
   return toAnuncio(data);
@@ -204,7 +204,7 @@ export interface MiAnuncio {
   hospital: Hospital;
   titulo: string;
   estado: EstadoAnuncio;
-  /** Estado del servicio asociado (null si todavia no se acepto ninguna postulacion). */
+  /** Estado del servicio asociado (null si todavia no se acepto ninguna inscripcion). */
   estadoServicio: EstadoServicio | null;
   /** Id del servicio y nombre del cuidador (null si todavia no hay servicio) -para poder valorar directamente desde esta lista. */
   servicioId: string | null;
@@ -214,7 +214,7 @@ export interface MiAnuncio {
   /** La valoración ya puesta (null si no hay reseña todavía). */
   miValoracion: number | null;
   seccion: SeccionMiAnuncio;
-  postulacionesPendientes: number;
+  inscripcionesPendientes: number;
   franjas: FranjaHoraria[];
   fechaInicioPrevista: string;
   creadoEn: string;
@@ -232,7 +232,7 @@ interface MiAnuncioApi {
   puedeValorar: boolean;
   miValoracion: number | null;
   seccion: SeccionMiAnuncio;
-  postulacionesPendientes: number;
+  inscripcionesPendientes: number;
   franjas: FranjaApi[];
   fechaInicioPrevista: string;
   creadoEn: string;

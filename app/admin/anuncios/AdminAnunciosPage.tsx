@@ -167,7 +167,7 @@ export default function AdminAnunciosPage() {
               <tr className="border-b border-border bg-muted/40">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Anuncio</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden sm:table-cell">Hospital</th>
-                <th className="px-4 py-3 text-center font-medium text-muted-foreground hidden md:table-cell">Postulaciones</th>
+                <th className="px-4 py-3 text-center font-medium text-muted-foreground hidden md:table-cell">Inscripciones</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden lg:table-cell">Inicio previsto</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Estado</th>
               </tr>
@@ -210,7 +210,7 @@ export default function AdminAnunciosPage() {
                       {a.hospital.nombre} · {a.hospital.ciudad}
                     </td>
                     <td className="px-4 py-3.5 text-center hidden md:table-cell">
-                      <span className="font-medium text-foreground">{a.totalPostulaciones}</span>
+                      <span className="font-medium text-foreground">{a.totalInscripciones}</span>
                     </td>
                     <td className="px-4 py-3.5 text-muted-foreground hidden lg:table-cell">
                       {formatearFecha(a.fechaInicioPrevista)}

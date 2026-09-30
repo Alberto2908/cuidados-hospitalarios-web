@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
 import { ArrowLeft, CalendarDays, Lock, MapPin } from "lucide-react";
 import { fetchAdminAnuncio, borrarAnuncioAdmin } from "@/lib/api/admin";
-import type { Postulacion } from "@/lib/api/postulaciones";
+import type { Inscripcion } from "@/lib/api/inscripciones";
 import type { EstadoAnuncio } from "@/lib/api/anuncios";
 import type { EstadoPago, EstadoServicio } from "@/lib/api/servicios";
 import { formatearFecha } from "@/lib/fecha";
@@ -37,14 +37,14 @@ const ESTADO_ANUNCIO_COLOR: Record<EstadoAnuncio, string> = {
   borrado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
 };
 
-const ESTADO_POSTULACION_LABEL: Record<Postulacion["estado"], string> = {
+const ESTADO_INSCRIPCION_LABEL: Record<Inscripcion["estado"], string> = {
   pendiente: "Pendiente",
   aceptada: "Aceptada",
   rechazada: "Rechazada",
   retirada: "Retirada",
 };
 
-const ESTADO_POSTULACION_COLOR: Record<Postulacion["estado"], string> = {
+const ESTADO_INSCRIPCION_COLOR: Record<Inscripcion["estado"], string> = {
   pendiente: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   aceptada: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   rechazada: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
@@ -140,7 +140,7 @@ export default function AdminAnuncioDetallePage() {
                   variant="destructive"
                   disabled={borrarMutation.isPending}
                   onClick={() => {
-                    if (confirm("¿Seguro que quieres borrar este anuncio? Se rechazarán sus postulaciones pendientes.")) {
+                    if (confirm("¿Seguro que quieres borrar este anuncio? Se rechazarán sus inscripciones pendientes.")) {
                       borrarMutation.mutate();
                     }
                   }}
@@ -168,18 +168,18 @@ export default function AdminAnuncioDetallePage() {
 
           <div className="rounded-2xl bg-card p-5 shadow-float">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Postulaciones ({data.postulaciones.length})
+              Inscripciones ({data.inscripciones.length})
             </p>
-            {data.postulaciones.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Todavía no hay ninguna postulación.</p>
+            {data.inscripciones.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Todavía no hay ninguna inscripción.</p>
             ) : (
               <ul className="flex flex-col gap-3">
-                {data.postulaciones.map((p) => (
+                {data.inscripciones.map((p) => (
                   <li key={p.id} className="rounded-xl bg-surface-sunken p-3 shadow-inset-soft">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-medium text-foreground">{p.cuidadorNombre}</p>
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_POSTULACION_COLOR[p.estado]}`}>
-                        {ESTADO_POSTULACION_LABEL[p.estado]}
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_INSCRIPCION_COLOR[p.estado]}`}>
+                        {ESTADO_INSCRIPCION_LABEL[p.estado]}
                       </span>
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">

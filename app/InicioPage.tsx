@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useAuth, UserRole, type AuthUser } from "@/lib/auth/AuthContext";
 import { misNotificacionesConteo as misNotificacionesAnuncios } from "@/lib/api/anuncios";
-import { misNotificacionesConteo as misNotificacionesPostulaciones } from "@/lib/api/postulaciones";
+import { misNotificacionesConteo as misNotificacionesInscripciones } from "@/lib/api/inscripciones";
 import { fetchTodosLosHospitales } from "@/lib/api/hospitales";
 
 interface AccesoRapido {
@@ -59,7 +59,7 @@ const ACCESOS_POR_ROL: Record<UserRole, AccesoRapido[]> = {
       icon: <Search className="h-5 w-5" />,
     },
     {
-      label: "Mis postulaciones",
+      label: "Mis inscripciones",
       description: "Sigue el estado de tus propuestas",
       href: "/cuidador/historial",
       icon: <History className="h-5 w-5" />,
@@ -120,7 +120,7 @@ const PASOS = [
   {
     icon: <Search className="h-5 w-5" />,
     titulo: "Recibe propuestas",
-    texto: "Cuidadores profesionales de la zona se postulan con su tarifa. Puedes negociar el precio.",
+    texto: "Cuidadores profesionales de la zona se inscriben con su tarifa. Puedes negociar el precio.",
   },
   {
     icon: <ShieldCheck className="h-5 w-5" />,
@@ -218,7 +218,7 @@ export default function InicioPage() {
             </p>
             <p>
               Publicas el turno que necesitas —el hospital, la planta y el horario exacto— y los
-              cuidadores profesionales de la zona lo ven y se postulan con su tarifa por hora, así
+              cuidadores profesionales de la zona lo ven y se inscriben con su tarifa por hora, así
               que puedes comparar propuestas antes de decidir.
             </p>
             <p>
@@ -342,7 +342,7 @@ export default function InicioPage() {
           <div>
             <h3 className="text-lg font-semibold text-foreground">Cómo se elige al cuidador</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Cuando un cuidador se postula a tu anuncio, ves su tarifa por hora y puedes
+              Cuando un cuidador se inscribe en tu anuncio, ves su tarifa por hora y puedes
               proponerle un precio distinto antes de decidir. Nadie queda asignado hasta que tú
               aceptas su propuesta.
             </p>
@@ -368,14 +368,14 @@ function ResumenCuenta({ user }: { user: AuthUser }) {
     enabled: esPaciente,
     staleTime: 20 * 1000,
   });
-  const { data: notiPostulaciones } = useQuery({
-    queryKey: ["postulaciones", "notificaciones-conteo"],
-    queryFn: misNotificacionesPostulaciones,
+  const { data: notiInscripciones } = useQuery({
+    queryKey: ["inscripciones", "notificaciones-conteo"],
+    queryFn: misNotificacionesInscripciones,
     enabled: esCuidador,
     staleTime: 20 * 1000,
   });
 
-  const pendientes = esPaciente ? notiAnuncios?.total ?? 0 : notiPostulaciones?.total ?? 0;
+  const pendientes = esPaciente ? notiAnuncios?.total ?? 0 : notiInscripciones?.total ?? 0;
   const hrefPendientes = esPaciente ? "/paciente/historial" : "/cuidador/historial";
 
   if (user.rol === "ADMIN") return null;

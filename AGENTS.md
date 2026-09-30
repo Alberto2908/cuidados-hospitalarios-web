@@ -86,7 +86,7 @@ de comisión, política de cancelación/no-show, calendario de payout al cuidado
   (p. ej. "Contraofertar" en `outline` junto a un "Aceptar" en negro). `variant="destructive"`
   (rojo) se reserva para una acción puntual que el usuario pida explícitamente en rojo —
   no asumir que "cancelar" siempre es rojo: "Cancelar anuncio" es negro, "Retirar
-  postulación" es rojo, decisión caso por caso confirmada por el usuario, no una regla
+  inscripción" es rojo, decisión caso por caso confirmada por el usuario, no una regla
   automática por tipo de acción. Feedback explícito del usuario (2026-09-17): "siempre
   estás poniendo los botones blancos y deberían ser negros" — ante la duda, negro.
 - Color por rol (usado en `Navbar.tsx`, `app/page.tsx` y badges): **sky** = Paciente,

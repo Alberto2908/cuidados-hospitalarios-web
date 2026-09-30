@@ -371,7 +371,7 @@ function SeccionTarifa({ tarifaInicial }: { tarifaInicial: number | null }) {
     setGuardando(true);
     try {
       await actualizarTarifaHora(valor);
-      sileo.success({ title: "Tarifa guardada", description: "Ya puedes postularte a anuncios con esta tarifa." });
+      sileo.success({ title: "Tarifa guardada", description: "Ya puedes inscribirte en anuncios con esta tarifa." });
     } catch (err) {
       const mensaje = err instanceof ApiError ? err.message : "No se ha podido guardar la tarifa.";
       sileo.error({ title: "No se ha podido guardar", description: mensaje });
@@ -387,8 +387,8 @@ function SeccionTarifa({ tarifaInicial }: { tarifaInicial: number | null }) {
         <h2 className="text-lg font-semibold">Tu tarifa por hora</h2>
       </div>
       <p className="text-sm text-muted-foreground">
-        Es el precio de partida con el que te postulas a un anuncio. El paciente/familiar podrá proponerte un
-        precio distinto una vez te hayas postulado.
+        Es el precio de partida con el que te inscribes en un anuncio. El paciente/familiar podrá proponerte un
+        precio distinto una vez te hayas inscrito.
       </p>
       <div className="flex items-center gap-2">
         <input
