@@ -4,6 +4,8 @@ import type { Hospital } from "@/lib/mock/hospitales";
 export type UserRole = "USUARIO" | "CUIDADOR" | "ADMIN";
 export type UserEstado = "pendiente" | "activo" | "suspendido" | "baja";
 
+export type TemaUsuario = "SYSTEM" | "LIGHT" | "DARK";
+
 export type TipoDocumento = "DNI" | "NIE" | "NIF";
 
 export interface UsuarioActual {
@@ -21,6 +23,7 @@ export interface UsuarioActual {
   proveedorAuth: "LOCAL" | "GOOGLE";
   hospitalesTrabajo: Hospital[] | null;
   tarifaHora: number | null;
+  tema: TemaUsuario;
 }
 
 export interface RegistroDatos {
@@ -105,5 +108,12 @@ export function actualizarTarifaHora(tarifaHora: number) {
   return apiFetch<UsuarioActual>("/api/usuarios/me/tarifa-hora", {
     method: "PATCH",
     body: JSON.stringify({ tarifaHora }),
+  });
+}
+
+export function actualizarTema(tema: TemaUsuario) {
+  return apiFetch<UsuarioActual>("/api/usuarios/me/tema", {
+    method: "PATCH",
+    body: JSON.stringify({ tema }),
   });
 }
