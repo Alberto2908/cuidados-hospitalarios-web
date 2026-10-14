@@ -35,7 +35,8 @@ export async function apiFetch<T>(
     ...init,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      // Con FormData el navegador pone el Content-Type (multipart + boundary).
+      ...(init.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...init.headers,
     },
   });
@@ -56,4 +57,21 @@ export async function apiFetch<T>(
     return undefined as T;
   }
   return res.json();
+}
+
+/** Descarga un recurso binario autenticado (p. ej. una imagen protegida) con la misma sesion/refresh que apiFetch. */
+export async function apiFetchBlob(path: string, reintentado = false): Promise<Blob> {
+  const res = await fetch(`${API_URL}${path}`, { credentials: "include" });
+
+  if (res.status === 401 && !reintentado) {
+    const refrescado = await intentarRefresh();
+    if (refrescado) {
+      return apiFetchBlob(path, true);
+    }
+  }
+
+  if (!res.ok) {
+    throw new ApiError(res.status, "No se ha podido cargar la imagen");
+  }
+  return res.blob();
 }

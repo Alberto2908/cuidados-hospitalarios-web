@@ -4,7 +4,11 @@ import type { Hospital } from "@/lib/mock/hospitales";
 export type UserRole = "USUARIO" | "CUIDADOR" | "ADMIN";
 export type UserEstado = "pendiente" | "activo" | "suspendido" | "baja";
 
-export type TipoDocumento = "DNI" | "NIE" | "NIF";
+export type { TipoDocumento } from "@/lib/documento";
+import type { TipoDocumento } from "@/lib/documento";
+
+/** Estado de la verificación de identidad (solo aplica a cuidadores). */
+export type EstadoVerificacion = "SIN_SOLICITAR" | "PENDIENTE" | "RECHAZADA" | "APROBADA";
 
 export interface UsuarioActual {
   id: string;
@@ -17,6 +21,9 @@ export interface UsuarioActual {
   tipoDocumento: TipoDocumento | null;
   numeroDocumento: string | null;
   documentoVerificado: boolean;
+  estadoVerificacion: EstadoVerificacion;
+  /** El admin ya ha aprobado/rechazado la solicitud y el cuidador aún no lo ha visto (notificación). */
+  verificacionResultadoPendiente: boolean;
   stripeCobrosHabilitados: boolean | null;
   proveedorAuth: "LOCAL" | "GOOGLE";
   hospitalesTrabajo: Hospital[] | null;
@@ -73,6 +80,32 @@ export function actualizarPerfil(datos: ActualizarPerfilDatos) {
     method: "PATCH",
     body: JSON.stringify(datos),
   });
+}
+
+export interface VerificacionIdentidadDatos {
+  tipoDocumento: TipoDocumento;
+  numeroDocumento: string;
+  anverso: File;
+  reverso: File;
+  selfie: File;
+}
+
+export function enviarVerificacionIdentidad(datos: VerificacionIdentidadDatos) {
+  const formulario = new FormData();
+  formulario.append("tipoDocumento", datos.tipoDocumento);
+  formulario.append("numeroDocumento", datos.numeroDocumento);
+  formulario.append("anverso", datos.anverso);
+  formulario.append("reverso", datos.reverso);
+  formulario.append("selfie", datos.selfie);
+  return apiFetch<UsuarioActual>("/api/usuarios/me/verificacion-identidad", {
+    method: "POST",
+    body: formulario,
+  });
+}
+
+/** El cuidador ha abierto su perfil: da por visto el resultado de su verificación. */
+export function marcarResultadoVerificacionVisto() {
+  return apiFetch<UsuarioActual>("/api/usuarios/me/verificacion-identidad/visto", { method: "POST" });
 }
 
 export function convertirseCuidador() {

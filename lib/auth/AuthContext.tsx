@@ -3,7 +3,12 @@
 import { createContext, useContext, ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as authApi from "@/lib/auth/api";
-import type { ActualizarPerfilDatos, RegistroDatos, UsuarioActual } from "@/lib/auth/api";
+import type {
+  ActualizarPerfilDatos,
+  RegistroDatos,
+  UsuarioActual,
+  VerificacionIdentidadDatos,
+} from "@/lib/auth/api";
 import type { Hospital } from "@/lib/mock/hospitales";
 
 export type { UserRole, UserEstado, UsuarioActual } from "@/lib/auth/api";
@@ -21,6 +26,8 @@ interface AuthContextType {
   logout: () => void;
   actualizarPerfil: (datos: ActualizarPerfilDatos) => Promise<AuthUser>;
   convertirseCuidador: () => Promise<AuthUser>;
+  enviarVerificacionIdentidad: (datos: VerificacionIdentidadDatos) => Promise<AuthUser>;
+  marcarResultadoVerificacionVisto: () => Promise<AuthUser>;
   obtenerStripeOnboardingLink: () => Promise<{ url: string }>;
   sincronizarStripe: () => Promise<AuthUser>;
   cambiarContrasena: (actual: string, nueva: string) => Promise<void>;
@@ -44,6 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     staleTime: 5 * 60 * 1000,
     retry: false,
+    // Con la verificación de identidad pendiente se consulta de vez en cuando para
+    // enterarse pronto de la decisión del admin (notificación en el menú de usuario).
+    refetchInterval: (query) => (query.state.data?.estadoVerificacion === "PENDIENTE" ? 30 * 1000 : false),
   });
 
   const loginMutation = useMutation({
@@ -74,6 +84,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const convertirseCuidadorMutation = useMutation({
     mutationFn: authApi.convertirseCuidador,
+    onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
+  });
+
+  const verificacionIdentidadMutation = useMutation({
+    mutationFn: (datos: VerificacionIdentidadDatos) => authApi.enviarVerificacionIdentidad(datos),
+    onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
+  });
+
+  const resultadoVistoMutation = useMutation({
+    mutationFn: authApi.marcarResultadoVerificacionVisto,
     onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
   });
 
@@ -113,6 +133,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout: () => logoutMutation.mutate(),
         actualizarPerfil: (datos) => actualizarPerfilMutation.mutateAsync(datos),
         convertirseCuidador: () => convertirseCuidadorMutation.mutateAsync(),
+        enviarVerificacionIdentidad: (datos) => verificacionIdentidadMutation.mutateAsync(datos),
+        marcarResultadoVerificacionVisto: () => resultadoVistoMutation.mutateAsync(),
         obtenerStripeOnboardingLink: () => authApi.obtenerStripeOnboardingLink(),
         sincronizarStripe: () => sincronizarStripeMutation.mutateAsync(),
         cambiarContrasena: (actual, nueva) => cambiarContrasenaMutation.mutateAsync({ actual, nueva }),

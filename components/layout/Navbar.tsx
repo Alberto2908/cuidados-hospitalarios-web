@@ -20,10 +20,12 @@ import {
   LogOut,
   Settings,
   CircleUserRound,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth, UserRole } from "@/lib/auth/AuthContext";
 import { misNotificacionesConteo as misNotificacionesConteoAnuncios } from "@/lib/api/anuncios";
 import { misNotificacionesConteo as misNotificacionesConteoInscripciones } from "@/lib/api/inscripciones";
+import { fetchVerificacionesConteo } from "@/lib/api/admin";
 
 // Notificaciones por rol: para USUARIO/CUIDADOR-como-paciente, inscripciones
 // que esperan su respuesta en sus anuncios activos (ver backend
@@ -33,6 +35,8 @@ import { misNotificacionesConteo as misNotificacionesConteoInscripciones } from 
 // anuncios/inscripciones" tiene como mucho un contador activo a la vez.
 const HREF_NOTIFICACIONES_PACIENTE = "/paciente/historial";
 const HREF_NOTIFICACIONES_CUIDADOR = "/cuidador/historial";
+// ADMIN: solicitudes de verificación de identidad pendientes de revisar.
+const HREF_NOTIFICACIONES_ADMIN = "/admin/verificaciones";
 
 /* ─── tipos de enlace de nav ─────────────────────────────────────── */
 interface NavLink {
@@ -66,6 +70,7 @@ const NAV_LINKS: Record<UserRole, NavLink[]> = {
     { label: "Gestionar anuncios",  href: "/admin/anuncios",  icon: <LayoutDashboard className="h-4 w-4" />, tambienActivoEn: ["/admin/anuncios/"] },
     { label: "Gestionar cuidadores",href: "/admin/cuidadores",icon: <UserCheck       className="h-4 w-4" />, tambienActivoEn: ["/admin/cuidadores/"] },
     { label: "Gestionar pacientes", href: "/admin/pacientes", icon: <Users           className="h-4 w-4" />, tambienActivoEn: ["/admin/pacientes/"] },
+    { label: "Verificaciones",      href: "/admin/verificaciones", icon: <ShieldCheck className="h-4 w-4" /> },
   ],
 };
 
@@ -180,7 +185,21 @@ export default function Navbar() {
     refetchInterval: 30 * 1000,
   });
 
+  const esAdmin = user?.rol === "ADMIN";
+  const { data: verificacionesPendientes } = useQuery({
+    queryKey: ["admin", "verificaciones", "conteo"],
+    queryFn: fetchVerificacionesConteo,
+    enabled: isAuthenticated && esAdmin,
+    staleTime: 20 * 1000,
+    refetchInterval: 30 * 1000,
+  });
+
+  // El cuidador tiene un resultado de verificación (aprobada/rechazada) sin ver:
+  // punto en el menú de usuario y en "Datos personales", que es donde se ve.
+  const avisoVerificacion = esCuidador && Boolean(user?.verificacionResultadoPendiente);
+
   const notificacionesPorHref: Record<string, number> = {
+    [HREF_NOTIFICACIONES_ADMIN]: verificacionesPendientes?.total ?? 0,
     [HREF_NOTIFICACIONES_PACIENTE]: notificacionesAnuncios?.total ?? 0,
     [HREF_NOTIFICACIONES_CUIDADOR]: notificacionesInscripciones?.total ?? 0,
   };
@@ -241,8 +260,14 @@ export default function Navbar() {
                 className="flex items-center gap-2 rounded-full bg-card py-1.5 pl-1.5 pr-3 shadow-soft transition-shadow hover:shadow-float"
               >
                 {/* Avatar inicial */}
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
+                <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
                   {user.nombre[0]}{user.apellidos[0]}
+                  {avisoVerificacion && (
+                    <span
+                      className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-card"
+                      aria-label="Tienes una notificación sobre tu verificación de identidad"
+                    />
+                  )}
                 </div>
                 <span className="hidden sm:block text-sm font-medium text-foreground">
                   {user.nombre} {user.apellidos}
@@ -267,6 +292,12 @@ export default function Navbar() {
                     >
                       <User className="h-4 w-4 text-muted-foreground" />
                       Datos personales
+                      {avisoVerificacion && (
+                        <span
+                          className="ml-auto h-2 w-2 shrink-0 rounded-full bg-red-500"
+                          aria-label="Notificación sobre tu verificación de identidad"
+                        />
+                      )}
                     </Link>
                     <Link
                       href="/perfil/contrasena"
@@ -365,6 +396,12 @@ export default function Navbar() {
             <div className="mt-2 border-t border-border pt-2 flex flex-col gap-1">
               <Link href="/perfil" onClick={() => setMobileOpen(false)} className="flex items-center gap-2.5 rounded-full px-3.5 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
                 <User className="h-4 w-4" /> Datos personales
+                {avisoVerificacion && (
+                  <span
+                    className="ml-auto h-2 w-2 shrink-0 rounded-full bg-red-500"
+                    aria-label="Notificación sobre tu verificación de identidad"
+                  />
+                )}
               </Link>
               <Link href="/perfil/contrasena" onClick={() => setMobileOpen(false)} className="flex items-center gap-2.5 rounded-full px-3.5 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
                 <KeyRound className="h-4 w-4" /> Cambiar contraseña
