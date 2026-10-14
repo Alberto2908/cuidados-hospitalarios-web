@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTheme } from "next-themes";
 import { Toaster } from "sileo";
 
 const SILEO_WIDTH = 350;
@@ -115,11 +116,14 @@ function useSileoBodyFit() {
  */
 export default function AppToaster() {
   useSileoBodyFit();
+  // Sileo invierte: con tema "light" el toast es oscuro y con "dark" es claro,
+  // así contrasta con el fondo de la página en ambos modos.
+  const { resolvedTheme } = useTheme();
 
   return (
     <Toaster
       position="top-right"
-      theme="light"
+      theme={resolvedTheme === "dark" ? "dark" : "light"}
       offset={{ top: 88, right: 24 }}
     />
   );

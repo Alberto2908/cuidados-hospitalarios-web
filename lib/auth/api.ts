@@ -7,6 +7,8 @@ export type UserEstado = "pendiente" | "activo" | "suspendido" | "baja";
 export type { TipoDocumento } from "@/lib/documento";
 import type { TipoDocumento } from "@/lib/documento";
 
+export type TemaUsuario = "SYSTEM" | "LIGHT" | "DARK";
+
 /** Estado de la verificación de identidad (solo aplica a cuidadores). */
 export type EstadoVerificacion = "SIN_SOLICITAR" | "PENDIENTE" | "RECHAZADA" | "APROBADA";
 
@@ -28,6 +30,7 @@ export interface UsuarioActual {
   proveedorAuth: "LOCAL" | "GOOGLE";
   hospitalesTrabajo: Hospital[] | null;
   tarifaHora: number | null;
+  tema: TemaUsuario;
 }
 
 export interface RegistroDatos {
@@ -138,5 +141,12 @@ export function actualizarTarifaHora(tarifaHora: number) {
   return apiFetch<UsuarioActual>("/api/usuarios/me/tarifa-hora", {
     method: "PATCH",
     body: JSON.stringify({ tarifaHora }),
+  });
+}
+
+export function actualizarTema(tema: TemaUsuario) {
+  return apiFetch<UsuarioActual>("/api/usuarios/me/tema", {
+    method: "PATCH",
+    body: JSON.stringify({ tema }),
   });
 }

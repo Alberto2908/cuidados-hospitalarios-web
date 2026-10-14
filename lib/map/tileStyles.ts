@@ -97,6 +97,32 @@ export const MAP_TILE_STYLES: MapTileStyle[] = [
     maxZoom: 20,
     subdomains: "abcd",
   },
+  // Mapa oscuro de la app: Voyager sin etiquetas + etiquetas aparte, invertidos
+  // y teñidos con CSS (ver crearCapaBase en MapaHospitales). Se parte de Voyager
+  // y no de Dark Matter porque, invertido, conserva jerarquia de carreteras,
+  // parques y agua; Dark Matter es casi negro y sus calles apenas se distinguen.
+  {
+    id: "carto-voyager-nolabels",
+    nombre: "CARTO Voyager (sin etiquetas)",
+    proveedor: "CARTO",
+    descripcion: "Voyager sin nombres. Base del mapa oscuro de la app (se invierte con CSS).",
+    url: `https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png${CARTO_KEY_QS}`,
+    attribution:
+      '© <a href="https://www.openstreetmap.org/copyright">OSM</a> · © <a href="https://carto.com/">CARTO</a>',
+    maxZoom: 20,
+    subdomains: "abcd",
+  },
+  {
+    id: "carto-voyager-labels",
+    nombre: "CARTO Voyager (solo etiquetas)",
+    proveedor: "CARTO",
+    descripcion: "Solo los nombres, transparente. Se superpone a la base del mapa oscuro.",
+    url: `https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png${CARTO_KEY_QS}`,
+    attribution:
+      '© <a href="https://www.openstreetmap.org/copyright">OSM</a> · © <a href="https://carto.com/">CARTO</a>',
+    maxZoom: 20,
+    subdomains: "abcd",
+  },
   {
     id: "osm-standard",
     nombre: "OpenStreetMap",
@@ -177,7 +203,10 @@ export const MAP_TILE_STYLES: MapTileStyle[] = [
  */
 export const DEFAULT_MAP_STYLE_ID = process.env.NEXT_PUBLIC_CARTO_API_KEY ? "carto-voyager" : "ign-base";
 
-/** Estilo previsto cuando se active el modo oscuro en la UI (necesita la key). */
+/**
+ * Estilo del mapa en modo oscuro (necesita la key). Es un identificador
+ * "virtual": MapaHospitales lo compone con las dos capas de Voyager + filtros CSS.
+ */
 export const DARK_MAP_STYLE_ID = "carto-dark";
 
 export function getMapTileStyle(id: string): MapTileStyle {

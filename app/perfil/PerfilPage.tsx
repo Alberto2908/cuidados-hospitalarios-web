@@ -10,6 +10,7 @@ import ModalVerificacionIdentidad from "@/components/perfil/ModalVerificacionIde
 import type { Hospital } from "@/lib/mock/hospitales";
 import SelectorProvincia from "@/components/anuncio/SelectorProvincia";
 import SelectorHospitalesMultiple from "@/components/perfil/SelectorHospitalesMultiple";
+import SeccionApariencia from "@/components/perfil/SeccionApariencia";
 import { User, Stethoscope, ShieldCheck, AlertTriangle, Lock, Building2, X, Euro, Clock, BadgeCheck } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
@@ -249,6 +250,8 @@ function PerfilContenido({ user }: { user: AuthUser }) {
           </button>
         </form>
       </div>
+
+      <SeccionApariencia />
 
       {user.rol === "CUIDADOR" && (
         <div className="rounded-2xl bg-card p-6 shadow-float">

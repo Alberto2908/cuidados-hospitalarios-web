@@ -6,12 +6,13 @@ import * as authApi from "@/lib/auth/api";
 import type {
   ActualizarPerfilDatos,
   RegistroDatos,
+  TemaUsuario,
   UsuarioActual,
   VerificacionIdentidadDatos,
 } from "@/lib/auth/api";
 import type { Hospital } from "@/lib/mock/hospitales";
 
-export type { UserRole, UserEstado, UsuarioActual } from "@/lib/auth/api";
+export type { UserRole, UserEstado, UsuarioActual, TemaUsuario } from "@/lib/auth/api";
 export type AuthUser = UsuarioActual;
 
 const AUTH_QUERY_KEY = ["auth", "me"] as const;
@@ -33,6 +34,7 @@ interface AuthContextType {
   cambiarContrasena: (actual: string, nueva: string) => Promise<void>;
   actualizarHospitales: (hospitalIds: string[]) => Promise<Hospital[]>;
   actualizarTarifaHora: (tarifaHora: number) => Promise<AuthUser>;
+  actualizarTema: (tema: TemaUsuario) => Promise<AuthUser>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -121,6 +123,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
   });
 
+  const actualizarTemaMutation = useMutation({
+    mutationFn: (tema: TemaUsuario) => authApi.actualizarTema(tema),
+    onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
+  });
+
   return (
     <AuthContext.Provider
       value={{
@@ -140,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         cambiarContrasena: (actual, nueva) => cambiarContrasenaMutation.mutateAsync({ actual, nueva }),
         actualizarHospitales: (hospitalIds) => actualizarHospitalesMutation.mutateAsync(hospitalIds),
         actualizarTarifaHora: (tarifaHora) => actualizarTarifaHoraMutation.mutateAsync(tarifaHora),
+        actualizarTema: (tema) => actualizarTemaMutation.mutateAsync(tema),
       }}
     >
       {children}

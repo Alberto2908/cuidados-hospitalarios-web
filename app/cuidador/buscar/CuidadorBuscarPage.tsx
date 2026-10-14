@@ -243,7 +243,7 @@ function TarjetaAnuncio({ anuncio }: { anuncio: Anuncio }) {
   return (
     <Link
       href={`/paciente/anuncio/${anuncio.id}`}
-      className="block rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_8px_24px_oklch(0.29_0.05_265/0.12)]"
+      className="block rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_5px_16px_oklch(0.29_0.05_265/0.08)]"
     >
       <p className="font-medium text-foreground text-sm leading-snug">{anuncio.titulo}</p>
       <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{anuncio.descripcion}</p>
