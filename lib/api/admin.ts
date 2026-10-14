@@ -1,4 +1,5 @@
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch, apiFetchBlob } from "@/lib/api/client";
+import type { TipoDocumento } from "@/lib/documento";
 import type { EstadoAnuncio } from "@/lib/api/anuncios";
 import type { Inscripcion } from "@/lib/api/inscripciones";
 import type { Servicio } from "@/lib/api/servicios";
@@ -130,6 +131,46 @@ export function reactivarUsuario(id: string): Promise<void> {
 /** Baja definitiva (no reversible desde el panel): programa el borrado de datos identificativos, ver TODO.md. */
 export function darDeBajaUsuario(id: string): Promise<void> {
   return apiFetch<void>(`/api/admin/usuarios/${id}/baja`, { method: "POST" });
+}
+
+/** Solicitud de verificación de identidad pendiente de revisar. */
+export interface VerificacionPendiente {
+  id: string;
+  usuarioId: string;
+  nombre: string;
+  apellidos: string;
+  email: string;
+  tipoDocumento: TipoDocumento;
+  numeroDocumento: string;
+  enviadoEn: string;
+  /** Ese número ya está verificado en otra cuenta (posible duplicado). Solo lo ve el admin. */
+  documentoYaVerificado: boolean;
+}
+
+export type ImagenVerificacion = "anverso" | "reverso" | "selfie";
+
+/** Más antigua primero (la que lleva más tiempo esperando). */
+export function fetchVerificacionesPendientes(): Promise<VerificacionPendiente[]> {
+  return apiFetch<VerificacionPendiente[]>("/api/admin/verificaciones");
+}
+
+/** Número de solicitudes pendientes (burbuja del menú de admin). */
+export function fetchVerificacionesConteo(): Promise<{ total: number }> {
+  return apiFetch<{ total: number }>("/api/admin/verificaciones/conteo");
+}
+
+/** Cada consulta queda registrada en el log de auditoría del servidor. */
+export function fetchImagenVerificacion(id: string, imagen: ImagenVerificacion): Promise<Blob> {
+  return apiFetchBlob(`/api/admin/verificaciones/${id}/imagenes/${imagen}`);
+}
+
+export function aprobarVerificacion(id: string): Promise<void> {
+  return apiFetch<void>(`/api/admin/verificaciones/${id}/aprobar`, { method: "POST" });
+}
+
+/** Borra las imágenes del intento; el cuidador puede corregir y reenviar. */
+export function rechazarVerificacion(id: string): Promise<void> {
+  return apiFetch<void>(`/api/admin/verificaciones/${id}/rechazar`, { method: "POST" });
 }
 
 export interface PaginaAdminAnuncios {
