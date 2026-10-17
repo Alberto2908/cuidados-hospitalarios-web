@@ -9,6 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Estrellas } from "@/components/ui/estrellas";
 import ModalResena from "@/components/anuncio/ModalResena";
+import ModalPago from "@/components/pago/ModalPago";
 import { borrarAnuncio, misAnuncios, type MiAnuncio } from "@/lib/api/anuncios";
 import { crearResena } from "@/lib/api/resenas";
 import { formatearFecha } from "@/lib/fecha";
@@ -86,7 +87,7 @@ export default function PacienteHistorialPage() {
   const completados = (anuncios?.filter((a) => a.seccion === "completado") ?? []).sort((a, b) => porInicio(b) - porInicio(a));
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-container py-8">
       <div className="mb-5">
         <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Mis anuncios</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
@@ -153,8 +154,11 @@ function TarjetaMiAnuncio({
   const queryClient = useQueryClient();
   const [modalResenaAbierto, setModalResenaAbierto] = useState(false);
   const [modalBorrarAbierto, setModalBorrarAbierto] = useState(false);
+  const [modalPagoAbierto, setModalPagoAbierto] = useState(false);
+  // Aceptado pero sin pagar: el pago se puede hacer directamente desde esta lista.
+  const puedePagar = anuncio.estadoServicio === "aceptado" && anuncio.servicioId !== null;
   // Que se puede hacer con el anuncio lo decide el backend (politicaBorrado):
-  // "aviso" = aceptado y sin pagar, con menos de 24 h para el inicio.
+  // "aviso" = aceptado y pagado, con poco tiempo para el inicio (ver politicaBorrado en el backend).
   const puedeBorrar = anuncio.politicaBorrado !== "bloqueado";
   const borradoConAviso = anuncio.politicaBorrado === "aviso";
 
@@ -216,6 +220,15 @@ function TarjetaMiAnuncio({
               </span>
             )}
           </div>
+          {puedePagar && (
+            <button
+              type="button"
+              onClick={() => setModalPagoAbierto(true)}
+              className="mt-2.5 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              Pagar
+            </button>
+          )}
           {anuncio.miValoracion != null ? (
             <span className="mt-2.5 flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
               <Estrellas valor={anuncio.miValoracion} />
@@ -259,6 +272,25 @@ function TarjetaMiAnuncio({
         )}
       </div>
 
+      {puedePagar && (
+        <ModalPago
+          key={modalPagoAbierto ? "pago-abierto" : "pago-cerrado"}
+          open={modalPagoAbierto}
+          onOpenChange={setModalPagoAbierto}
+          servicioId={anuncio.servicioId}
+          onPagado={() => {
+            sileo.success({
+              title: "Pago realizado",
+              description: "El dinero queda retenido hasta que confirmes que el cuidado se ha realizado.",
+            });
+            setModalPagoAbierto(false);
+            queryClient.invalidateQueries({ queryKey: ["anuncios", "mios"] });
+            queryClient.invalidateQueries({ queryKey: ["anuncios", "notificaciones-conteo"] });
+            queryClient.invalidateQueries({ queryKey: ["inscripciones", "anuncio", anuncio.id] });
+          }}
+        />
+      )}
+
       {anuncio.puedeValorar && (
         <ModalResena
           key={modalResenaAbierto ? "resena-abierto" : "resena-cerrado"}
@@ -277,7 +309,7 @@ function TarjetaMiAnuncio({
           titulo="Borrar anuncio"
           descripcion={
             borradoConAviso
-              ? `Si borras "${anuncio.titulo}" con tan poco tiempo de antelación, la devolución no será íntegra por las molestias causadas al cuidador. ¿Quieres borrarlo igualmente? Esta acción no se puede deshacer.`
+              ? `Si borras "${anuncio.titulo}" con tan poco tiempo de antelación, el pago quedará retenido y la plataforma decidirá cuánto se te devuelve, por las molestias causadas al cuidador. ¿Quieres borrarlo igualmente? Esta acción no se puede deshacer.`
               : `¿Seguro que quieres borrar "${anuncio.titulo}"? Esta acción no se puede deshacer.`
           }
           textoConfirmar="Borrar anuncio"

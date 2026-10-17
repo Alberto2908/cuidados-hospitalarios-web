@@ -10,13 +10,14 @@ import {
   History,
   LayoutDashboard,
   Users,
-  UserCheck,
   ShieldCheck,
   Stethoscope,
   ArrowRight,
   Bell,
   MapPin,
   BarChart3,
+  Wallet,
+  CircleUserRound,
 } from "lucide-react";
 import { useAuth, UserRole, type AuthUser } from "@/lib/auth/AuthContext";
 import { misNotificacionesConteo as misNotificacionesAnuncios } from "@/lib/api/anuncios";
@@ -50,6 +51,12 @@ const ACCESOS_POR_ROL: Record<UserRole, AccesoRapido[]> = {
       href: "/paciente/historial",
       icon: <History className="h-5 w-5" />,
     },
+    {
+      label: "Mi perfil",
+      description: "Mira cómo te ven los demás",
+      href: "/mi-perfil",
+      icon: <CircleUserRound className="h-5 w-5" />,
+    },
   ],
   CUIDADOR: [
     {
@@ -63,6 +70,12 @@ const ACCESOS_POR_ROL: Record<UserRole, AccesoRapido[]> = {
       description: "Sigue el estado de tus propuestas",
       href: "/cuidador/historial",
       icon: <History className="h-5 w-5" />,
+    },
+    {
+      label: "Mi perfil",
+      description: "Mira cómo te ven los demás",
+      href: "/mi-perfil",
+      icon: <CircleUserRound className="h-5 w-5" />,
     },
   ],
   ADMIN: [
@@ -79,16 +92,22 @@ const ACCESOS_POR_ROL: Record<UserRole, AccesoRapido[]> = {
       icon: <LayoutDashboard className="h-5 w-5" />,
     },
     {
-      label: "Gestionar cuidadores",
-      description: "Administra las cuentas de cuidadores",
-      href: "/admin/cuidadores",
-      icon: <UserCheck className="h-5 w-5" />,
+      label: "Gestionar usuarios",
+      description: "Administra las cuentas de cuidadores y pacientes",
+      href: "/admin/usuarios",
+      icon: <Users className="h-5 w-5" />,
     },
     {
-      label: "Gestionar pacientes",
-      description: "Administra las cuentas de pacientes",
-      href: "/admin/pacientes",
-      icon: <Users className="h-5 w-5" />,
+      label: "Verificaciones",
+      description: "Revisa las solicitudes de identidad pendientes",
+      href: "/admin/verificaciones",
+      icon: <ShieldCheck className="h-5 w-5" />,
+    },
+    {
+      label: "Pagos",
+      description: "Dinero retenido e incidencias de pago",
+      href: "/admin/pagos",
+      icon: <Wallet className="h-5 w-5" />,
     },
   ],
 };
@@ -184,7 +203,7 @@ export default function InicioPage() {
                   <Link
                     key={acceso.href}
                     href={acceso.href}
-                    className="group flex items-center gap-3 rounded-2xl bg-card p-4 shadow-float transition-all hover:-translate-y-0.5 hover:shadow-[0_5px_16px_oklch(0.29_0.05_265/0.08)]"
+                    className="group flex items-center gap-3 rounded-2xl bg-card p-4 shadow-float transition-all hover:-translate-y-0.5 hover:shadow-[0_5px_16px_oklch(0.29_0.05_265/0.08)] sm:[&:last-child:nth-child(odd)]:col-span-2 sm:[&:last-child:nth-child(odd)]:w-[calc(50%-0.375rem)] sm:[&:last-child:nth-child(odd)]:justify-self-center"
                   >
                     <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${ROLE_CHIP[user.rol]}`}>
                       {acceso.icon}

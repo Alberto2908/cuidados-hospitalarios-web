@@ -125,7 +125,7 @@ app/<ruta>/XxxPage.tsx       → "use client" y toda la UI
 
 ### Contenedor de página (idéntico en todas las rutas)
 ```tsx
-<div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+<div className="page-container py-8">
   <div className="mb-6">
     <h1 className="text-2xl font-bold text-foreground">Título</h1>
     <p className="mt-1 text-sm text-muted-foreground">Subtítulo de una línea</p>
@@ -134,9 +134,12 @@ app/<ruta>/XxxPage.tsx       → "use client" y toda la UI
 </div>
 ```
 
-`max-w-7xl` es el ancho del proyecto (navbar y footer ya lo usan). No mezcles
-`max-w-5xl`/`max-w-6xl` en páginas nuevas; excepción: `max-w-2xl` centrado en
-portada/auth.
+`page-container` es la utilidad estándar de la app (definida en `app/globals.css`):
+ancho máximo `7xl` y márgenes laterales `px-4 / sm:px-6 / lg:px-8`, los mismos del
+Dashboard, del navbar y del footer. **Úsala siempre en el elemento raíz de una página
+nueva** y añade solo el padding vertical (`py-8` o `py-10`). No repitas esas clases a
+mano ni mezcles `max-w-5xl`/`max-w-6xl` en el contenedor de una página; excepción:
+`max-w-2xl` centrado en portada/auth.
 
 ### Card / sección
 `components/anuncio/FormSection.tsx` es la referencia canónica:

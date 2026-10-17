@@ -14,18 +14,20 @@ import {
   LayoutDashboard,
   BarChart3,
   Users,
-  UserCheck,
   User,
   KeyRound,
   LogOut,
   Settings,
   CircleUserRound,
   ShieldCheck,
+  Wallet,
 } from "lucide-react";
 import { useAuth, UserRole } from "@/lib/auth/AuthContext";
 import { misNotificacionesConteo as misNotificacionesConteoAnuncios } from "@/lib/api/anuncios";
 import { misNotificacionesConteo as misNotificacionesConteoInscripciones } from "@/lib/api/inscripciones";
 import { fetchVerificacionesConteo } from "@/lib/api/admin";
+import { fetchPagosConteo } from "@/lib/api/adminPagos";
+import { useIndicadorDeslizante } from "@/lib/ui/useIndicadorDeslizante";
 
 // Notificaciones por rol: para USUARIO/CUIDADOR-como-paciente, inscripciones
 // que esperan su respuesta en sus anuncios activos (ver backend
@@ -37,6 +39,8 @@ const HREF_NOTIFICACIONES_PACIENTE = "/paciente/historial";
 const HREF_NOTIFICACIONES_CUIDADOR = "/cuidador/historial";
 // ADMIN: solicitudes de verificación de identidad pendientes de revisar.
 const HREF_NOTIFICACIONES_ADMIN = "/admin/verificaciones";
+// ADMIN: pagos retenidos que necesitan una decisión (ver AdminPagoService).
+const HREF_PAGOS_ADMIN = "/admin/pagos";
 
 /* ─── tipos de enlace de nav ─────────────────────────────────────── */
 interface NavLink {
@@ -68,9 +72,9 @@ const NAV_LINKS: Record<UserRole, NavLink[]> = {
   ADMIN: [
     { label: "Dashboard",           href: "/admin/dashboard", icon: <BarChart3       className="h-4 w-4" /> },
     { label: "Gestionar anuncios",  href: "/admin/anuncios",  icon: <LayoutDashboard className="h-4 w-4" />, tambienActivoEn: ["/admin/anuncios/"] },
-    { label: "Gestionar cuidadores",href: "/admin/cuidadores",icon: <UserCheck       className="h-4 w-4" />, tambienActivoEn: ["/admin/cuidadores/"] },
-    { label: "Gestionar pacientes", href: "/admin/pacientes", icon: <Users           className="h-4 w-4" />, tambienActivoEn: ["/admin/pacientes/"] },
+    { label: "Gestionar usuarios",  href: "/admin/usuarios",  icon: <Users           className="h-4 w-4" />, tambienActivoEn: ["/admin/cuidadores/", "/admin/pacientes/"] },
     { label: "Verificaciones",      href: "/admin/verificaciones", icon: <ShieldCheck className="h-4 w-4" /> },
+    { label: "Pagos",               href: "/admin/pagos",     icon: <Wallet          className="h-4 w-4" />, tambienActivoEn: ["/admin/pagos/"] },
   ],
 };
 
@@ -166,6 +170,9 @@ export default function Navbar() {
   }, [pathname, rol]);
   const origen = leerOrigenNav();
   const hrefActivo = linkActivo(pathname, links, origen);
+  // El fondo de la pastilla activa se desliza hasta el enlace nuevo al navegar.
+  const { contenedor: navRef, registrar: registrarLink, estiloIndicador } =
+    useIndicadorDeslizante(hrefActivo, links.map((l) => l.href).join("|"));
 
   const esPaciente = user?.rol === "USUARIO";
   const esCuidador = user?.rol === "CUIDADOR";
@@ -194,12 +201,21 @@ export default function Navbar() {
     refetchInterval: 30 * 1000,
   });
 
+  const { data: pagosPendientes } = useQuery({
+    queryKey: ["admin", "pagos", "conteo"],
+    queryFn: fetchPagosConteo,
+    enabled: isAuthenticated && esAdmin,
+    staleTime: 20 * 1000,
+    refetchInterval: 30 * 1000,
+  });
+
   // El cuidador tiene un resultado de verificación (aprobada/rechazada) sin ver:
   // punto en el menú de usuario y en "Datos personales", que es donde se ve.
   const avisoVerificacion = esCuidador && Boolean(user?.verificacionResultadoPendiente);
 
   const notificacionesPorHref: Record<string, number> = {
     [HREF_NOTIFICACIONES_ADMIN]: verificacionesPendientes?.total ?? 0,
+    [HREF_PAGOS_ADMIN]: pagosPendientes?.total ?? 0,
     [HREF_NOTIFICACIONES_PACIENTE]: notificacionesAnuncios?.total ?? 0,
     [HREF_NOTIFICACIONES_CUIDADOR]: notificacionesInscripciones?.total ?? 0,
   };
@@ -219,16 +235,22 @@ export default function Navbar() {
              columna central y la zona derecha no "herede" su hueco cuando no hay sesión. */}
         <div className="justify-self-center">
           {isAuthenticated && (
-            <nav className="hidden md:flex items-center gap-1 rounded-full bg-card p-1 shadow-soft">
+            <nav ref={navRef} className="relative hidden md:flex items-stretch gap-1 rounded-full bg-card p-1 shadow-soft">
+              <span
+                aria-hidden
+                className="pointer-events-none absolute rounded-full bg-primary"
+                style={estiloIndicador}
+              />
               {links.map((link) => {
                 const activo = link.href === hrefActivo;
                 return (
                   <Link
                     key={link.href}
+                    ref={registrarLink(link.href)}
                     href={link.href}
-                    className={`relative flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors ${
+                    className={`relative z-10 flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors duration-300 ${
                       activo
-                        ? "bg-primary text-primary-foreground"
+                        ? "text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >

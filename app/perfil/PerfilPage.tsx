@@ -322,7 +322,10 @@ function PerfilContenido({ user }: { user: AuthUser }) {
             <>
               <div className="mb-4 flex items-start gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>Pagos activados. Ya puedes recibir tus ingresos cuando completes un turno.</span>
+                <span>
+                  Datos de cobro completados. Recibirás el dinero de cada cuidado en tu cuenta bancaria cuando el
+                  paciente/familiar lo confirme.
+                </span>
               </div>
               <button
                 type="button"
@@ -338,8 +341,9 @@ function PerfilContenido({ user }: { user: AuthUser }) {
               <div className="mb-4 flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
-                  Todavía no has verificado tus datos de cobro con Stripe. Puedes hacerlo ahora o más adelante,
-                  pero <strong>no recibirás tus ingresos hasta que lo completes</strong>.
+                  Todavía no has completado tus datos de cobro. Puedes inscribirte y aceptar cuidados sin ellos, pero{" "}
+                  <strong>no recibirás el dinero hasta que los completes</strong>: se queda retenido y se te entrega en
+                  cuanto termines. Los datos los recoge Stripe (identidad y cuenta bancaria).
                 </span>
               </div>
               <button
@@ -348,7 +352,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 disabled={verificando}
                 className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
               >
-                {verificando ? "Redirigiendo a Stripe..." : "Verificar datos de cobro con Stripe"}
+                {verificando ? "Redirigiendo a Stripe..." : "Completar datos de cobro"}
               </button>
             </>
           )}
