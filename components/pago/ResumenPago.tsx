@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Wallet } from "lucide-react";
+import { CircleCheck, Wallet } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { obtenerServicio, type Servicio } from "@/lib/api/servicios";
 import { formatearEuros } from "@/lib/pago/formato";
@@ -60,8 +60,45 @@ function textoPago(servicio: Servicio, rol: Rol): string {
   }
 }
 
+/**
+ * Como se resolvio una incidencia, en una frase y segun quien lo lee: pago completo al
+ * cuidador, devolucion integra a la familia o reparto. Null si el servicio no tuvo
+ * incidencia o aun no esta resuelta.
+ */
+function textoResolucionIncidencia(servicio: Servicio, rol: Rol): string | null {
+  if (!servicio.incidenciaAbiertaEn || !servicio.resolucionEn) {
+    return null;
+  }
+  const devuelto = servicio.importeReembolsado ?? 0;
+  const entregado = servicio.importeCuidador ?? 0;
+  const devueltoTodo = devuelto >= servicio.importeTotal;
+  const nadaDevuelto = devuelto <= 0;
+
+  if (devueltoTodo) {
+    return rol === "paciente"
+      ? `La incidencia se ha resuelto: se te ha devuelto el pago íntegro (${formatearEuros(devuelto)}).`
+      : "La incidencia se ha resuelto: el pago se ha devuelto íntegramente a la familia.";
+  }
+  if (nadaDevuelto) {
+    return rol === "paciente"
+      ? "La incidencia se ha resuelto: el pago completo se ha entregado al cuidador."
+      : `La incidencia se ha resuelto: se te ha entregado el pago completo (${formatearEuros(entregado)}, ya descontada la comisión de la plataforma).`;
+  }
+  return rol === "paciente"
+    ? `La incidencia se ha resuelto con un reparto: se te han devuelto ${formatearEuros(devuelto)} y el resto se ha entregado al cuidador.`
+    : `La incidencia se ha resuelto con un reparto: se han devuelto ${formatearEuros(devuelto)} a la familia y has recibido ${formatearEuros(entregado)}, ya descontada la comisión de la plataforma.`;
+}
+
 /** Estado del pago de un servicio, para el paciente/familiar o para el cuidador. */
-export default function ResumenPago({ servicioId, rol }: { servicioId: string; rol: Rol }) {
+export default function ResumenPago({
+  servicioId,
+  rol,
+  className = "mt-3",
+}: {
+  servicioId: string;
+  rol: Rol;
+  className?: string;
+}) {
   const { user } = useAuth();
   const servicioQuery = useQuery({
     queryKey: ["servicio", servicioId],
@@ -80,19 +117,30 @@ export default function ResumenPago({ servicioId, rol }: { servicioId: string; r
     user?.rol === "CUIDADOR" &&
     !user.stripeCobrosHabilitados;
 
+  const resolucion = textoResolucionIncidencia(servicio, rol);
+
   return (
-    <div className="mt-3 flex flex-col gap-1.5 rounded-xl bg-muted/50 p-3 text-sm text-foreground">
-      <div className="flex items-start gap-2">
-        <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-        <p>{textoPago(servicio, rol)}</p>
+    <div className={`${className} flex flex-col gap-2`}>
+      <div className="flex flex-col gap-1.5 rounded-xl bg-muted/50 p-3 text-sm text-foreground">
+        <div className="flex items-start gap-2">
+          <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <p>{textoPago(servicio, rol)}</p>
+        </div>
+        {faltaAlta && (
+          <p className="pl-6 text-xs text-amber-700 dark:text-amber-300">
+            Para recibir el dinero tienes que{" "}
+            <Link href="/perfil" className="font-medium underline">
+              completar tus datos de cobro
+            </Link>
+            .
+          </p>
+        )}
       </div>
-      {faltaAlta && (
-        <p className="pl-6 text-xs text-amber-700 dark:text-amber-300">
-          Para recibir el dinero tienes que{" "}
-          <Link href="/perfil" className="font-medium underline">
-            completar tus datos de cobro
-          </Link>
-          .
+      {resolucion && (
+        // Recuadro naranja propio (como el de la incidencia abierta) para que destaque.
+        <p className="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:bg-amber-900/20 dark:text-amber-200">
+          <CircleCheck className="mt-0.5 h-4 w-4 shrink-0" />
+          {resolucion}
         </p>
       )}
     </div>

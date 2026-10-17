@@ -4,7 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
-import { CalendarDays, MapPin, MessageSquare, User } from "lucide-react";
+import { CalendarDays, MapPin, MessageSquare, User, Wallet } from "lucide-react";
+import { estadoServicioMostrado, puedeRetirarseConPagoHecho, seccionVisible } from "@/lib/anuncio/horas";
+import { useAhora } from "@/lib/ui/useAhora";
+import { formatearFecha } from "@/lib/fecha";
+import { formatearEuros } from "@/lib/pago/formato";
+import { BOTON_NEGRO, ModalRespuestaIncidencia } from "@/components/pago/ConfirmacionCuidado";
+import { responderIncidenciaServicio } from "@/lib/api/servicios";
 import { Button } from "@/components/ui/button";
 import BotonVerPerfil from "@/components/perfil/BotonVerPerfil";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -31,6 +37,8 @@ const ESTADO_COLOR: Record<MiInscripcion["estado"], string> = {
 const ESTADO_SERVICIO_LABEL: Record<string, string> = {
   aceptado: "Aceptado",
   confirmado: "Confirmado (pagado)",
+  en_curso: "En curso",
+  en_revision: "En revisión",
   pendiente_confirmacion: "Pendiente de confirmación",
   completado: "Completado",
   cancelado: "Cancelado",
@@ -39,6 +47,8 @@ const ESTADO_SERVICIO_LABEL: Record<string, string> = {
 const ESTADO_SERVICIO_COLOR: Record<string, string> = {
   aceptado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   confirmado: "bg-accent text-accent-foreground",
+  en_curso: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  en_revision: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
   pendiente_confirmacion: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   completado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
@@ -60,8 +70,12 @@ export default function CuidadorHistorialPage() {
     onError: (error: Error) => sileo.error({ title: "No se pudo retirar", description: error.message }),
   });
 
-  const activas = inscripciones?.filter((p) => p.seccion === "activo") ?? [];
-  const historial = inscripciones?.filter((p) => p.seccion === "historial") ?? [];
+  const ahora = useAhora();
+  const seccionDe = (p: MiInscripcion) =>
+    seccionVisible(p.seccion === "activo" ? "activo" : "historial", p.estadoServicio, p.franjas, ahora);
+  const enCurso = inscripciones?.filter((p) => seccionDe(p) === "en_curso") ?? [];
+  const activas = inscripciones?.filter((p) => seccionDe(p) === "activo") ?? [];
+  const historial = inscripciones?.filter((p) => seccionDe(p) === "historial") ?? [];
 
   return (
     <div className="page-container py-8">
@@ -83,6 +97,17 @@ export default function CuidadorHistorialPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-8">
+          {enCurso.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">En curso</h2>
+              <div className="flex flex-col gap-3">
+                {enCurso.map((p) => (
+                  <TarjetaMiInscripcion key={p.id} inscripcion={p} />
+                ))}
+              </div>
+            </section>
+          )}
+
           <section>
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Activas</h2>
             {activas.length === 0 ? (
@@ -123,6 +148,25 @@ export default function CuidadorHistorialPage() {
   );
 }
 
+// Lo que ve el cuidador del dinero de un servicio, resumido para la tarjeta (el detalle
+// completo esta en el recuadro de pago de la pagina del anuncio).
+function textoPagoCuidador(inscripcion: MiInscripcion): string | null {
+  const total = inscripcion.importeTotal != null ? formatearEuros(inscripcion.importeTotal) : null;
+  const recibido = inscripcion.importeCuidador ?? 0;
+  switch (inscripcion.estadoPago) {
+    case "procesado":
+      return recibido > 0
+        ? `Ya has recibido ${formatearEuros(recibido)} por los días confirmados. El resto sigue retenido hasta que se confirme.`
+        : `El pago${total ? ` (${total})` : ""} está cobrado y retenido. Lo recibirás cuando el paciente/familiar confirme el cuidado.`;
+    case "liberado":
+      return `Has recibido ${formatearEuros(recibido)}, ya descontada la comisión de la plataforma.`;
+    case "reembolsado":
+      return "El pago se ha devuelto a la familia.";
+    default:
+      return null;
+  }
+}
+
 function TarjetaMiInscripcion({
   inscripcion,
   onRetirar,
@@ -139,6 +183,25 @@ function TarjetaMiInscripcion({
   // la tarjeta concreta para saber de cual se trata si hay varias.
   const esperandoMiRespuesta = inscripcion.estado === "pendiente" && inscripcion.propuestoPor === "paciente";
   const [modalRetirarAbierto, setModalRetirarAbierto] = useState(false);
+  const [modalRespuestaAbierto, setModalRespuestaAbierto] = useState(false);
+  const queryClient = useQueryClient();
+  const respuestaMutation = useMutation({
+    mutationFn: (descripcion: string) => responderIncidenciaServicio(inscripcion.servicioId as string, descripcion),
+    onSuccess: () => {
+      sileo.success({ title: "Versión enviada", description: "La plataforma la tendrá en cuenta al revisar la incidencia." });
+      setModalRespuestaAbierto(false);
+      queryClient.invalidateQueries({ queryKey: ["inscripciones", "mias", "historial"] });
+      queryClient.invalidateQueries({ queryKey: ["servicio", inscripcion.servicioId] });
+    },
+    onError: (error: Error) => sileo.error({ title: "No se pudo enviar", description: error.message }),
+  });
+  // Servicio ya cobrado (el dinero esta retenido): la retirada devuelve el pago.
+  const pagado = inscripcion.estadoServicio === "confirmado" || inscripcion.estadoServicio === "pendiente_confirmacion";
+  // Con el pago hecho solo se puede retirar hasta 30 min antes del inicio: despues el boton
+  // queda deshabilitado (el servidor tambien lo exige). El reloj lo actualiza sin recargar.
+  const ahora = useAhora();
+  const retiradaCerrada = pagado && !puedeRetirarseConPagoHecho(inscripcion.franjas, ahora);
+  const estadoMostrado = estadoServicioMostrado(inscripcion.estadoServicio, inscripcion.franjas, ahora, inscripcion.incidenciaAbierta);
 
   return (
     <div className="flex items-stretch justify-between gap-3 rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_5px_16px_oklch(0.29_0.05_265/0.08)]">
@@ -156,12 +219,33 @@ function TarjetaMiInscripcion({
           <User className="h-3 w-3 shrink-0" />
           <span className="truncate">Publicado por {inscripcion.anuncianteNombre}</span>
         </div>
+        {inscripcion.incidenciaAbierta && (
+          <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
+            Este cuidado tiene una incidencia abierta: la plataforma la está revisando.
+            {inscripcion.incidenciaRespondida ? " Ya has aportado tu versión." : ""}
+          </p>
+        )}
+        {textoPagoCuidador(inscripcion) && (
+          <p className="mt-2 flex items-start gap-1 text-xs text-foreground">
+            <Wallet className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+            <span>{textoPagoCuidador(inscripcion)}</span>
+          </p>
+        )}
+        {inscripcion.franjas.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {inscripcion.franjas.map((f, i) => (
+              <span key={i} className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground">
+                {formatearFecha(f.fecha)} · {f.diaEntero ? "Día entero" : `${f.horaDesde}–${f.horaHasta}`}
+              </span>
+            ))}
+          </div>
+        )}
       </Link>
 
       <div className="flex shrink-0 flex-col items-end justify-between gap-2">
         <div className="flex flex-col items-end gap-1.5">
           <div className="flex items-center gap-1.5">
-            {(esperandoMiRespuesta || inscripcion.nuevoServicioAceptado) && (
+            {(esperandoMiRespuesta || inscripcion.nuevoServicioAceptado || (inscripcion.incidenciaAbierta && !inscripcion.incidenciaRespondida) || inscripcion.resolucionIncidenciaNueva) && (
               <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
                 <MessageSquare className="h-3 w-3" />
                 1
@@ -169,9 +253,9 @@ function TarjetaMiInscripcion({
             )}
             {inscripcion.estadoServicio ? (
               <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_SERVICIO_COLOR[inscripcion.estadoServicio] ?? ESTADO_COLOR[inscripcion.estado]}`}
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_SERVICIO_COLOR[estadoMostrado ?? ""] ?? ESTADO_COLOR[inscripcion.estado]}`}
               >
-                {ESTADO_SERVICIO_LABEL[inscripcion.estadoServicio] ?? inscripcion.estadoServicio}
+                {ESTADO_SERVICIO_LABEL[estadoMostrado ?? ""] ?? estadoMostrado}
               </span>
             ) : (
               <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_COLOR[inscripcion.estado]}`}>
@@ -188,6 +272,17 @@ function TarjetaMiInscripcion({
         </div>
 
         <div className="flex items-center gap-2">
+          {inscripcion.incidenciaAbierta && !inscripcion.incidenciaRespondida && inscripcion.servicioId && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className={`rounded-full ${BOTON_NEGRO}`}
+              onClick={() => setModalRespuestaAbierto(true)}
+            >
+              Aportar mi versión
+            </Button>
+          )}
           <BotonVerPerfil href={`/pacientes/${inscripcion.anuncianteId}`} className="rounded-full" />
           {onRetirar && (
             <Button
@@ -195,7 +290,12 @@ function TarjetaMiInscripcion({
               size="sm"
               variant="destructive"
               className="rounded-full"
-              disabled={retirando}
+              disabled={retirando || retiradaCerrada}
+              title={
+                retiradaCerrada
+                  ? "Ya no puedes retirarte: el cuidado empieza en menos de 30 minutos o ya ha empezado"
+                  : undefined
+              }
               onClick={() => setModalRetirarAbierto(true)}
             >
               Retirar
@@ -204,12 +304,27 @@ function TarjetaMiInscripcion({
         </div>
       </div>
 
+      {inscripcion.incidenciaAbierta && inscripcion.servicioId && (
+        <ModalRespuestaIncidencia
+          open={modalRespuestaAbierto}
+          onOpenChange={setModalRespuestaAbierto}
+          motivo={inscripcion.incidenciaMotivo}
+          descripcionFamilia={inscripcion.incidenciaDescripcion}
+          enviando={respuestaMutation.isPending}
+          onEnviar={(descripcion) => respuestaMutation.mutate(descripcion)}
+        />
+      )}
+
       {onRetirar && (
         <ConfirmDialog
           open={modalRetirarAbierto}
           onOpenChange={setModalRetirarAbierto}
           titulo="Retirar inscripción"
-          descripcion={`¿Seguro que quieres retirar tu inscripción a "${inscripcion.anuncioTitulo}"? Esta acción no se puede deshacer.`}
+          descripcion={
+            pagado
+              ? `¿Seguro que quieres retirarte de "${inscripcion.anuncioTitulo}"? Se devolverá el pago íntegro y el anuncio volverá a publicarse. Retirarte de un cuidado ya pagado puede tener penalizaciones en el futuro. Esta acción no se puede deshacer.`
+              : `¿Seguro que quieres retirar tu inscripción a "${inscripcion.anuncioTitulo}"? Esta acción no se puede deshacer.`
+          }
           textoConfirmar="Retirar inscripción"
           confirmando={retirando}
           onConfirmar={() => {

@@ -35,7 +35,18 @@ export interface Servicio {
   importeCuidador: number | null;
   /** Lo que se ha devuelto a la familia. */
   importeReembolsado: number;
+  /** Incidencia abierta por la familia (null si no hay): bloquea la confirmacion hasta que la revise la plataforma. */
+  incidenciaAbiertaEn: string | null;
+  incidenciaMotivo: MotivoIncidencia | null;
+  incidenciaDescripcion: string | null;
+  /** Version del cuidador sobre la incidencia (null mientras no la haya aportado). */
+  incidenciaRespuestaCuidador: string | null;
+  incidenciaRespuestaEn: string | null;
+  /** Cuando la plataforma resolvio el reparto (null si aun no). */
+  resolucionEn: string | null;
 }
+
+export type MotivoIncidencia = "no_se_presento" | "se_fue_antes" | "otro";
 
 // Un dia de un cuidado largo: cada dia se confirma y se paga al cuidador por
 // separado (ver V20 en el backend). La lista esta vacia en cuidados cortos.
@@ -87,6 +98,14 @@ export function misServicios(rol: "paciente" | "cuidador"): Promise<Servicio[]> 
 // despues de confirmar (ver lib/api/resenas.ts).
 export function confirmarServicio(id: string): Promise<Servicio> {
   return apiFetch<Servicio>(`/api/servicios/${id}/confirmar`, { method: "POST" });
+}
+
+export function abrirIncidenciaServicio(id: string, datos: { motivo: MotivoIncidencia; descripcion: string }): Promise<Servicio> {
+  return apiFetch<Servicio>(`/api/servicios/${id}/incidencia`, { method: "POST", body: JSON.stringify(datos) });
+}
+
+export function responderIncidenciaServicio(id: string, descripcion: string): Promise<Servicio> {
+  return apiFetch<Servicio>(`/api/servicios/${id}/incidencia/respuesta`, { method: "POST", body: JSON.stringify({ descripcion }) });
 }
 
 export function cancelarServicio(id: string, motivo?: string): Promise<Servicio> {
