@@ -7,7 +7,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronsUpDown, MapPin } from "lucide-react";
+import { ChevronsUpDown, MapPin } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Command,
@@ -156,12 +156,6 @@ export default function SelectorHospitalesMultiple({
                         {h.direccion}, {h.ciudad} ({h.codigoPostal})
                       </span>
                     </span>
-                    <Check
-                      className={cn(
-                        "size-4 shrink-0",
-                        marcado ? "opacity-100" : "opacity-0",
-                      )}
-                    />
                   </CommandItem>
                 );
               })}
