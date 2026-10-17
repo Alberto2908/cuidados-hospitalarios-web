@@ -16,6 +16,8 @@ interface SegmentedControlProps<T extends string> {
   /** Texto para lectores de pantalla que explica que se esta eligiendo. */
   ariaLabel: string;
   className?: string;
+  /** "radio" para elegir un ajuste (p. ej. el tema); "tabs" (por defecto) para cambiar de vista. */
+  tipo?: "tabs" | "radio";
 }
 
 /**
@@ -31,6 +33,7 @@ export function SegmentedControl<T extends string>({
   onChange,
   ariaLabel,
   className,
+  tipo = "tabs",
 }: SegmentedControlProps<T>) {
   const indiceActivo = Math.max(
     0,
@@ -39,7 +42,7 @@ export function SegmentedControl<T extends string>({
 
   return (
     <div
-      role="tablist"
+      role={tipo === "radio" ? "radiogroup" : "tablist"}
       aria-label={ariaLabel}
       className={cn("relative inline-grid rounded-full bg-card p-1 shadow-soft", className)}
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
@@ -58,8 +61,8 @@ export function SegmentedControl<T extends string>({
           <button
             key={opcion.value}
             type="button"
-            role="tab"
-            aria-selected={activa}
+            role={tipo === "radio" ? "radio" : "tab"}
+            {...(tipo === "radio" ? { "aria-checked": activa } : { "aria-selected": activa })}
             onClick={() => onChange(opcion.value)}
             className={cn(
               "relative z-10 flex items-center justify-center gap-1.5 rounded-full px-5 py-2 text-[13px] font-medium transition-colors duration-300",
