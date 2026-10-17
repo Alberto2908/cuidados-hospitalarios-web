@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { sileo } from "sileo";
 import { useAuth } from "@/lib/auth/AuthContext";
 import AnuncioFormulario from "@/components/anuncio/AnuncioFormulario";
+import { normalizarFranjas } from "@/lib/anuncio/turnos";
 import { obtenerAnuncio } from "@/lib/api/anuncios";
 import type { CrearAnuncioFormValues } from "@/lib/anuncio/schema";
 
@@ -53,7 +54,9 @@ export default function EditarAnuncioPage() {
     planta: anuncio.planta ?? "",
     habitacion: anuncio.habitacion ?? "",
     cama: anuncio.cama ?? "",
-    franjas: anuncio.franjas ?? [],
+    // Anuncios anteriores al reparto de turnos por día pueden traer un turno que
+    // cruza la medianoche en una sola franja: se parte en dos al cargar.
+    franjas: normalizarFranjas(anuncio.franjas ?? []),
   };
 
   return <AnuncioFormulario modo="editar" anuncioId={anuncioId} valoresIniciales={valoresIniciales} />;
