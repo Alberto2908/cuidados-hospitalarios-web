@@ -82,7 +82,7 @@ export default function CuidadorHistorialPage() {
       <div className="mb-5">
         <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Mis inscripciones</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Tus inscripciones activas y, debajo, el historial de las ya aceptadas y terminadas, rechazadas o retiradas.
+          Tus inscripciones activas y, debajo, el historial de las que ya se han realizado.
         </p>
       </div>
 
@@ -133,7 +133,7 @@ export default function CuidadorHistorialPage() {
           <section>
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Historial</h2>
             {historial.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aquí aparecerán tus inscripciones ya terminadas, rechazadas o retiradas.</p>
+              <p className="text-sm text-muted-foreground">Aquí aparecerán tus inscripciones ya realizadas.</p>
             ) : (
               <div className="flex flex-col gap-3">
                 {historial.map((p) => (
