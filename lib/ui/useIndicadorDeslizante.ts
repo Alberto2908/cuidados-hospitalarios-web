@@ -23,7 +23,8 @@ const DURACION_MS = 300;
  * aparecer una burbuja de notificaciones).
  *
  * Comportamiento:
- *  - al cargar, se coloca directamente en la opcion activa, sin animar;
+ *  - al cargar (o la primera vez que hay una activa) aparece en ella creciendo
+ *    desde el centro, sin viajar desde ningun sitio;
  *  - al pasar de una opcion a otra, se desliza hasta la nueva;
  *  - si no hay ninguna activa, se encoge y se desvanece donde estaba; cuando se
  *    elige una opcion de nuevo, aparece en ella creciendo desde el centro (no
@@ -46,7 +47,6 @@ export function useIndicadorDeslizante(claveActiva: string | null, clavesItems: 
   const [visible, setVisible] = useState(false);
   // Las transiciones se activan despues de la primera colocacion (la carga no anima).
   const [animar, setAnimar] = useState(false);
-  const primera = useRef(true);
   const visibleRef = useRef(false);
   const reducirMovimiento = useRef(false);
 
@@ -63,12 +63,10 @@ export function useIndicadorDeslizante(claveActiva: string | null, clavesItems: 
     }
     const nueva = { left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight };
     setPosicion((anterior) => (igual(anterior, nueva) ? anterior : nueva));
-    if (primera.current) {
-      primera.current = false;
-      mostrar(true);
-    } else if (!visibleRef.current) {
-      // Venia de "ninguna activa": primero se coloca en su sitio (oculto) y en el
-      // siguiente fotograma aparece, para que crezca ahi mismo en vez de viajar.
+    if (!visibleRef.current) {
+      // Primera vez, o venia de "ninguna activa": primero se coloca en su sitio
+      // (oculto, sin deslizar) y en el siguiente fotograma aparece creciendo ahi
+      // mismo desde el centro, en vez de viajar desde la esquina o desde donde estaba.
       requestAnimationFrame(() => mostrar(true));
     }
   }, [claveActiva, mostrar]);
