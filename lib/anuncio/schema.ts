@@ -42,6 +42,20 @@ export const crearAnuncioSchema = z.object({
         list.push(f);
         byFecha.set(f.fecha, list);
       }
+      const ahora = new Date();
+      const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}-${String(ahora.getDate()).padStart(2, "0")}`;
+      const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes() + ahora.getSeconds() / 60;
+      const yaEmpezado = franjas.some((f) => {
+        if (f.fecha !== hoy) return false;
+        const [h, m] = f.horaDesde.split(":").map(Number);
+        return f.diaEntero || h * 60 + m < minutosAhora;
+      });
+      if (yaEmpezado) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Hay un turno de hoy cuya hora de inicio ya ha pasado",
+        });
+      }
       for (const [, list] of byFecha) {
         const enteros = list.filter((f) => f.diaEntero);
         if (enteros.length > 0 && list.length > 1) {
