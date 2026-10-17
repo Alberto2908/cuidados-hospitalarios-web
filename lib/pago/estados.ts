@@ -30,6 +30,7 @@ export const MOTIVO_TITULO: Record<string, string> = {
   CANCELACION_TARDIA: "Cancelado con el pago hecho",
   SIN_CONFIRMAR: "Nadie ha confirmado el cuidado",
   CUIDADOR_SIN_ALTA: "El cuidador no puede cobrar todavía",
+  INCIDENCIA_FAMILIA: "La familia ha abierto una incidencia",
 };
 
 /** Frases hechas para rellenar rapido el motivo de una decision. */

@@ -86,6 +86,35 @@ function Contenido({ pago }: { pago: PagoDetalle }) {
         </ul>
       )}
 
+      {pago.incidencia && (
+        <Tarjeta titulo="Incidencia">
+          <div className="flex flex-col gap-4 text-sm">
+            <div>
+              <p className="font-medium text-foreground">
+                Versión de la familia · {MOTIVO_INCIDENCIA_LABEL[pago.incidencia.motivo]} ·{" "}
+                <span className="font-normal text-muted-foreground">{formatearFechaHora(pago.incidencia.abiertaEn)}</span>
+              </p>
+              <p className="mt-1 whitespace-pre-wrap text-foreground">{pago.incidencia.descripcion}</p>
+            </div>
+            <div>
+              {pago.incidencia.respuestaCuidador ? (
+                <>
+                  <p className="font-medium text-foreground">
+                    Versión del cuidador ·{" "}
+                    <span className="font-normal text-muted-foreground">
+                      {pago.incidencia.respuestaEn ? formatearFechaHora(pago.incidencia.respuestaEn) : ""}
+                    </span>
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap text-foreground">{pago.incidencia.respuestaCuidador}</p>
+                </>
+              ) : (
+                <p className="text-muted-foreground">El cuidador todavía no ha aportado su versión.</p>
+              )}
+            </div>
+          </div>
+        </Tarjeta>
+      )}
+
       {pago.estado === "cancelado" && (
         <Tarjeta titulo="Cancelación">
           <p className="text-sm text-foreground">
@@ -212,6 +241,12 @@ function Contenido({ pago }: { pago: PagoDetalle }) {
     </div>
   );
 }
+
+const MOTIVO_INCIDENCIA_LABEL: Record<"no_se_presento" | "se_fue_antes" | "otro", string> = {
+  no_se_presento: "El cuidador no se presentó",
+  se_fue_antes: "El cuidador se marchó antes de terminar",
+  otro: "Otro problema",
+};
 
 function Tarjeta({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (

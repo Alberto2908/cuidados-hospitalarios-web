@@ -7,7 +7,7 @@ export type FiltroPagos = "atencion" | "retenidos" | "todos";
 
 /** Por que un pago retenido necesita una decision del admin; el texto ya viene redactado. */
 export interface MotivoPago {
-  codigo: "CANCELACION_TARDIA" | "SIN_CONFIRMAR" | "CUIDADOR_SIN_ALTA";
+  codigo: "CANCELACION_TARDIA" | "SIN_CONFIRMAR" | "CUIDADOR_SIN_ALTA" | "INCIDENCIA_FAMILIA";
   texto: string;
 }
 
@@ -74,6 +74,16 @@ export interface PagoDetalle {
   resolucionNota: string | null;
   stripePaymentIntentId: string | null;
   stripeChargeId: string | null;
+  /** Incidencia abierta por la familia, con la version del cuidador si la ha aportado. */
+  incidencia: IncidenciaAdmin | null;
+}
+
+export interface IncidenciaAdmin {
+  motivo: "no_se_presento" | "se_fue_antes" | "otro";
+  descripcion: string;
+  abiertaEn: string;
+  respuestaCuidador: string | null;
+  respuestaEn: string | null;
 }
 
 export function fetchPagosResumen(): Promise<PagosResumen> {
