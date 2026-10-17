@@ -270,7 +270,7 @@ export default function AnuncioFormulario({ modo, anuncioId, valoresIniciales }:
         <FormSection
           step={3}
           title="Cuándo"
-          description="Marca los días y define uno o varios turnos por día (pasos de 15 min). Si la hora de fin es anterior o igual a la de inicio, cruza medianoche."
+          description="Marca los días y define uno o varios turnos por día (pasos de 15 min). Si un turno pasa de medianoche, el resto se añade solo al día siguiente."
         >
           <div className="flex flex-col gap-5 lg:flex-row lg:items-stretch">
             <Controller
