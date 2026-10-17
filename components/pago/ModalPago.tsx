@@ -48,7 +48,8 @@ export default function ModalPago({ open, onOpenChange, servicioId, onPagado }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      {/* El formulario de la tarjeta es alto: el modal hace scroll en pantallas bajas. */}
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Pagar el servicio</DialogTitle>
           <DialogDescription>
@@ -176,7 +177,8 @@ function FormularioPago({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <PaymentElement />
+      {/* Sin Link (guardar datos con email/movil): alarga el formulario y no aporta aqui. */}
+      <PaymentElement options={{ wallets: { link: "never" } }} />
       {error && (
         <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
           {error}
