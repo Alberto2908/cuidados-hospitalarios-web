@@ -107,10 +107,3 @@ export function abrirIncidenciaServicio(id: string, datos: { motivo: MotivoIncid
 export function responderIncidenciaServicio(id: string, descripcion: string): Promise<Servicio> {
   return apiFetch<Servicio>(`/api/servicios/${id}/incidencia/respuesta`, { method: "POST", body: JSON.stringify({ descripcion }) });
 }
-
-export function cancelarServicio(id: string, motivo?: string): Promise<Servicio> {
-  return apiFetch<Servicio>(`/api/servicios/${id}/cancelar`, {
-    method: "POST",
-    body: JSON.stringify({ motivo }),
-  });
-}
