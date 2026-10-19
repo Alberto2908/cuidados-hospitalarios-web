@@ -195,6 +195,26 @@
   }
 }
 
+/*
+ * Contenedor estandar de pagina: ancho maximo y margenes laterales iguales en
+ * TODA la app (los del Dashboard: max-w-7xl con px-4 / sm:px-6 / lg:px-8). Se usa
+ * en el elemento raiz de cada pagina nueva en vez de repetir esas clases, y solo
+ * se anade el padding vertical de cada pagina (p. ej. `page-container py-10`).
+ * No fijar anchos maximos propios (max-w-5xl...) en el contenedor de una pagina.
+ */
+@utility page-container {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 80rem;
+  padding-inline: 1rem;
+  @media (width >= 40rem) {
+    padding-inline: 1.5rem;
+  }
+  @media (width >= 64rem) {
+    padding-inline: 2rem;
+  }
+}
+
 @layer utilities {
   .scrollbar-subtle {
     scrollbar-width: thin;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronsUpDown, MapPinned } from "lucide-react";
+import { ChevronsUpDown, MapPinned } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Command,
@@ -86,12 +86,6 @@ export default function SelectorProvincia({ value, onChange, error }: Props) {
                   }}
                 >
                   <span className="flex-1 truncate font-medium">{p}</span>
-                  <Check
-                    className={cn(
-                      "size-4 shrink-0",
-                      value === p ? "opacity-100" : "opacity-0",
-                    )}
-                  />
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -21,7 +21,9 @@ const ESTADO_SERVICIO_LABEL: Record<EstadoServicio, string> = {
 
 const ESTADO_PAGO_LABEL: Record<EstadoPago, string> = {
   pendiente: "Pendiente",
-  procesado: "Procesado",
+  procesado: "Cobrado (retenido)",
+  liberado: "Liberado al cuidador",
+  reembolsado: "Reembolsado",
   fallido: "Fallido",
 };
 

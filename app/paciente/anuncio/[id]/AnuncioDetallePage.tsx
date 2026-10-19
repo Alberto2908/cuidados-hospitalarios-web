@@ -8,10 +8,15 @@ import { sileo } from "sileo";
 import { ArrowLeft, CalendarDays, Lock, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import BotonVerPerfil from "@/components/perfil/BotonVerPerfil";
 import ModalContraoferta from "@/components/anuncio/ModalContraoferta";
+import ModalPago from "@/components/pago/ModalPago";
+import ResumenPago from "@/components/pago/ResumenPago";
+import ConfirmacionCuidado from "@/components/pago/ConfirmacionCuidado";
 import ModalResena from "@/components/anuncio/ModalResena";
-import { horasTotales } from "@/lib/anuncio/horas";
+import { cuidadoEmpezado, estadoServicioMostrado, horasTotales, puedeRetirarseConPagoHecho } from "@/lib/anuncio/horas";
+import { useAhora } from "@/lib/ui/useAhora";
 import { formatearFecha } from "@/lib/fecha";
 import type { FranjaHoraria } from "@/lib/anuncio/schema";
 import {
@@ -31,7 +36,7 @@ import {
   type Inscripcion,
 } from "@/lib/api/inscripciones";
 import { crearResena } from "@/lib/api/resenas";
-import type { EstadoServicio } from "@/lib/api/servicios";
+import { obtenerServicio, type EstadoServicio } from "@/lib/api/servicios";
 
 // "Cubierto" (nombre interno del backend) se muestra como "Aceptado" SOLO
 // cuando no hay ningun servicio todavia del que sacar un estado mas fino
@@ -55,17 +60,21 @@ const ESTADO_COLOR: Record<Anuncio["estado"], string> = {
 // "Aceptado" para siempre aunque el servicio avance a confirmado/
 // pendiente_confirmacion/completado/cancelado (ver V12 en el backend) -> se
 // usa este, mas fino, en cuanto existe.
-const ESTADO_SERVICIO_LABEL: Record<EstadoServicio, string> = {
+const ESTADO_SERVICIO_LABEL: Record<EstadoServicio | "en_curso" | "en_revision", string> = {
   aceptado: "Aceptado",
   confirmado: "Confirmado (pagado)",
+  en_curso: "En curso",
+  en_revision: "En revisión",
   pendiente_confirmacion: "Pendiente de confirmación",
   completado: "Completado",
   cancelado: "Cancelado",
 };
 
-const ESTADO_SERVICIO_COLOR: Record<EstadoServicio, string> = {
+const ESTADO_SERVICIO_COLOR: Record<EstadoServicio | "en_curso" | "en_revision", string> = {
   aceptado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   confirmado: "bg-accent text-accent-foreground",
+  en_curso: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  en_revision: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
   pendiente_confirmacion: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   completado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
@@ -110,6 +119,18 @@ export default function AnuncioDetallePage() {
     inscripcionesQuery.data?.find((p) => p.estado === "aceptada")?.estadoServicio
     ?? miInscripcion?.estadoServicio
     ?? null;
+  const ahora = useAhora();
+  // La incidencia abierta se lee del servicio (misma consulta que el recuadro de pago).
+  const servicioIdCabecera =
+    inscripcionesQuery.data?.find((p) => p.estado === "aceptada")?.servicioId ?? miInscripcion?.servicioId ?? null;
+  const servicioCabeceraQuery = useQuery({
+    queryKey: ["servicio", servicioIdCabecera],
+    queryFn: () => obtenerServicio(servicioIdCabecera as string),
+    enabled: Boolean(servicioIdCabecera),
+  });
+  const incidenciaAbierta =
+    Boolean(servicioCabeceraQuery.data?.incidenciaAbiertaEn) && servicioCabeceraQuery.data?.estadoPago === "procesado";
+  const estadoMostrado = estadoServicioMostrado(estadoServicio, anuncio?.franjas ?? [], ahora, incidenciaAbierta);
 
   function invalidarTodo() {
     queryClient.invalidateQueries({ queryKey: ["anuncio", anuncioId] });
@@ -161,7 +182,7 @@ export default function AnuncioDetallePage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-container py-8">
       <button
         type="button"
         onClick={() => router.back()}
@@ -188,10 +209,10 @@ export default function AnuncioDetallePage() {
         <div className="flex shrink-0 flex-col items-end justify-between gap-2 self-stretch">
           <span
             className={`rounded-full px-3 py-1 text-xs font-medium ${
-              estadoServicio ? ESTADO_SERVICIO_COLOR[estadoServicio] : ESTADO_COLOR[anuncio.estado]
+              estadoMostrado ? ESTADO_SERVICIO_COLOR[estadoMostrado] : ESTADO_COLOR[anuncio.estado]
             }`}
           >
-            {estadoServicio ? ESTADO_SERVICIO_LABEL[estadoServicio] : ESTADO_LABEL[anuncio.estado]}
+            {estadoMostrado ? ESTADO_SERVICIO_LABEL[estadoMostrado] : ESTADO_LABEL[anuncio.estado]}
           </span>
           {!esAutor && <BotonVerPerfil href={`/pacientes/${anuncio.usuarioId}`} />}
         </div>
@@ -277,6 +298,7 @@ export default function AnuncioDetallePage() {
           anuncioId={anuncioId}
           anuncioActivo={anuncio.estado === "activo"}
           horas={horasTotales(anuncio.franjas ?? [])}
+          franjas={anuncio.franjas ?? []}
           miTarifaHora={user?.tarifaHora ?? null}
           miInscripcion={miInscripcion}
           cargando={misInscripcionesQuery.isLoading}
@@ -301,14 +323,19 @@ function SeccionInscripcionesAutor({
   onCambio: () => void;
 }) {
   const horas = horasTotales(franjas);
+  // Servicio cuyo pago esta abierto en el modal (null = cerrado). "Aceptar y
+  // pagar" abre el modal en cuanto se acepta la inscripcion; si se cierra sin
+  // pagar, queda el boton "Pagar" en la fila (el servicio sigue 'aceptado').
+  const [servicioPagoId, setServicioPagoId] = useState<string | null>(null);
   const aceptarMutation = useMutation({
     mutationFn: (id: string) => aceptarInscripcion(id),
     onSuccess: (servicio) => {
       sileo.success({
         title: "Inscripción aceptada",
-        description: `${servicio.cuidadorNombre} se encargará del servicio (${servicio.importeTotal} €).`,
+        description: `${servicio.cuidadorNombre} se encargará del servicio (${servicio.importeTotal} €). Falta completar el pago.`,
       });
       onCambio();
+      setServicioPagoId(servicio.id);
     },
     onError: (error: Error) =>
       sileo.error({ title: "No se pudo aceptar", description: error.message }),
@@ -359,6 +386,8 @@ function SeccionInscripcionesAutor({
               horas={horas}
               puedeActuar={anuncioActivo}
               onAceptar={() => aceptarMutation.mutate(p.id)}
+              onPagar={setServicioPagoId}
+              onCambio={onCambio}
               onRechazar={() => rechazarMutation.mutate(p.id)}
               onContraoferta={(precioHora) =>
                 contraofertaMutation.mutate({ id: p.id, precioHora })
@@ -372,6 +401,25 @@ function SeccionInscripcionesAutor({
           ))
         )}
       </div>
+
+      <ModalPago
+        key={`pago-${servicioPagoId ?? "cerrado"}`}
+        open={servicioPagoId !== null}
+        onOpenChange={(abierto) => {
+          if (!abierto) {
+            setServicioPagoId(null);
+          }
+        }}
+        servicioId={servicioPagoId}
+        onPagado={() => {
+          sileo.success({
+            title: "Pago realizado",
+            description: "El dinero queda retenido hasta que confirmes que el cuidado se ha realizado.",
+          });
+          setServicioPagoId(null);
+          onCambio();
+        }}
+      />
     </div>
   );
 }
@@ -381,6 +429,8 @@ function FilaInscripcion({
   horas,
   puedeActuar,
   onAceptar,
+  onPagar,
+  onCambio,
   onRechazar,
   onContraoferta,
   pendienteAccion,
@@ -389,6 +439,8 @@ function FilaInscripcion({
   horas: number;
   puedeActuar: boolean;
   onAceptar: () => void;
+  onPagar: (servicioId: string) => void;
+  onCambio: () => void;
   onRechazar: () => void;
   onContraoferta: (precioHora: number) => void;
   pendienteAccion: boolean;
@@ -448,11 +500,11 @@ function FilaInscripcion({
               : `${inscripcion.cuidadorNombre} aceptó tu propuesta. Falta completar el pago.`}
           </p>
           <div className="flex items-center gap-2">
-            {/* TODO(stripe): abrir el pago real en vez de este placeholder, ver TODO.md "Cobro real via Stripe" */}
             <Button
               type="button"
               size="sm"
-              onClick={() => sileo.warning({ title: "Disponible próximamente", description: "El cobro real llegará con la integración de pagos." })}
+              disabled={!inscripcion.servicioId}
+              onClick={() => inscripcion.servicioId && onPagar(inscripcion.servicioId)}
             >
               Pagar
             </Button>
@@ -499,6 +551,14 @@ function FilaInscripcion({
           {botonVerPerfil}
         </div>
       )}
+      {inscripcion.estado === "aceptada" && inscripcion.servicioId && inscripcion.estadoServicio && (
+        <>
+          <ResumenPago servicioId={inscripcion.servicioId} rol="paciente" />
+          {(inscripcion.estadoServicio === "confirmado" || inscripcion.estadoServicio === "pendiente_confirmacion") && (
+            <ConfirmacionCuidado servicioId={inscripcion.servicioId} rol="paciente" onCambio={onCambio} />
+          )}
+        </>
+      )}
       {inscripcion.estado === "rechazada" && (
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-muted-foreground">Rechazaste esta inscripción.</p>
@@ -526,11 +586,10 @@ function FilaInscripcion({
               Contraofertar
             </Button>
             {inscripcion.propuestoPor === "cuidador" ? (
-              // TODO(stripe): este boton finaliza la inscripcion "en seco" hoy
-              // (onAceptar -> POST /api/inscripciones/{id}/aceptar). Cuando se
-              // integre el cobro real, debe abrir antes la ventana de pago de
-              // Stripe y solo llamar a "aceptar" (o un endpoint equivalente)
-              // tras un pago confirmado — ver TODO.md, "Cobro real via Stripe".
+              // Acepta la inscripcion (crea el servicio, sin cobrar todavia) y abre
+              // enseguida el modal de pago (ver aceptarMutation en
+              // SeccionInscripcionesAutor). El servicio no queda confirmado hasta que
+              // Stripe avisa del cobro.
               <Button
                 type="button"
                 size="sm"
@@ -587,6 +646,7 @@ function SeccionInscribirse({
   anuncioId,
   anuncioActivo,
   horas,
+  franjas,
   miTarifaHora,
   miInscripcion,
   cargando,
@@ -595,6 +655,7 @@ function SeccionInscribirse({
   anuncioId: string;
   anuncioActivo: boolean;
   horas: number;
+  franjas: FranjaHoraria[];
   miTarifaHora: number | null;
   miInscripcion: Inscripcion | undefined;
   cargando: boolean;
@@ -641,6 +702,20 @@ function SeccionInscribirse({
     onError: (error: Error) =>
       sileo.error({ title: "No se pudo enviar", description: error.message }),
   });
+
+  const [modalRetirarAbierto, setModalRetirarAbierto] = useState(false);
+  // Reloj para que el boton "Retirar" se deshabilite solo al llegar al limite, sin recargar.
+  const ahora = useAhora();
+  // Servicio ya cobrado (el dinero esta retenido): la retirada devuelve el pago.
+  const pagado =
+    miInscripcion?.estadoServicio === "confirmado" || miInscripcion?.estadoServicio === "pendiente_confirmacion";
+  // Con el pago hecho solo se puede retirar hasta 30 min antes del inicio; despues el
+  // boton queda deshabilitado con la explicacion (el backend tambien lo exige).
+  const retiradaCerrada = pagado && !puedeRetirarseConPagoHecho(franjas, ahora);
+  // Una vez empezado el cuidado ya no se ofrece retirarse (queda la incidencia/queja).
+  const servicioRetirable =
+    miInscripcion?.estadoServicio === "aceptado" || miInscripcion?.estadoServicio === "confirmado";
+  const retiradaOculta = !servicioRetirable || (pagado && cuidadoEmpezado(franjas, ahora));
 
   const retirarMutation = useMutation({
     mutationFn: () => retirarInscripcion(miInscripcion!.id),
@@ -716,7 +791,36 @@ function SeccionInscribirse({
             <strong>{Math.round(miInscripcion.precioHora * horas * 100) / 100} €</strong>
           </p>
 
-          {(miInscripcion.estado === "pendiente" || miInscripcion.estado === "aceptada") && (
+          {miInscripcion.estado === "aceptada" && miInscripcion.servicioId && miInscripcion.estadoServicio && (
+            <>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <ResumenPago servicioId={miInscripcion.servicioId} rol="cuidador" className="w-fit" />
+                {!retiradaOculta && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    disabled={retirarMutation.isPending || retiradaCerrada}
+                    onClick={() => (pagado ? setModalRetirarAbierto(true) : retirarMutation.mutate())}
+                  >
+                    Retirar
+                  </Button>
+                )}
+              </div>
+              {!retiradaOculta && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {retiradaCerrada
+                  ? "Ya no puedes retirarte: el cuidado empieza en menos de 30 minutos o ya ha empezado. Si no puedes asistir, ponte en contacto con nosotros."
+                  : pagado
+                    ? "Puedes retirarte hasta 30 minutos antes de que empiece el cuidado: se devolverá el pago íntegro."
+                    : "Puedes retirarte antes de que se complete el pago."}
+              </p>
+              )}
+              <ConfirmacionCuidado servicioId={miInscripcion.servicioId} rol="cuidador" />
+            </>
+          )}
+
+          {miInscripcion.estado === "pendiente" && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {miInscripcion.estado === "pendiente" && miInscripcion.propuestoPor === "paciente" && (
                 <Button
@@ -757,13 +861,21 @@ function SeccionInscribirse({
                   Esperando la respuesta del paciente/familiar a tu propuesta.
                 </p>
               )}
-              {miInscripcion.estado === "aceptada" && (
-                <p className="text-xs text-muted-foreground">
-                  Puedes retirarte antes de que se complete el pago.
-                </p>
-              )}
             </div>
           )}
+
+          <ConfirmDialog
+            open={modalRetirarAbierto}
+            onOpenChange={setModalRetirarAbierto}
+            titulo="Retirarte del cuidado"
+            descripcion="Se devolverá el pago íntegro y el anuncio volverá a publicarse. Retirarte de un cuidado ya pagado puede tener penalizaciones en el futuro. Esta acción no se puede deshacer."
+            textoConfirmar="Retirarme"
+            confirmando={retirarMutation.isPending}
+            onConfirmar={() => {
+              retirarMutation.mutate();
+              setModalRetirarAbierto(false);
+            }}
+          />
 
           <ModalContraoferta
             key={modalAbierto ? "abierto" : "cerrado"}

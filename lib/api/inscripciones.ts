@@ -1,6 +1,7 @@
 import { apiFetch } from "@/lib/api/client";
-import type { EstadoServicio, Servicio } from "@/lib/api/servicios";
+import type { EstadoPago, EstadoServicio, MotivoIncidencia, Servicio } from "@/lib/api/servicios";
 import type { Hospital } from "@/lib/mock/hospitales";
+import type { FranjaHoraria } from "@/lib/anuncio/schema";
 
 export type EstadoInscripcion = "pendiente" | "rechazada" | "retirada" | "aceptada";
 export type PropuestoPor = "cuidador" | "paciente";
@@ -87,16 +88,37 @@ export interface MiInscripcion {
   /** La valoración que el paciente/familiar le ha puesto a este cuidador por este servicio (null si todavía no ha valorado). */
   miValoracion: number | null;
   creadoEn: string;
+  /** Dias y horas del cuidado. */
+  franjas: FranjaHoraria[];
+  /** Pago del servicio (null si aun no hay servicio): dinero retenido o ya entregado. */
+  estadoPago: EstadoPago | null;
+  importeTotal: number | null;
+  /** Lo recibido por el cuidador, ya descontada la comision (null mientras no haya nada). */
+  importeCuidador: number | null;
+  /** Servicio asociado y estado de su incidencia (la abre la familia; el cuidador puede aportar su version). */
+  servicioId: string | null;
+  incidenciaAbierta: boolean;
+  incidenciaRespondida: boolean;
+  /** Lo que comunico la familia sobre la incidencia (null si no hay). */
+  incidenciaMotivo: MotivoIncidencia | null;
+  incidenciaDescripcion: string | null;
+  /** La plataforma ha resuelto la incidencia y el cuidador aun no lo ha visto. */
+  resolucionIncidenciaNueva: boolean;
 }
 
-interface MiInscripcionApi extends Omit<MiInscripcion, "hospital"> {
+interface MiInscripcionApi extends Omit<MiInscripcion, "hospital" | "franjas"> {
   hospital: HospitalApi;
+  franjas: { fecha: string; horaDesde: string; horaHasta: string; diaEntero: boolean }[];
 }
 
 /** Inscripciones propias del cuidador: activas arriba, historial debajo (ver /cuidador/historial). */
 export async function misInscripcionesConSeccion(): Promise<MiInscripcion[]> {
   const data = await apiFetch<MiInscripcionApi[]>("/api/inscripciones/mias/historial");
-  return data.map((p) => ({ ...p, hospital: toHospital(p.hospital) }));
+  return data.map((p) => ({
+    ...p,
+    hospital: toHospital(p.hospital),
+    franjas: p.franjas.map((f) => ({ fecha: f.fecha, horaDesde: f.horaDesde.slice(0, 5), horaHasta: f.horaHasta.slice(0, 5), diaEntero: f.diaEntero })),
+  }));
 }
 
 /** Contraoferta: la puede mandar tanto el cuidador como el autor del anuncio. */

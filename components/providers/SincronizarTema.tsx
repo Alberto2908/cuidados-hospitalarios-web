@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/lib/auth/AuthContext";
 
@@ -14,9 +14,17 @@ export default function SincronizarTema() {
   const { setTheme } = useTheme();
   const tema = user?.tema;
 
+  // setTheme de next-themes cambia de identidad cada vez que cambia el tema. Si fuera
+  // dependencia del efecto, este se repetiria al elegir un tema y reaplicaria el
+  // guardado (todavia el anterior) hasta que el servidor responde: el selector rebotaba.
+  const setThemeRef = useRef(setTheme);
   useEffect(() => {
-    if (tema) setTheme(tema.toLowerCase());
-  }, [tema, setTheme]);
+    setThemeRef.current = setTheme;
+  });
+
+  useEffect(() => {
+    if (tema) setThemeRef.current(tema.toLowerCase());
+  }, [tema]);
 
   return null;
 }

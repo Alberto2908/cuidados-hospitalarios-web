@@ -17,7 +17,13 @@ import { Progress } from "@/components/ui/progress";
 export default function PerfilPage() {
   const { user, isLoading, isAuthenticated, sincronizarStripe } = useAuth();
   const router = useRouter();
-  const sincronizado = useRef(false);
+  const [comprobandoCobro, setComprobandoCobro] = useState(false);
+  // sincronizarStripe cambia de identidad en cada render: se guarda en una ref para
+  // que el efecto de abajo solo se ejecute al entrar, no en cada render.
+  const sincronizarRef = useRef(sincronizarStripe);
+  useEffect(() => {
+    sincronizarRef.current = sincronizarStripe;
+  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -25,12 +31,33 @@ export default function PerfilPage() {
     }
   }, [isLoading, isAuthenticated, router]);
 
+  // Al entrar se consulta el estado de Stripe. Si el cuidador acaba de volver del
+  // alta (?stripe=retorno), Stripe puede tardar unos segundos en activar la cuenta:
+  // se vuelve a consultar cada pocos segundos hasta que quede habilitada.
   useEffect(() => {
-    if (user?.rol === "CUIDADOR" && !sincronizado.current) {
-      sincronizado.current = true;
-      sincronizarStripe().catch(() => {});
+    if (user?.rol !== "CUIDADOR") return;
+    const vuelveDeStripe = new URLSearchParams(window.location.search).get("stripe") === "retorno";
+    let cancelado = false;
+
+    async function comprobar() {
+      if (vuelveDeStripe) setComprobandoCobro(true);
+      const intentos = vuelveDeStripe ? 10 : 1;
+      for (let i = 0; i < intentos && !cancelado; i++) {
+        try {
+          const actualizado = await sincronizarRef.current();
+          if (actualizado.stripeCobrosHabilitados) break;
+        } catch {
+          // se reintenta en la siguiente vuelta
+        }
+        if (i < intentos - 1) await new Promise((r) => setTimeout(r, 3000));
+      }
+      if (!cancelado) setComprobandoCobro(false);
     }
-  }, [user?.rol, sincronizarStripe]);
+    void comprobar();
+    return () => {
+      cancelado = true;
+    };
+  }, [user?.rol]);
 
   if (isLoading || !user) {
     return (
@@ -40,10 +67,10 @@ export default function PerfilPage() {
     );
   }
 
-  return <PerfilContenido user={user} />;
+  return <PerfilContenido user={user} comprobandoCobro={comprobandoCobro} />;
 }
 
-function PerfilContenido({ user }: { user: AuthUser }) {
+function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comprobandoCobro: boolean }) {
   const {
     actualizarPerfil,
     convertirseCuidador,
@@ -322,7 +349,10 @@ function PerfilContenido({ user }: { user: AuthUser }) {
             <>
               <div className="mb-4 flex items-start gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>Pagos activados. Ya puedes recibir tus ingresos cuando completes un turno.</span>
+                <span>
+                  Datos de cobro completados. Recibirás el dinero de cada cuidado en tu cuenta bancaria cuando el
+                  paciente/familiar lo confirme.
+                </span>
               </div>
               <button
                 type="button"
@@ -335,11 +365,18 @@ function PerfilContenido({ user }: { user: AuthUser }) {
             </>
           ) : (
             <>
+              {comprobandoCobro && (
+                <div className="mb-4 flex items-start gap-2 rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+                  <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>Stripe está comprobando tus datos. Puede tardar unos segundos; esta pantalla se actualizará sola.</span>
+                </div>
+              )}
               <div className="mb-4 flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
-                  Todavía no has verificado tus datos de cobro con Stripe. Puedes hacerlo ahora o más adelante,
-                  pero <strong>no recibirás tus ingresos hasta que lo completes</strong>.
+                  Todavía no has completado tus datos de cobro. Puedes inscribirte y aceptar cuidados sin ellos, pero{" "}
+                  <strong>no recibirás el dinero hasta que los completes</strong>: se queda retenido y se te entrega en
+                  cuanto termines. Los datos los recoge Stripe (identidad y cuenta bancaria).
                 </span>
               </div>
               <button
@@ -348,7 +385,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 disabled={verificando}
                 className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
               >
-                {verificando ? "Redirigiendo a Stripe..." : "Verificar datos de cobro con Stripe"}
+                {verificando ? "Redirigiendo a Stripe..." : "Completar datos de cobro"}
               </button>
             </>
           )}

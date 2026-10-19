@@ -42,7 +42,7 @@ export default function AdminVerificacionesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <div className="page-container py-10">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Verificaciones de identidad</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">

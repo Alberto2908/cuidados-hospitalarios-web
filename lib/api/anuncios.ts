@@ -219,6 +219,8 @@ export interface MiAnuncio {
   fechaInicioPrevista: string;
   creadoEn: string;
   politicaBorrado: PoliticaBorrado;
+  /** La familia ha abierto una incidencia sobre el cuidado (bloquea la confirmacion). */
+  incidenciaAbierta: boolean;
 }
 
 interface MiAnuncioApi {
@@ -237,6 +239,7 @@ interface MiAnuncioApi {
   fechaInicioPrevista: string;
   creadoEn: string;
   politicaBorrado: PoliticaBorrado;
+  incidenciaAbierta: boolean;
 }
 
 export async function misAnuncios(): Promise<MiAnuncio[]> {

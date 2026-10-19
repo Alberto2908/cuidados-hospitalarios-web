@@ -1,5 +1,7 @@
 "use client";
 
+import { estadoServicioMostrado, seccionVisible } from "@/lib/anuncio/horas";
+import { useAhora } from "@/lib/ui/useAhora";
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -9,8 +11,11 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Estrellas } from "@/components/ui/estrellas";
 import ModalResena from "@/components/anuncio/ModalResena";
+import ModalPago from "@/components/pago/ModalPago";
+import { BOTON_NEGRO, ModalIncidencia } from "@/components/pago/ConfirmacionCuidado";
 import { borrarAnuncio, misAnuncios, type MiAnuncio } from "@/lib/api/anuncios";
 import { crearResena } from "@/lib/api/resenas";
+import { abrirIncidenciaServicio, confirmarServicio, type MotivoIncidencia } from "@/lib/api/servicios";
 import { formatearFecha } from "@/lib/fecha";
 import { cn } from "@/lib/utils";
 
@@ -35,17 +40,21 @@ const ESTADO_COLOR: Record<MiAnuncio["estado"], string> = {
 // del anuncio ya no basta -se queda en "Aceptado" para siempre aunque el
 // servicio avance a confirmado/completado/cancelado (ver V12 en el backend)-
 // asi que la tarjeta usa este estado, mas fino, cuando existe.
-const ESTADO_SERVICIO_LABEL: Record<NonNullable<MiAnuncio["estadoServicio"]>, string> = {
+const ESTADO_SERVICIO_LABEL: Record<NonNullable<MiAnuncio["estadoServicio"]> | "en_curso" | "en_revision", string> = {
   aceptado: "Aceptado",
   confirmado: "Confirmado (pagado)",
+  en_curso: "En curso",
+  en_revision: "En revisión",
   pendiente_confirmacion: "Pendiente de confirmación",
   completado: "Completado",
   cancelado: "Cancelado",
 };
 
-const ESTADO_SERVICIO_COLOR: Record<NonNullable<MiAnuncio["estadoServicio"]>, string> = {
+const ESTADO_SERVICIO_COLOR: Record<NonNullable<MiAnuncio["estadoServicio"]> | "en_curso" | "en_revision", string> = {
   aceptado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   confirmado: "bg-accent text-accent-foreground",
+  en_curso: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  en_revision: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
   pendiente_confirmacion: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   completado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
@@ -82,11 +91,15 @@ export default function PacienteHistorialPage() {
   // Por fecha del cuidado (no de publicacion): arriba el primero que hay que
   // llevar a cabo en "Activos", y en el historial el mas reciente arriba.
   const porInicio = (a: MiAnuncio) => new Date(a.fechaInicioPrevista).getTime();
-  const activos = (anuncios?.filter((a) => a.seccion === "activo") ?? []).sort((a, b) => porInicio(a) - porInicio(b));
-  const completados = (anuncios?.filter((a) => a.seccion === "completado") ?? []).sort((a, b) => porInicio(b) - porInicio(a));
+  const ahora = useAhora();
+  const seccionDe = (a: MiAnuncio) =>
+    seccionVisible(a.seccion === "activo" ? "activo" : "historial", a.estadoServicio, a.franjas, ahora);
+  const enCurso = (anuncios?.filter((a) => seccionDe(a) === "en_curso") ?? []).sort((a, b) => porInicio(a) - porInicio(b));
+  const activos = (anuncios?.filter((a) => seccionDe(a) === "activo") ?? []).sort((a, b) => porInicio(a) - porInicio(b));
+  const completados = (anuncios?.filter((a) => seccionDe(a) === "historial") ?? []).sort((a, b) => porInicio(b) - porInicio(a));
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-container py-8">
       <div className="mb-5">
         <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Mis anuncios</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
@@ -105,6 +118,17 @@ export default function PacienteHistorialPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-8">
+          {enCurso.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">En curso</h2>
+              <div className="flex flex-col gap-3">
+                {enCurso.map((anuncio) => (
+                  <TarjetaMiAnuncio key={anuncio.id} anuncio={anuncio} />
+                ))}
+              </div>
+            </section>
+          )}
+
           <section>
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Activos</h2>
             {activos.length === 0 ? (
@@ -153,10 +177,53 @@ function TarjetaMiAnuncio({
   const queryClient = useQueryClient();
   const [modalResenaAbierto, setModalResenaAbierto] = useState(false);
   const [modalBorrarAbierto, setModalBorrarAbierto] = useState(false);
+  const [modalPagoAbierto, setModalPagoAbierto] = useState(false);
+  const [modalConfirmarAbierto, setModalConfirmarAbierto] = useState(false);
+  const [modalIncidenciaAbierto, setModalIncidenciaAbierto] = useState(false);
+  const ahora = useAhora();
+  const estadoMostrado = estadoServicioMostrado(anuncio.estadoServicio, anuncio.franjas, ahora, anuncio.incidenciaAbierta);
+  // Aceptado pero sin pagar: el pago se puede hacer directamente desde esta lista.
+  const puedePagar = anuncio.estadoServicio === "aceptado" && anuncio.servicioId !== null;
   // Que se puede hacer con el anuncio lo decide el backend (politicaBorrado):
-  // "aviso" = aceptado y sin pagar, con menos de 24 h para el inicio.
+  // "aviso" = aceptado y pagado, con poco tiempo para el inicio (ver politicaBorrado en el backend).
   const puedeBorrar = anuncio.politicaBorrado !== "bloqueado";
   const borradoConAviso = anuncio.politicaBorrado === "aviso";
+
+  // Cuidado terminado y pendiente de confirmar: se confirma o se abre una incidencia desde la propia tarjeta.
+  const porConfirmar = anuncio.estadoServicio === "pendiente_confirmacion" && anuncio.servicioId !== null;
+
+  function refrescarTrasConfirmar() {
+    queryClient.invalidateQueries({ queryKey: ["anuncios"] });
+    queryClient.invalidateQueries({ queryKey: ["servicio", anuncio.servicioId] });
+    queryClient.invalidateQueries({ queryKey: ["inscripciones", "anuncio", anuncio.id] });
+  }
+
+  const confirmarMutation = useMutation({
+    mutationFn: () => confirmarServicio(anuncio.servicioId as string),
+    onSuccess: () => {
+      sileo.success({ title: "Cuidado confirmado", description: "El pago se ha entregado al cuidador." });
+      setModalConfirmarAbierto(false);
+      refrescarTrasConfirmar();
+    },
+    onError: (error: Error) => {
+      setModalConfirmarAbierto(false);
+      sileo.error({ title: "No se pudo confirmar", description: error.message });
+    },
+  });
+
+  const incidenciaMutation = useMutation({
+    mutationFn: (datos: { motivo: MotivoIncidencia; descripcion: string }) =>
+      abrirIncidenciaServicio(anuncio.servicioId as string, datos),
+    onSuccess: () => {
+      sileo.success({
+        title: "Incidencia enviada",
+        description: "La plataforma la revisará. Mientras tanto el dinero sigue retenido.",
+      });
+      setModalIncidenciaAbierto(false);
+      refrescarTrasConfirmar();
+    },
+    onError: (error: Error) => sileo.error({ title: "No se pudo abrir la incidencia", description: error.message }),
+  });
 
   const crearResenaMutation = useMutation({
     mutationFn: (datos: { valoracion: number; comentario: string }) =>
@@ -188,6 +255,13 @@ function TarjetaMiAnuncio({
             ))}
           </div>
         )}
+        {anuncio.estadoServicio === "pendiente_confirmacion" && (
+          <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
+            {anuncio.incidenciaAbierta
+              ? "Has abierto una incidencia: la plataforma la revisará y decidirá el reparto del pago."
+              : "El cuidado ha terminado: confirma si se realizó correctamente."}
+          </p>
+        )}
       </Link>
 
       <div className="flex shrink-0 flex-col items-end justify-between gap-2">
@@ -199,16 +273,16 @@ function TarjetaMiAnuncio({
                 {anuncio.inscripcionesPendientes}
               </span>
             )}
-            {anuncio.puedeValorar && (
+            {(anuncio.puedeValorar || (anuncio.estadoServicio === "pendiente_confirmacion" && !anuncio.incidenciaAbierta)) && (
               <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
                 1
               </span>
             )}
             {anuncio.estadoServicio ? (
               <span
-                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_SERVICIO_COLOR[anuncio.estadoServicio]}`}
+                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_SERVICIO_COLOR[estadoMostrado ?? anuncio.estadoServicio]}`}
               >
-                {ESTADO_SERVICIO_LABEL[anuncio.estadoServicio]}
+                {ESTADO_SERVICIO_LABEL[estadoMostrado ?? anuncio.estadoServicio]}
               </span>
             ) : (
               <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_COLOR[anuncio.estado]}`}>
@@ -235,7 +309,24 @@ function TarjetaMiAnuncio({
           )}
         </div>
 
-        {onBorrar && puedeBorrar && (
+        {porConfirmar && !anuncio.incidenciaAbierta && (
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className={cn("rounded-full", BOTON_NEGRO)}
+              onClick={() => setModalIncidenciaAbierto(true)}
+            >
+              Abrir incidencia
+            </Button>
+            <Button type="button" size="sm" className="rounded-full" onClick={() => setModalConfirmarAbierto(true)}>
+              Confirmar
+            </Button>
+          </div>
+        )}
+
+        {((onBorrar && puedeBorrar) || puedePagar) && (
           <div className="flex gap-2">
             {anuncio.estado === "activo" && (
               <Link
@@ -245,19 +336,70 @@ function TarjetaMiAnuncio({
                 Modificar
               </Link>
             )}
-            <Button
-              type="button"
-              size="sm"
-              variant="destructive"
-              className="rounded-full"
-              disabled={borrando}
-              onClick={() => setModalBorrarAbierto(true)}
-            >
-              Borrar
-            </Button>
+            {puedePagar && (
+              <Button
+                type="button"
+                size="sm"
+                className="rounded-full"
+                onClick={() => setModalPagoAbierto(true)}
+              >
+                Pagar
+              </Button>
+            )}
+            {onBorrar && puedeBorrar && (
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                className="rounded-full"
+                disabled={borrando}
+                onClick={() => setModalBorrarAbierto(true)}
+              >
+                Borrar
+              </Button>
+            )}
           </div>
         )}
       </div>
+
+      {porConfirmar && (
+        <>
+          <ConfirmDialog
+            open={modalConfirmarAbierto}
+            onOpenChange={setModalConfirmarAbierto}
+            titulo="Confirmar el cuidado"
+            descripcion="Al confirmar, el pago se entrega al cuidador y ya no se puede recuperar desde la aplicación. Si ha habido algún problema con el cuidado, no lo confirmes y abre una incidencia."
+            textoConfirmar="Confirmar cuidado"
+            confirmando={confirmarMutation.isPending}
+            onConfirmar={() => confirmarMutation.mutate()}
+          />
+          <ModalIncidencia
+            open={modalIncidenciaAbierto}
+            onOpenChange={setModalIncidenciaAbierto}
+            enviando={incidenciaMutation.isPending}
+            onEnviar={(datos) => incidenciaMutation.mutate(datos)}
+          />
+        </>
+      )}
+
+      {puedePagar && (
+        <ModalPago
+          key={modalPagoAbierto ? "pago-abierto" : "pago-cerrado"}
+          open={modalPagoAbierto}
+          onOpenChange={setModalPagoAbierto}
+          servicioId={anuncio.servicioId}
+          onPagado={() => {
+            sileo.success({
+              title: "Pago realizado",
+              description: "El dinero queda retenido hasta que confirmes que el cuidado se ha realizado.",
+            });
+            setModalPagoAbierto(false);
+            queryClient.invalidateQueries({ queryKey: ["anuncios", "mios"] });
+            queryClient.invalidateQueries({ queryKey: ["anuncios", "notificaciones-conteo"] });
+            queryClient.invalidateQueries({ queryKey: ["inscripciones", "anuncio", anuncio.id] });
+          }}
+        />
+      )}
 
       {anuncio.puedeValorar && (
         <ModalResena
@@ -277,7 +419,7 @@ function TarjetaMiAnuncio({
           titulo="Borrar anuncio"
           descripcion={
             borradoConAviso
-              ? `Si borras "${anuncio.titulo}" con tan poco tiempo de antelación, la devolución no será íntegra por las molestias causadas al cuidador. ¿Quieres borrarlo igualmente? Esta acción no se puede deshacer.`
+              ? `Si borras "${anuncio.titulo}" con tan poco tiempo de antelación, el pago quedará retenido y la plataforma decidirá cuánto se te devuelve, por las molestias causadas al cuidador. ¿Quieres borrarlo igualmente? Esta acción no se puede deshacer.`
               : `¿Seguro que quieres borrar "${anuncio.titulo}"? Esta acción no se puede deshacer.`
           }
           textoConfirmar="Borrar anuncio"
