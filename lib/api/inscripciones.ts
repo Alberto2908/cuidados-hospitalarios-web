@@ -155,12 +155,22 @@ export function misNotificacionesConteo(): Promise<{ total: number }> {
  * de en que punto de la negociacion esta cada uno.
  */
 export function etiquetaEstadoInscripcion(
-  inscripcion: Pick<Inscripcion, "estado" | "aceptadoPorCuidador" | "aceptadoPorPaciente">,
+  inscripcion: Pick<Inscripcion, "estado" | "aceptadoPorCuidador" | "aceptadoPorPaciente"> & {
+    estadoServicio?: Inscripcion["estadoServicio"];
+  },
   viendoComoCuidador: boolean,
 ): string {
   if (inscripcion.estado === "rechazada") return "Rechazada";
   if (inscripcion.estado === "retirada") return "Retirada";
-  if (inscripcion.estado === "aceptada") return "Aceptado por ambas partes";
+  if (inscripcion.estado === "aceptada") {
+    // Con el pago ya hecho (el servicio pasa de 'aceptado' a 'confirmado' al cobrarse),
+    // "aceptado por ambas partes" deja de decir nada nuevo.
+    const cobrado =
+      inscripcion.estadoServicio === "confirmado" ||
+      inscripcion.estadoServicio === "pendiente_confirmacion" ||
+      inscripcion.estadoServicio === "completado";
+    return cobrado ? "Pagado" : "Aceptado por ambas partes";
+  }
 
   const miAceptacion = viendoComoCuidador ? inscripcion.aceptadoPorCuidador : inscripcion.aceptadoPorPaciente;
   const otraAceptacion = viendoComoCuidador ? inscripcion.aceptadoPorPaciente : inscripcion.aceptadoPorCuidador;

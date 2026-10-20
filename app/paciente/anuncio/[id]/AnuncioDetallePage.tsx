@@ -908,7 +908,7 @@ function EstadoInscripcionBadge({
   inscripcion,
   esCuidador,
 }: {
-  inscripcion: Pick<Inscripcion, "estado" | "aceptadoPorCuidador" | "aceptadoPorPaciente">;
+  inscripcion: Pick<Inscripcion, "estado" | "aceptadoPorCuidador" | "aceptadoPorPaciente" | "estadoServicio">;
   esCuidador: boolean;
 }) {
   const color: Record<Inscripcion["estado"], string> = {

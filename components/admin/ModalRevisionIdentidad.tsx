@@ -79,10 +79,10 @@ export default function ModalRevisionIdentidad({ verificacion, open, onOpenChang
           </div>
 
           <DialogFooter className="sm:justify-center">
-            <Button type="button" variant="outline" disabled={ocupado} onClick={() => setConfirmandoRechazo(true)}>
+            <Button type="button" variant="destructive" disabled={ocupado} onClick={() => setConfirmandoRechazo(true)}>
               Rechazar
             </Button>
-            <Button type="button" disabled={ocupado} onClick={() => aprobar.mutate(verificacion.id)}>
+            <Button type="button" variant="success" disabled={ocupado} onClick={() => aprobar.mutate(verificacion.id)}>
               {aprobar.isPending ? "Verificando…" : "Verificar"}
             </Button>
           </DialogFooter>
