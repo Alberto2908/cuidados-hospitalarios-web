@@ -31,6 +31,8 @@ export interface UsuarioActual {
   hospitalesTrabajo: Hospital[] | null;
   tarifaHora: number | null;
   tema: TemaUsuario;
+  /** Hasta verificar el email no puede crear anuncios, inscribirse ni pagar. */
+  emailVerificado: boolean;
 }
 
 export interface RegistroDatos {
@@ -121,6 +123,33 @@ export function obtenerStripeOnboardingLink() {
 
 export function sincronizarStripe() {
   return apiFetch<UsuarioActual>("/api/usuarios/me/stripe/sincronizar", { method: "POST" });
+}
+
+/** Confirma el email con el código de 6 dígitos que llega por correo. */
+export function verificarEmail(codigo: string) {
+  return apiFetch<UsuarioActual>("/api/usuarios/me/verificar-email", {
+    method: "POST",
+    body: JSON.stringify({ codigo }),
+  });
+}
+
+export function reenviarVerificacionEmail() {
+  return apiFetch<void>("/api/usuarios/me/reenviar-verificacion", { method: "POST" });
+}
+
+/** Responde igual exista o no la cuenta: no revela quién está registrado. */
+export function solicitarRecuperacionContrasena(email: string) {
+  return apiFetch<void>("/api/auth/recuperar", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function restablecerContrasena(token: string, nueva: string) {
+  return apiFetch<void>("/api/auth/restablecer", {
+    method: "POST",
+    body: JSON.stringify({ token, nueva }),
+  });
 }
 
 export function cambiarContrasena(actual: string, nueva: string) {

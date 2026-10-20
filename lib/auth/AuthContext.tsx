@@ -32,6 +32,8 @@ interface AuthContextType {
   obtenerStripeOnboardingLink: () => Promise<{ url: string }>;
   sincronizarStripe: () => Promise<AuthUser>;
   cambiarContrasena: (actual: string, nueva: string) => Promise<void>;
+  verificarEmail: (codigo: string) => Promise<AuthUser>;
+  reenviarVerificacionEmail: () => Promise<void>;
   actualizarHospitales: (hospitalIds: string[]) => Promise<Hospital[]>;
   actualizarTarifaHora: (tarifaHora: number) => Promise<AuthUser>;
   actualizarTema: (tema: TemaUsuario) => Promise<AuthUser>;
@@ -109,6 +111,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authApi.cambiarContrasena(actual, nueva),
   });
 
+  const verificarEmailMutation = useMutation({
+    mutationFn: (codigo: string) => authApi.verificarEmail(codigo),
+    onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
+  });
+
   const actualizarHospitalesMutation = useMutation({
     mutationFn: (hospitalIds: string[]) => authApi.actualizarHospitales(hospitalIds),
     onSuccess: (hospitalesTrabajo) => {
@@ -145,6 +152,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         obtenerStripeOnboardingLink: () => authApi.obtenerStripeOnboardingLink(),
         sincronizarStripe: () => sincronizarStripeMutation.mutateAsync(),
         cambiarContrasena: (actual, nueva) => cambiarContrasenaMutation.mutateAsync({ actual, nueva }),
+        verificarEmail: (codigo) => verificarEmailMutation.mutateAsync(codigo),
+        reenviarVerificacionEmail: () => authApi.reenviarVerificacionEmail(),
         actualizarHospitales: (hospitalIds) => actualizarHospitalesMutation.mutateAsync(hospitalIds),
         actualizarTarifaHora: (tarifaHora) => actualizarTarifaHoraMutation.mutateAsync(tarifaHora),
         actualizarTema: (tema) => actualizarTemaMutation.mutateAsync(tema),

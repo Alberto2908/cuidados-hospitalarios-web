@@ -53,7 +53,7 @@ export default function RegistroPage() {
     setEnviando(true);
     try {
       await registrar({ nombre, apellidos, email, password, telefono: telefono || undefined });
-      router.push("/");
+      router.push("/verificar-email");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se ha podido crear la cuenta.");
     } finally {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { sileo } from "sileo";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { ApiError } from "@/lib/api/client";
 import { FloatingInput } from "@/components/ui/FloatingInput";
@@ -74,6 +75,7 @@ export default function ContrasenaPage() {
 
 function FormularioContrasena() {
   const { cambiarContrasena } = useAuth();
+  const router = useRouter();
 
   const [actual, setActual] = useState("");
   const [nueva, setNueva] = useState("");
@@ -82,13 +84,11 @@ function FormularioContrasena() {
   const [showNueva, setShowNueva] = useState(false);
   const [showConfirmar, setShowConfirmar] = useState(false);
   const [error, setError] = useState("");
-  const [guardado, setGuardado] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    setGuardado(false);
 
     if (!actual || !nueva || !confirmar) {
       setError("Rellena todos los campos.");
@@ -106,10 +106,8 @@ function FormularioContrasena() {
     setEnviando(true);
     try {
       await cambiarContrasena(actual, nueva);
-      setGuardado(true);
-      setActual("");
-      setNueva("");
-      setConfirmar("");
+      sileo.success({ title: "Contraseña actualizada" });
+      router.push("/");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "No se ha podido cambiar la contraseña.");
     } finally {
@@ -124,12 +122,6 @@ function FormularioContrasena() {
           {error}
         </div>
       )}
-      {guardado && (
-        <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-          Contraseña actualizada correctamente.
-        </div>
-      )}
-
       <FloatingInput
         id="contrasena-actual"
         type={showActual ? "text" : "password"}
