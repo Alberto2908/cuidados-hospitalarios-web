@@ -84,6 +84,8 @@ export interface IncidenciaAdmin {
   abiertaEn: string;
   respuestaCuidador: string | null;
   respuestaEn: string | null;
+  /** Hasta cuando puede el cuidador responder; null si ya respondio o ya esta resuelta. */
+  respuestaLimite: string | null;
 }
 
 export function fetchPagosResumen(): Promise<PagosResumen> {

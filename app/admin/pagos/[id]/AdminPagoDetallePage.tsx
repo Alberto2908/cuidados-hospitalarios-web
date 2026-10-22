@@ -8,6 +8,8 @@ import PanelDecisionPago from "@/components/admin/pagos/PanelDecisionPago";
 import { fetchPagoDetalle, type PagoDetalle } from "@/lib/api/adminPagos";
 import type { EstadoTramo } from "@/lib/api/servicios";
 import { formatearFecha, formatearFechaHora } from "@/lib/fecha";
+import { textoPlazoRespuesta } from "@/lib/incidencia/plazo";
+import { useAhora } from "@/lib/ui/useAhora";
 import { formatearEuros } from "@/lib/pago/formato";
 import {
   ESTADO_PAGO_ADMIN_COLOR,
@@ -52,6 +54,7 @@ export default function AdminPagoDetallePage() {
 }
 
 function Contenido({ pago }: { pago: PagoDetalle }) {
+  const ahora = useAhora(60_000);
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -108,7 +111,12 @@ function Contenido({ pago }: { pago: PagoDetalle }) {
                   <p className="mt-1 whitespace-pre-wrap text-foreground">{pago.incidencia.respuestaCuidador}</p>
                 </>
               ) : (
-                <p className="text-muted-foreground">El cuidador todavía no ha aportado su versión.</p>
+                <p className="text-muted-foreground">
+                  El cuidador todavía no ha aportado su versión.
+                  {pago.incidencia.respuestaLimite
+                    ? ` ${textoPlazoRespuesta(pago.incidencia.respuestaLimite, ahora, "tercero")}`
+                    : ""}
+                </p>
               )}
             </div>
           </div>

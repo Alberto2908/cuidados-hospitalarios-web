@@ -42,6 +42,8 @@ export interface Servicio {
   /** Version del cuidador sobre la incidencia (null mientras no la haya aportado). */
   incidenciaRespuestaCuidador: string | null;
   incidenciaRespuestaEn: string | null;
+  /** Hasta cuando puede el cuidador aportar su version (pasado el plazo se cierra a favor de la familia); null si no hay plazo corriendo. */
+  incidenciaRespuestaLimite: string | null;
   /** Cuando la plataforma resolvio el reparto (null si aun no). */
   resolucionEn: string | null;
 }
