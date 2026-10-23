@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ChevronRight, CircleCheck, HandCoins, Landmark, Percent, Undo2, Wallet } from "lucide-react";
 import StatTile from "@/components/admin/charts/StatTile";
+import { FiltroDeslizante } from "@/components/ui/filtro-deslizante";
 import { fetchPagos, fetchPagosResumen, type FiltroPagos, type PagoFila } from "@/lib/api/adminPagos";
 import { formatearFecha } from "@/lib/fecha";
 import { formatearEuros } from "@/lib/pago/formato";
 import {
   ESTADO_PAGO_ADMIN_COLOR,
   ESTADO_PAGO_ADMIN_LABEL,
+  ESTADO_SERVICIO_ADMIN_COLOR,
   ESTADO_SERVICIO_ADMIN_LABEL,
   MOTIVO_TITULO,
 } from "@/lib/pago/estados";
@@ -61,19 +63,19 @@ export default function AdminPagosPage() {
           label="Retenido en la plataforma"
           subtext="(aún no es del cuidador)"
           value={resumen ? formatearEuros(resumen.retenido) : "…"}
-          color="text-amber-600"
+          color="text-amber-600 dark:text-amber-400"
         />
         <StatTile
           icon={<HandCoins className="h-5 w-5" />}
           label="Entregado a cuidadores"
           value={resumen ? formatearEuros(resumen.entregadoCuidadores) : "…"}
-          color="text-emerald-600"
+          color="text-emerald-600 dark:text-emerald-400"
         />
         <StatTile
           icon={<Undo2 className="h-5 w-5" />}
           label="Devuelto a familias"
           value={resumen ? formatearEuros(resumen.devueltoFamilias) : "…"}
-          color="text-sky-600"
+          color="text-sky-600 dark:text-sky-400"
         />
         <StatTile
           icon={<Percent className="h-5 w-5" />}
@@ -108,33 +110,14 @@ export default function AdminPagosPage() {
         </div>
       )}
 
-      <div className="mt-8 flex flex-wrap gap-2" role="tablist">
-        {pestanas.map((p) => (
-          <button
-            key={p.valor}
-            type="button"
-            role="tab"
-            aria-selected={filtro === p.valor}
-            onClick={() => setFiltro(p.valor)}
-            className={cn(
-              "flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
-              filtro === p.valor ? "bg-primary text-primary-foreground" : "bg-card text-foreground shadow-soft hover:bg-muted",
-            )}
-          >
-            {p.etiqueta}
-            {p.conteo !== undefined && (
-              <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-xs",
-                  filtro === p.valor ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground",
-                )}
-              >
-                {p.conteo}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <FiltroDeslizante
+        className="mt-8"
+        tamano="md"
+        ariaLabel="Filtrar pagos"
+        value={filtro}
+        onChange={setFiltro}
+        options={pestanas.map((p) => ({ value: p.valor, label: p.etiqueta, conteo: p.conteo }))}
+      />
 
       <div className="mt-5 flex flex-col gap-3">
         {listaQuery.isLoading ? (
@@ -175,7 +158,7 @@ function TarjetaPago({ pago }: { pago: PagoFila }) {
         <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${ESTADO_PAGO_ADMIN_COLOR[pago.estadoPago]}`}>
           {ESTADO_PAGO_ADMIN_LABEL[pago.estadoPago]}
         </span>
-        <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+        <span className={cn("rounded-full px-2.5 py-1 text-xs", ESTADO_SERVICIO_ADMIN_COLOR[pago.estado])}>
           {ESTADO_SERVICIO_ADMIN_LABEL[pago.estado]}
         </span>
         <span className="text-xs text-muted-foreground">Termina el {formatearFecha(pago.fechaFinPrevista)}</span>

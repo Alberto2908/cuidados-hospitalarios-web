@@ -83,11 +83,20 @@ export default function AdminVerificacionesPage() {
                     <tr
                       key={v.id}
                       onClick={() => setSeleccionada(v)}
-                      className="cursor-pointer transition-colors hover:bg-muted/30"
+                      className="cursor-pointer transition-colors hover:bg-accent/60 focus-within:bg-accent/60"
                     >
                       <td className="px-4 py-3.5">
                         <p className="font-medium text-foreground">
-                          {v.nombre} {v.apellidos}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSeleccionada(v);
+                            }}
+                            className="rounded text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            {v.nombre} {v.apellidos}
+                          </button>
                         </p>
                         <p className="text-xs text-muted-foreground">{v.email}</p>
                       </td>

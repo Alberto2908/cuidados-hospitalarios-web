@@ -111,7 +111,7 @@ export default function PanelDecisionPago({ pago }: { pago: PagoDetalle }) {
               "rounded-xl p-4 text-left transition-all",
               opcion === o.valor
                 ? "bg-primary text-primary-foreground shadow-primary"
-                : "bg-muted/50 text-foreground hover:bg-muted",
+                : "bg-surface-sunken text-foreground shadow-inset-soft hover:bg-muted",
             )}
           >
             <p className="text-sm font-semibold">{o.titulo}</p>
@@ -123,7 +123,7 @@ export default function PanelDecisionPago({ pago }: { pago: PagoDetalle }) {
       </div>
 
       {opcion === "reparto" && (
-        <div className="mt-4 flex flex-col gap-4 rounded-xl bg-muted/40 p-4">
+        <div className="mt-4 flex flex-col gap-4 rounded-xl bg-surface-sunken p-4 shadow-inset-soft">
           <div className="grid gap-1.5">
             <label htmlFor="reembolso" className="text-sm font-medium text-foreground">
               ¿Cuánto se devuelve a la familia?
@@ -303,7 +303,7 @@ export default function PanelDecisionPago({ pago }: { pago: PagoDetalle }) {
 
 function Resultado({ etiqueta, valor, color }: { etiqueta: string; valor: number; color: string }) {
   return (
-    <div className="rounded-xl bg-muted/50 p-4">
+    <div className="rounded-xl bg-surface-sunken p-4 shadow-inset-soft">
       <p className={cn("text-xl font-semibold", color)}>{formatearEuros(valor)}</p>
       <p className="mt-0.5 text-xs text-muted-foreground">{etiqueta}</p>
     </div>

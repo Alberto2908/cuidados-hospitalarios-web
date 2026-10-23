@@ -190,207 +190,209 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4 py-12">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
-            {user.nombre[0]}
-            {user.apellidos[0]}
+    <div className="page-container py-12">
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
+              {user.nombre[0]}
+              {user.apellidos[0]}
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold tracking-[-0.03em] text-foreground">
+                {user.nombre} {user.apellidos}
+              </h1>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-semibold tracking-[-0.03em] text-foreground">
-              {user.nombre} {user.apellidos}
-            </h1>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
-          </div>
+
+          {user.rol === "CUIDADOR" && (
+            <div className="w-full sm:w-80 sm:shrink-0">
+              <SeccionCompletitud user={user} />
+            </div>
+          )}
         </div>
 
+        {/* Datos personales */}
+        <div className="rounded-2xl bg-card p-6 shadow-float">
+          <div className="mb-4 flex items-center gap-2 text-foreground">
+            <User className="h-5 w-5 text-accent-foreground" />
+            <h2 className="text-lg font-semibold">Datos personales</h2>
+          </div>
+
+          <form onSubmit={handleGuardarDatos} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label htmlFor="nombre" className="text-sm font-medium text-foreground">Nombre</label>
+                <input
+                  id="nombre"
+                  type="text"
+                  value={nombre}
+                  disabled={datosCongelados}
+                  onChange={(e) => setNombre(e.target.value)}
+                  className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="apellidos" className="text-sm font-medium text-foreground">Apellidos</label>
+                <input
+                  id="apellidos"
+                  type="text"
+                  value={apellidos}
+                  disabled={datosCongelados}
+                  onChange={(e) => setApellidos(e.target.value)}
+                  className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
+                />
+              </div>
+            </div>
+
+            {datosCongelados && (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Lock className="h-3 w-3 shrink-0" />
+                {user.estadoVerificacion === "APROBADA"
+                  ? "Nombre y apellidos verificados: no se pueden modificar."
+                  : "Nombre y apellidos bloqueados mientras se revisa tu identidad."}
+              </p>
+            )}
+
+            <div className="space-y-1.5">
+              <label htmlFor="telefono" className="text-sm font-medium text-foreground">
+                Teléfono <span className="text-muted-foreground">(opcional)</span>
+              </label>
+              <input
+                id="telefono"
+                type="tel"
+                value={telefono}
+                onChange={(e) => setTelefono(e.target.value)}
+                placeholder="+34 600 000 000"
+                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={guardando}
+              className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
+            >
+              {guardando ? "Guardando..." : "Guardar cambios"}
+            </button>
+          </form>
+        </div>
+
+        <SeccionApariencia />
+
         {user.rol === "CUIDADOR" && (
-          <div className="w-80 shrink-0">
-            <SeccionCompletitud user={user} />
+          <div className="rounded-2xl bg-card p-6 shadow-float">
+            <SeccionVerificacionIdentidad user={user} onVerificar={abrirModalVerificacion} />
+          </div>
+        )}
+
+        {user.rol === "CUIDADOR" && (
+          <ModalVerificacionIdentidad
+            key={clavesModalVerificacion}
+            open={modalVerificacionAbierta}
+            onOpenChange={setModalVerificacionAbierta}
+            nombre={user.nombre}
+            apellidos={user.apellidos}
+            tipoDocumentoInicial={user.tipoDocumento}
+            numeroDocumentoInicial={user.numeroDocumento}
+            onEnviar={handleEnviarVerificacion}
+            enviando={enviandoVerificacion}
+          />
+        )}
+
+        {user.rol === "CUIDADOR" && (
+          <div className="rounded-2xl bg-card p-6 shadow-float">
+            <SeccionTarifa tarifaInicial={user.tarifaHora} />
+          </div>
+        )}
+
+        {user.rol === "CUIDADOR" && (
+          <div className="rounded-2xl bg-card p-6 shadow-float">
+            <SeccionHospitales hospitalesIniciales={user.hospitalesTrabajo ?? []} />
+          </div>
+        )}
+
+        {user.rol === "USUARIO" && (
+          <div className="rounded-2xl bg-card p-6 shadow-float">
+            <div className="mb-4 flex items-center gap-2 text-foreground">
+              <Stethoscope className="h-5 w-5 text-accent-foreground" />
+              <h2 className="text-lg font-semibold">Conviértete en cuidador</h2>
+            </div>
+            <p className="mb-5 text-sm text-muted-foreground">
+              Empieza a ofrecer tus servicios como cuidador. Los datos de cobro (Stripe) se configuran después,
+              cuando quieras.
+            </p>
+
+            <p className="mb-5 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+              Para aparecer en las búsquedas e inscribirte en anuncios tendrás que verificar tu identidad con tu
+              DNI o NIE desde tu perfil.
+            </p>
+            <button
+              type="button"
+              onClick={handleConvertirse}
+              disabled={convirtiendo}
+              className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
+            >
+              {convirtiendo ? "Enviando..." : "Convertirme en cuidador"}
+            </button>
+          </div>
+        )}
+
+        {user.rol === "CUIDADOR" && (
+          <div className="rounded-2xl bg-card p-6 shadow-float">
+            <div className="mb-4 flex items-center gap-2 text-foreground">
+              <ShieldCheck className="h-5 w-5 text-accent-foreground" />
+              <h2 className="text-lg font-semibold">Datos de cobro</h2>
+            </div>
+
+            {user.stripeCobrosHabilitados ? (
+              <>
+                <div className="mb-4 flex items-start gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    Datos de cobro completados. Recibirás el dinero de cada cuidado en tu cuenta bancaria cuando el
+                    paciente/familiar lo confirme.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleVerificarStripe}
+                  disabled={verificando}
+                  className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
+                >
+                  {verificando ? "Redirigiendo a Stripe..." : "Gestionar datos de cobro en Stripe"}
+                </button>
+              </>
+            ) : (
+              <>
+                {comprobandoCobro && (
+                  <div className="mb-4 flex items-start gap-2 rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+                    <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>Stripe está comprobando tus datos. Puede tardar unos segundos; esta pantalla se actualizará sola.</span>
+                  </div>
+                )}
+                <div className="mb-4 flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    Todavía no has completado tus datos de cobro. Puedes inscribirte y aceptar cuidados sin ellos, pero{" "}
+                    <strong>no recibirás el dinero hasta que los completes</strong>: se queda retenido y se te entrega en
+                    cuanto termines. Los datos los recoge Stripe (identidad y cuenta bancaria).
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleVerificarStripe}
+                  disabled={verificando}
+                  className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
+                >
+                  {verificando ? "Redirigiendo a Stripe..." : "Completar datos de cobro"}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
-
-      {/* Datos personales */}
-      <div className="rounded-2xl bg-card p-6 shadow-float">
-        <div className="mb-4 flex items-center gap-2 text-foreground">
-          <User className="h-5 w-5 text-accent-foreground" />
-          <h2 className="text-lg font-semibold">Datos personales</h2>
-        </div>
-
-        <form onSubmit={handleGuardarDatos} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <label htmlFor="nombre" className="text-sm font-medium text-foreground">Nombre</label>
-              <input
-                id="nombre"
-                type="text"
-                value={nombre}
-                disabled={datosCongelados}
-                onChange={(e) => setNombre(e.target.value)}
-                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="apellidos" className="text-sm font-medium text-foreground">Apellidos</label>
-              <input
-                id="apellidos"
-                type="text"
-                value={apellidos}
-                disabled={datosCongelados}
-                onChange={(e) => setApellidos(e.target.value)}
-                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
-              />
-            </div>
-          </div>
-
-          {datosCongelados && (
-            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Lock className="h-3 w-3 shrink-0" />
-              {user.estadoVerificacion === "APROBADA"
-                ? "Nombre y apellidos verificados: no se pueden modificar."
-                : "Nombre y apellidos bloqueados mientras se revisa tu identidad."}
-            </p>
-          )}
-
-          <div className="space-y-1.5">
-            <label htmlFor="telefono" className="text-sm font-medium text-foreground">
-              Teléfono <span className="text-muted-foreground">(opcional)</span>
-            </label>
-            <input
-              id="telefono"
-              type="tel"
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
-              placeholder="+34 600 000 000"
-              className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={guardando}
-            className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
-          >
-            {guardando ? "Guardando..." : "Guardar cambios"}
-          </button>
-        </form>
-      </div>
-
-      <SeccionApariencia />
-
-      {user.rol === "CUIDADOR" && (
-        <div className="rounded-2xl bg-card p-6 shadow-float">
-          <SeccionVerificacionIdentidad user={user} onVerificar={abrirModalVerificacion} />
-        </div>
-      )}
-
-      {user.rol === "CUIDADOR" && (
-        <ModalVerificacionIdentidad
-          key={clavesModalVerificacion}
-          open={modalVerificacionAbierta}
-          onOpenChange={setModalVerificacionAbierta}
-          nombre={user.nombre}
-          apellidos={user.apellidos}
-          tipoDocumentoInicial={user.tipoDocumento}
-          numeroDocumentoInicial={user.numeroDocumento}
-          onEnviar={handleEnviarVerificacion}
-          enviando={enviandoVerificacion}
-        />
-      )}
-
-      {user.rol === "CUIDADOR" && (
-        <div className="rounded-2xl bg-card p-6 shadow-float">
-          <SeccionTarifa tarifaInicial={user.tarifaHora} />
-        </div>
-      )}
-
-      {user.rol === "CUIDADOR" && (
-        <div className="rounded-2xl bg-card p-6 shadow-float">
-          <SeccionHospitales hospitalesIniciales={user.hospitalesTrabajo ?? []} />
-        </div>
-      )}
-
-      {user.rol === "USUARIO" && (
-        <div className="rounded-2xl bg-card p-6 shadow-float">
-          <div className="mb-4 flex items-center gap-2 text-foreground">
-            <Stethoscope className="h-5 w-5 text-accent-foreground" />
-            <h2 className="text-lg font-semibold">Conviértete en cuidador</h2>
-          </div>
-          <p className="mb-5 text-sm text-muted-foreground">
-            Empieza a ofrecer tus servicios como cuidador. Los datos de cobro (Stripe) se configuran después,
-            cuando quieras.
-          </p>
-
-          <p className="mb-5 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-            Para aparecer en las búsquedas e inscribirte en anuncios tendrás que verificar tu identidad con tu
-            DNI o NIE desde tu perfil.
-          </p>
-          <button
-            type="button"
-            onClick={handleConvertirse}
-            disabled={convirtiendo}
-            className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
-          >
-            {convirtiendo ? "Enviando..." : "Convertirme en cuidador"}
-          </button>
-        </div>
-      )}
-
-      {user.rol === "CUIDADOR" && (
-        <div className="rounded-2xl bg-card p-6 shadow-float">
-          <div className="mb-4 flex items-center gap-2 text-foreground">
-            <ShieldCheck className="h-5 w-5 text-accent-foreground" />
-            <h2 className="text-lg font-semibold">Datos de cobro</h2>
-          </div>
-
-          {user.stripeCobrosHabilitados ? (
-            <>
-              <div className="mb-4 flex items-start gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>
-                  Datos de cobro completados. Recibirás el dinero de cada cuidado en tu cuenta bancaria cuando el
-                  paciente/familiar lo confirme.
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={handleVerificarStripe}
-                disabled={verificando}
-                className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
-              >
-                {verificando ? "Redirigiendo a Stripe..." : "Gestionar datos de cobro en Stripe"}
-              </button>
-            </>
-          ) : (
-            <>
-              {comprobandoCobro && (
-                <div className="mb-4 flex items-start gap-2 rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
-                  <Clock className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>Stripe está comprobando tus datos. Puede tardar unos segundos; esta pantalla se actualizará sola.</span>
-                </div>
-              )}
-              <div className="mb-4 flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>
-                  Todavía no has completado tus datos de cobro. Puedes inscribirte y aceptar cuidados sin ellos, pero{" "}
-                  <strong>no recibirás el dinero hasta que los completes</strong>: se queda retenido y se te entrega en
-                  cuanto termines. Los datos los recoge Stripe (identidad y cuenta bancaria).
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={handleVerificarStripe}
-                disabled={verificando}
-                className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
-              >
-                {verificando ? "Redirigiendo a Stripe..." : "Completar datos de cobro"}
-              </button>
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -456,7 +458,7 @@ function SeccionVerificacionIdentidad({ user, onVerificar }: { user: AuthUser; o
       )}
 
       {estado === "PENDIENTE" && (
-        <div className="flex items-start gap-2 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+        <div className="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
           <Clock className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
             Tu solicitud

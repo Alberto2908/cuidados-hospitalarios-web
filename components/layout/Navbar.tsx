@@ -222,7 +222,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md">
-      <div className="mx-auto grid h-16 max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 sm:px-6 lg:px-8">
+      <div className="page-container grid h-16 grid-cols-[auto_1fr_auto] items-center gap-3 md:grid-cols-[1fr_auto_1fr]">
 
         {/* ── Logo ── */}
         <Link href="/" className="flex items-center gap-2 rounded-full bg-card px-3.5 py-2 shadow-soft shrink-0 justify-self-start">
@@ -258,7 +258,7 @@ export default function Navbar() {
                     {link.label}
                     {(notificacionesPorHref[link.href] ?? 0) > 0 && (
                       <span
-                        className={`flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[10px] font-semibold ${
+                        className={`flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[11px] font-semibold ${
                           activo ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"
                         }`}
                       >
@@ -282,7 +282,7 @@ export default function Navbar() {
                 className="flex items-center gap-2 rounded-full bg-card py-1.5 pl-1.5 pr-3 shadow-soft transition-shadow hover:shadow-float"
               >
                 {/* Avatar inicial */}
-                <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
+                <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
                   {user.nombre[0]}{user.apellidos[0]}
                   {avisoVerificacion && (
                     <span
@@ -357,13 +357,13 @@ export default function Navbar() {
             <div className="flex items-center gap-1 rounded-full bg-card p-1 shadow-soft">
               <Link
                 href="/login"
-                className="rounded-full px-3.5 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                className="whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 Iniciar sesión
               </Link>
               <Link
                 href="/registro"
-                className="rounded-full bg-primary px-3.5 py-2 text-[13px] font-medium text-primary-foreground shadow-primary transition-colors hover:bg-primary/90"
+                className="whitespace-nowrap rounded-full bg-primary px-3.5 py-2 text-[13px] font-medium text-primary-foreground shadow-primary transition-colors hover:bg-primary/90"
               >
                 Crear cuenta
               </Link>
@@ -404,7 +404,7 @@ export default function Navbar() {
                   {link.label}
                   {(notificacionesPorHref[link.href] ?? 0) > 0 && (
                     <span
-                      className={`flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[10px] font-semibold ${
+                      className={`flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[11px] font-semibold ${
                         activo ? "bg-primary-foreground text-primary" : "bg-primary text-primary-foreground"
                       }`}
                     >

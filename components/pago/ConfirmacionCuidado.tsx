@@ -326,7 +326,7 @@ function FilaTramo({
 }) {
   const sinTerminar = tramo.estado === "pendiente" && !tramo.confirmable;
   return (
-    <li className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-card px-3 py-2 text-sm">
+    <li className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-sunken px-3 py-2 shadow-inset-soft text-sm">
       <div className="min-w-0">
         <p className="font-medium text-foreground">{formatearFecha(tramo.fecha)}</p>
         <p className="text-xs text-muted-foreground">
@@ -334,7 +334,7 @@ function FilaTramo({
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_TRAMO_COLOR[tramo.estado]}`}>
+        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_TRAMO_COLOR[tramo.estado]}`}>
           {ESTADO_TRAMO_LABEL[tramo.estado]}
         </span>
         {tramo.confirmable && rol === "paciente" && (

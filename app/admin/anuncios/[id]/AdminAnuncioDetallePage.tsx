@@ -76,7 +76,7 @@ export default function AdminAnuncioDetallePage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-container py-8">
       <button
         type="button"
         onClick={() => router.back()}
@@ -180,7 +180,7 @@ export default function AdminAnuncioDetallePage() {
                   <li key={p.id} className="rounded-xl bg-surface-sunken p-3 shadow-inset-soft">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-medium text-foreground">{p.cuidadorNombre}</p>
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_INSCRIPCION_COLOR[p.estado]}`}>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_INSCRIPCION_COLOR[p.estado]}`}>
                         {ESTADO_INSCRIPCION_LABEL[p.estado]}
                       </span>
                     </div>

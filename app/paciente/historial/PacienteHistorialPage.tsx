@@ -249,7 +249,7 @@ function TarjetaMiAnuncio({
         {anuncio.franjas.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {anuncio.franjas.map((f, i) => (
-              <span key={i} className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground">
+              <span key={i} className="rounded-full bg-muted px-2 py-0.5 text-xs text-foreground">
                 {formatearFecha(f.fecha)} · {f.diaEntero ? "Día entero" : `${f.horaDesde}–${f.horaHasta}`}
               </span>
             ))}
@@ -274,18 +274,18 @@ function TarjetaMiAnuncio({
               </span>
             )}
             {(anuncio.puedeValorar || (anuncio.estadoServicio === "pendiente_confirmacion" && !anuncio.incidenciaAbierta)) && (
-              <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+              <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-semibold text-primary-foreground">
                 1
               </span>
             )}
             {anuncio.estadoServicio ? (
               <span
-                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_SERVICIO_COLOR[estadoMostrado ?? anuncio.estadoServicio]}`}
+                className={`rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_SERVICIO_COLOR[estadoMostrado ?? anuncio.estadoServicio]}`}
               >
                 {ESTADO_SERVICIO_LABEL[estadoMostrado ?? anuncio.estadoServicio]}
               </span>
             ) : (
-              <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_COLOR[anuncio.estado]}`}>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_COLOR[anuncio.estado]}`}>
                 {ESTADO_LABEL[anuncio.estado]}
               </span>
             )}

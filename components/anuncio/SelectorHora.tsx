@@ -138,7 +138,7 @@ export default function SelectorHora({
                     <span className="flex min-w-0 flex-col">
                       <span className="whitespace-nowrap">{accionExtra.etiqueta}</span>
                       {accionExtra.motivo ? (
-                        <span className="text-[11px] text-muted-foreground">{accionExtra.motivo}</span>
+                        <span className="text-xs text-muted-foreground">{accionExtra.motivo}</span>
                       ) : null}
                     </span>
                     {accionExtra.marcada ? <Check className="ml-auto size-4" /> : null}

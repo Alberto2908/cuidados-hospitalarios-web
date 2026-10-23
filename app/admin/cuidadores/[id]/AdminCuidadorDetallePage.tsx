@@ -20,7 +20,7 @@ export default function AdminCuidadorDetallePage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-container py-8">
       <button
         type="button"
         onClick={() => router.back()}

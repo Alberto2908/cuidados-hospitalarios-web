@@ -168,14 +168,14 @@ export default function AnuncioDetallePage() {
 
   if (anuncioQuery.isLoading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-16 text-center text-sm text-muted-foreground">
+      <div className="page-container py-16 text-center text-sm text-muted-foreground">
         Cargando anuncio…
       </div>
     );
   }
   if (!anuncio) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-16 text-center text-sm text-muted-foreground">
+      <div className="page-container py-16 text-center text-sm text-muted-foreground">
         No se ha encontrado el anuncio.
       </div>
     );
@@ -922,7 +922,7 @@ function EstadoInscripcionBadge({
   };
   return (
     <span
-      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${color[inscripcion.estado]}`}
+      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${color[inscripcion.estado]}`}
     >
       {etiquetaEstadoInscripcion(inscripcion, esCuidador)}
     </span>

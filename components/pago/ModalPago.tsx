@@ -59,7 +59,7 @@ export default function ModalPago({ open, onOpenChange, servicioId, onPagado }: 
         </DialogHeader>
 
         {!stripeConfigurado ? (
-          <p className="rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+          <p className="rounded-xl bg-surface-sunken px-4 py-3 shadow-inset-soft text-sm text-muted-foreground">
             El pago no está configurado todavía en este entorno.
           </p>
         ) : intentoQuery.isPending ? (

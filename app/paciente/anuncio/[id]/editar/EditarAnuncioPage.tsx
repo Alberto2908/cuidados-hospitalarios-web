@@ -40,7 +40,7 @@ export default function EditarAnuncioPage() {
 
   if (anuncioQuery.isLoading || !anuncio || !puedeEditar) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center text-sm text-muted-foreground">
+      <div className="page-container py-16 text-center text-sm text-muted-foreground">
         Cargando anuncio…
       </div>
     );

@@ -50,7 +50,7 @@ export default function ModalRevisionIdentidad({ verificacion, open, onOpenChang
           </DialogHeader>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-xl bg-muted/50 px-4 py-2.5">
+            <div className="rounded-xl bg-surface-sunken px-4 py-2.5 shadow-inset-soft">
               <p className="text-xs text-muted-foreground">Documento indicado por el usuario</p>
               <p className="text-lg font-semibold tracking-wide text-foreground">
                 {verificacion.tipoDocumento} {verificacion.numeroDocumento}
@@ -131,7 +131,7 @@ function ImagenDocumento({
   return (
     <figure>
       <figcaption className="mb-1.5 text-sm font-medium text-foreground">{titulo}</figcaption>
-      <div className="flex h-44 items-center justify-center overflow-hidden rounded-xl bg-muted/50">
+      <div className="flex h-44 items-center justify-center overflow-hidden rounded-xl bg-surface-sunken shadow-inset-soft">
         {url ? (
           <a href={url} target="_blank" rel="noreferrer" title="Abrir a tamaño completo" className="h-full w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}

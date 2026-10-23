@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { FiltroDeslizante } from "@/components/ui/filtro-deslizante";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Search, UserCheck, Star, UserX } from "lucide-react";
@@ -63,21 +65,15 @@ export default function AdminCuidadoresPage() {
             className="h-10 w-full rounded-xl border-0 bg-card pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground shadow-soft outline-none ring-ring focus:ring-2"
           />
         </div>
-        <div className="inline-flex gap-1 rounded-full bg-card p-1 shadow-soft">
-          {(["todos", "activo", "pendiente", "suspendido", "baja"] as const).map((e) => (
-            <button
-              key={e}
-              onClick={() => setFiltroEstado(e)}
-              className={`rounded-full px-3.5 py-2 text-xs font-medium transition-colors ${
-                filtroEstado === e
-                  ? "bg-secondary text-secondary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {e === "todos" ? "Todos" : ESTADO_USUARIO_LABEL[e]}
-            </button>
-          ))}
-        </div>
+        <FiltroDeslizante
+          ariaLabel="Filtrar por estado"
+          value={filtroEstado}
+          onChange={setFiltroEstado}
+          options={(["todos", "activo", "pendiente", "suspendido", "baja"] as const).map((e) => ({
+            value: e,
+            label: e === "todos" ? "Todos" : ESTADO_USUARIO_LABEL[e],
+          }))}
+        />
       </div>
 
       {/* Tabla */}
@@ -112,7 +108,7 @@ export default function AdminCuidadoresPage() {
                   <tr
                     key={c.id}
                     onClick={() => router.push(`/admin/cuidadores/${c.id}`)}
-                    className="cursor-pointer transition-colors hover:bg-muted/30"
+                    className="cursor-pointer transition-colors hover:bg-accent/60 focus-within:bg-accent/60"
                   >
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
@@ -120,7 +116,11 @@ export default function AdminCuidadoresPage() {
                           {c.nombre[0]}{c.apellidos[0]}
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">{c.nombre} {c.apellidos}</p>
+                          <p className="font-medium text-foreground">
+                            <Link href={`/admin/cuidadores/${c.id}`} onClick={(e) => e.stopPropagation()} className="rounded outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">
+                              {c.nombre} {c.apellidos}
+                            </Link>
+                          </p>
                           <p className="text-xs text-muted-foreground">{c.email}</p>
                         </div>
                       </div>

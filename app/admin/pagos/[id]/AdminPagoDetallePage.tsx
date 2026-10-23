@@ -14,9 +14,11 @@ import { formatearEuros } from "@/lib/pago/formato";
 import {
   ESTADO_PAGO_ADMIN_COLOR,
   ESTADO_PAGO_ADMIN_LABEL,
+  ESTADO_SERVICIO_ADMIN_COLOR,
   ESTADO_SERVICIO_ADMIN_LABEL,
   MOTIVO_TITULO,
 } from "@/lib/pago/estados";
+import { cn } from "@/lib/utils";
 
 const ESTADO_TRAMO_LABEL: Record<EstadoTramo, string> = {
   pendiente: "Sin confirmar",
@@ -63,10 +65,10 @@ function Contenido({ pago }: { pago: PagoDetalle }) {
           <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${ESTADO_PAGO_ADMIN_COLOR[pago.estadoPago]}`}>
             {ESTADO_PAGO_ADMIN_LABEL[pago.estadoPago]}
           </span>
-          <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+          <span className={cn("rounded-full px-2.5 py-1 text-xs", ESTADO_SERVICIO_ADMIN_COLOR[pago.estado])}>
             {ESTADO_SERVICIO_ADMIN_LABEL[pago.estado]}
           </span>
-          <Link href={`/admin/anuncios/${pago.anuncioId}`} className="text-xs text-primary underline-offset-2 hover:underline">
+          <Link href={`/admin/anuncios/${pago.anuncioId}`} className="text-xs text-accent-foreground underline-offset-2 hover:underline dark:text-primary">
             Ver el anuncio
           </Link>
         </div>
@@ -202,7 +204,7 @@ function Contenido({ pago }: { pago: PagoDetalle }) {
           </p>
           <ul className="flex flex-col gap-1.5">
             {pago.tramos.map((t) => (
-              <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm">
+              <li key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-sunken px-3 py-2 shadow-inset-soft text-sm">
                 <span className="font-medium text-foreground">
                   {formatearFecha(t.fecha)} <span className="font-normal text-muted-foreground">· {t.horas} h</span>
                 </span>

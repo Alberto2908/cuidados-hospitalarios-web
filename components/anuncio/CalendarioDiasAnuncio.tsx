@@ -135,7 +135,7 @@ export default function CalendarioDiasAnuncio({ franjas, onChange }: Props) {
         }}
       />
       {dias.length > 0 ? (
-        <p className="mt-auto border-t border-border px-2 pt-2 pb-1 text-center text-[11px] text-muted-foreground">
+        <p className="mt-auto border-t border-border px-2 pt-2 pb-1 text-center text-xs text-muted-foreground">
           {dias.length} {dias.length === 1 ? "día" : "días"} seleccionado
           {dias.length === 1 ? "" : "s"}
         </p>

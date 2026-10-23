@@ -69,10 +69,10 @@
   --secondary: oklch(0.29 0.05 265);           /* píldora "activa" oscura (filtro Todos) */
   --secondary-foreground: oklch(0.99 0 0);
   --muted: oklch(0.957 0.008 260);
-  --muted-foreground: oklch(0.52 0.035 265);   /* ≥4.5:1 sobre card y background */
+  --muted-foreground: oklch(0.50 0.035 265);   /* ≥4.5:1 sobre card, background y wells (surface-sunken) */
   --accent: oklch(0.95 0.03 290);              /* #efeaff */
   --accent-foreground: oklch(0.47 0.2 285);    /* #5b45c9 */
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(0.53 0.245 27.325);       /* ≥4.5:1 como texto y en el boton destructive */
   --border: oklch(0.92 0.012 260);
   --input: oklch(0.92 0.012 260);
   --ring: oklch(0.58 0.21 285);

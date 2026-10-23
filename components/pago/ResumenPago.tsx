@@ -121,7 +121,7 @@ export default function ResumenPago({
 
   return (
     <div className={`${className} flex flex-col gap-2`}>
-      <div className="flex flex-col gap-1.5 rounded-xl bg-muted/50 p-3 text-sm text-foreground">
+      <div className="flex flex-col gap-1.5 rounded-xl bg-surface-sunken p-3 shadow-inset-soft text-sm text-foreground">
         <div className="flex items-start gap-2">
           <Wallet className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <p>{textoPago(servicio, rol)}</p>

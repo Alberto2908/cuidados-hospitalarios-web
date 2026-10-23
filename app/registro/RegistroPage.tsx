@@ -230,9 +230,9 @@ export default function RegistroPage() {
             <input type="checkbox" required className="mt-0.5 h-3.5 w-3.5 rounded border-border accent-primary" />
             <span>
               Acepto los{" "}
-              <Link href="/legal/aviso" className="text-primary hover:underline">Términos y condiciones</Link>
+              <Link href="/legal/aviso" className="text-accent-foreground hover:underline dark:text-primary">Términos y condiciones</Link>
               {" "}y la{" "}
-              <Link href="/legal/privacidad" className="text-primary hover:underline">Política de privacidad</Link>
+              <Link href="/legal/privacidad" className="text-accent-foreground hover:underline dark:text-primary">Política de privacidad</Link>
             </span>
           </label>
 
@@ -252,7 +252,7 @@ export default function RegistroPage() {
         {/* Enlace a login */}
         <p className="mt-6 text-center text-sm text-muted-foreground">
           ¿Ya tienes cuenta?{" "}
-          <Link href="/login" className="font-medium text-primary hover:underline">
+          <Link href="/login" className="font-medium text-accent-foreground hover:underline dark:text-primary">
             Iniciar sesión
           </Link>
         </p>

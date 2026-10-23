@@ -26,6 +26,14 @@ export const ESTADO_SERVICIO_ADMIN_LABEL: Record<EstadoServicio, string> = {
   cancelado: "Cancelado",
 };
 
+export const ESTADO_SERVICIO_ADMIN_COLOR: Record<EstadoServicio, string> = {
+  aceptado: "bg-muted text-muted-foreground",
+  confirmado: "bg-muted text-muted-foreground",
+  pendiente_confirmacion: "bg-muted text-muted-foreground",
+  completado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
+};
+
 export const MOTIVO_TITULO: Record<string, string> = {
   CANCELACION_TARDIA: "Cancelado con el pago hecho",
   SIN_CONFIRMAR: "Nadie ha confirmado el cuidado",

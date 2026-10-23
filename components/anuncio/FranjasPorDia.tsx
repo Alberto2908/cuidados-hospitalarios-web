@@ -207,17 +207,17 @@ export default function FranjasPorDia({ franjas, onChange }: Props) {
                   </p>
                   {/* Resumen del día y, a su derecha, las etiquetas de continuidad (pasan a otra línea si no caben) */}
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <p className="inline-flex items-center rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium tabular-nums text-accent-foreground">
+                    <p className="inline-flex items-center rounded-full bg-accent px-2 py-0.5 text-xs font-medium tabular-nums text-accent-foreground">
                       {resumenDia(turnos)}
                     </p>
                     {vieneDeAntes ? (
-                      <p className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      <p className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                         <Moon className="size-3" />
                         Continúa del día anterior
                       </p>
                     ) : null}
                     {continuaDespues ? (
-                      <p className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      <p className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                         <Moon className="size-3" />
                         Continúa el día siguiente
                       </p>
@@ -263,7 +263,7 @@ export default function FranjasPorDia({ franjas, onChange }: Props) {
                       className="flex shrink-0 items-end gap-2"
                     >
                       {turnosConIndex.length > 1 ? (
-                        <span className="mb-2 w-14 shrink-0 text-[11px] font-medium text-muted-foreground">
+                        <span className="mb-2 w-14 shrink-0 text-xs font-medium text-muted-foreground">
                           Turno {turnoIdx + 1}
                         </span>
                       ) : null}

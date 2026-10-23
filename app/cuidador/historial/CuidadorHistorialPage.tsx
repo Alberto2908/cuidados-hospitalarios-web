@@ -234,7 +234,7 @@ function TarjetaMiInscripcion({
         {inscripcion.franjas.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {inscripcion.franjas.map((f, i) => (
-              <span key={i} className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground">
+              <span key={i} className="rounded-full bg-muted px-2 py-0.5 text-xs text-foreground">
                 {formatearFecha(f.fecha)} · {f.diaEntero ? "Día entero" : `${f.horaDesde}–${f.horaHasta}`}
               </span>
             ))}
@@ -253,12 +253,12 @@ function TarjetaMiInscripcion({
             )}
             {inscripcion.estadoServicio ? (
               <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_SERVICIO_COLOR[estadoMostrado ?? ""] ?? ESTADO_COLOR[inscripcion.estado]}`}
+                className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_SERVICIO_COLOR[estadoMostrado ?? ""] ?? ESTADO_COLOR[inscripcion.estado]}`}
               >
                 {ESTADO_SERVICIO_LABEL[estadoMostrado ?? ""] ?? estadoMostrado}
               </span>
             ) : (
-              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_COLOR[inscripcion.estado]}`}>
+              <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_COLOR[inscripcion.estado]}`}>
                 {etiquetaEstadoInscripcion(inscripcion, true)}
               </span>
             )}

@@ -108,7 +108,7 @@ export default function LoginPage() {
               <input type="checkbox" className="h-3.5 w-3.5 rounded border-border accent-primary" />
               Recordarme
             </label>
-            <Link href="/recuperar" className="text-primary hover:underline">
+            <Link href="/recuperar" className="text-accent-foreground hover:underline dark:text-primary">
               ¿Olvidaste tu contraseña?
             </Link>
           </div>
@@ -125,7 +125,7 @@ export default function LoginPage() {
         {/* Enlace a registro */}
         <p className="mt-6 text-center text-sm text-muted-foreground">
           ¿No tienes cuenta?{" "}
-          <Link href="/registro" className="font-medium text-primary hover:underline">
+          <Link href="/registro" className="font-medium text-accent-foreground hover:underline dark:text-primary">
             Crear cuenta
           </Link>
         </p>
