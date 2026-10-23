@@ -25,6 +25,8 @@ import {
 } from "@/lib/api/servicios";
 import { Textarea } from "@/components/ui/textarea";
 import { formatearFecha, formatearFechaHora } from "@/lib/fecha";
+import { textoPlazoRespuesta } from "@/lib/incidencia/plazo";
+import { useAhora } from "@/lib/ui/useAhora";
 import { formatearEuros } from "@/lib/pago/formato";
 
 const ESTADO_TRAMO_LABEL: Record<EstadoTramo, string> = {
@@ -66,6 +68,8 @@ export default function ConfirmacionCuidado({ servicioId, rol, onCambio }: Confi
   const [confirmando, setConfirmando] = useState(false);
   const [incidenciaAbierta, setIncidenciaAbierta] = useState(false);
   const [respuestaAbierta, setRespuestaAbierta] = useState(false);
+  // Reloj para que el tiempo que queda al cuidador se actualice solo (se muestra en horas).
+  const ahora = useAhora(60_000);
 
   const tramosQuery = useQuery({
     queryKey: ["servicio", servicioId, "tramos"],
@@ -146,6 +150,9 @@ export default function ConfirmacionCuidado({ servicioId, rol, onCambio }: Confi
         plataforma la revisará y decidirá el reparto del pago; mientras tanto el dinero sigue retenido y no se puede
         confirmar.
         {incidencia.incidenciaRespuestaCuidador ? " El cuidador ya ha aportado su versión." : ""}
+        {!incidencia.incidenciaRespuestaCuidador && incidencia.incidenciaRespuestaLimite
+          ? ` ${textoPlazoRespuesta(incidencia.incidenciaRespuestaLimite, ahora, "tercero")}`
+          : ""}
       </p>
     );
   }
@@ -159,6 +166,9 @@ export default function ConfirmacionCuidado({ servicioId, rol, onCambio }: Confi
             <p>{TEXTO_MOTIVO_CUIDADOR[incidencia.incidenciaMotivo ?? "otro"]}</p>
             <p>«{incidencia.incidenciaDescripcion}».</p>
             <p>La plataforma la está revisando y decidirá el reparto del pago.</p>
+            {!incidencia.incidenciaRespuestaCuidador && incidencia.incidenciaRespuestaLimite && (
+              <p className="font-medium">{textoPlazoRespuesta(incidencia.incidenciaRespuestaLimite, ahora, "cuidador")}</p>
+            )}
             {incidencia.incidenciaRespuestaCuidador && (
               <p>
                 <span className="font-medium">Tu versión:</span> «{incidencia.incidenciaRespuestaCuidador}»

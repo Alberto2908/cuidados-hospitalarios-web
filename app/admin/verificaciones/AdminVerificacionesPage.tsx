@@ -107,13 +107,13 @@ export default function AdminVerificacionesPage() {
                           <Button
                             type="button"
                             size="sm"
-                            variant="outline"
+                            variant="destructive"
                             disabled={ocupada}
                             onClick={() => setRechazando(v)}
                           >
                             Rechazar
                           </Button>
-                          <Button type="button" size="sm" disabled={ocupada} onClick={() => handleAprobar(v)}>
+                          <Button type="button" size="sm" variant="success" disabled={ocupada} onClick={() => handleAprobar(v)}>
                             {ocupada && aprobar.isPending ? "Verificando…" : "Verificar"}
                           </Button>
                         </div>

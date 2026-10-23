@@ -66,10 +66,10 @@ export default function PanelDecisionPago({ pago }: { pago: PagoDetalle }) {
         title: "Reparto aplicado",
         description:
           reparto.familia > 0 && reparto.cuidador > 0
-            ? `${formatearEuros(reparto.familia)} para la familia y ${formatearEuros(reparto.cuidador)} para el cuidador.`
+            ? `Familia ${formatearEuros(reparto.familia)} · Cuidador ${formatearEuros(reparto.cuidador)}`
             : reparto.familia > 0
-              ? `${formatearEuros(reparto.familia)} devueltos a la familia.`
-              : `${formatearEuros(reparto.cuidador)} entregados al cuidador.`,
+              ? `Familia ${formatearEuros(reparto.familia)}`
+              : `Cuidador ${formatearEuros(reparto.cuidador)}`,
       });
       setConfirmando(false);
       queryClient.setQueryData(["admin", "pagos", "detalle", pago.servicioId], detalle);
