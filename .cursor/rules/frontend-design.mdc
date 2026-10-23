@@ -125,7 +125,7 @@ app/<ruta>/XxxPage.tsx       → "use client" y toda la UI
 
 ### Contenedor de página (idéntico en todas las rutas)
 ```tsx
-<div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+<div className="page-container py-8">
   <div className="mb-6">
     <h1 className="text-2xl font-bold text-foreground">Título</h1>
     <p className="mt-1 text-sm text-muted-foreground">Subtítulo de una línea</p>
@@ -134,9 +134,12 @@ app/<ruta>/XxxPage.tsx       → "use client" y toda la UI
 </div>
 ```
 
-`max-w-7xl` es el ancho del proyecto (navbar y footer ya lo usan). No mezcles
-`max-w-5xl`/`max-w-6xl` en páginas nuevas; excepción: `max-w-2xl` centrado en
-portada/auth.
+`page-container` es la utilidad estándar de la app (definida en `app/globals.css`):
+ancho máximo `7xl` y márgenes laterales `px-4 / sm:px-6 / lg:px-8`, los mismos del
+Dashboard, del navbar y del footer. **Úsala siempre en el elemento raíz de una página
+nueva** y añade solo el padding vertical (`py-8` o `py-10`). No repitas esas clases a
+mano ni mezcles `max-w-5xl`/`max-w-6xl` en el contenedor de una página; excepción:
+`max-w-2xl` centrado en portada/auth.
 
 ### Card / sección
 `components/anuncio/FormSection.tsx` es la referencia canónica:
@@ -178,6 +181,15 @@ en `z-index` mayor que 50 salvo overlays de diálogo (los gestiona base-ui).
   la primitiva. (El dropdown a mano de `Navbar.tsx` es deuda heredada, no un
   patrón a copiar: para menús nuevos usa `Popover`/`Menu` de base-ui.)
 - Instales otra librería de UI, de iconos o de animación.
+
+### Botones de acción: SIEMPRE a la derecha
+Los botones de acción de una tarjeta, aviso o recuadro (Confirmar, Abrir incidencia,
+Aportar mi versión, Retirar, Pagar, Borrar, Ver perfil…) van **pegados a la derecha**, en
+la misma línea que el texto cuando cabe: texto a la izquierda y botones a la derecha
+(`flex flex-wrap items-center justify-between gap-3`), o `flex justify-end` si el botón
+va solo. Varios botones juntos: a la derecha, con `gap-2`. Un botón nunca queda
+suelto a la izquierda bajo un texto. (Los pies de los diálogos ya van a la derecha
+con `DialogFooter`.)
 
 ### Iconos
 Solo `lucide-react`. Tamaños: `h-4 w-4` en línea de texto y navegación,
@@ -295,6 +307,7 @@ sileo.warning({ title: "Permiso denegado",   description: "Activa la ubicación 
 □ ¿Rol coloreado con sky/emerald/violet y su par `dark:`?
 □ ¿Reutilizas `components/ui/*` en vez de reimplementar el control?
 □ ¿Iconos solo de lucide, con tamaño de la escala y `aria-label` si van solos?
+□ ¿Los botones de acción van alineados a la derecha (sección 4)?
 □ ¿La ruta sigue el patrón `page.tsx` (re-export) + `XxxPage.tsx` (`"use client"`)?
 □ ¿Contenedor `mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8`?
 □ ¿Formulario con zod en `lib/<dominio>/schema.ts`, mensajes en español y `Label` por campo?

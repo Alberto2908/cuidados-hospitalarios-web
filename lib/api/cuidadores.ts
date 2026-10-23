@@ -29,6 +29,26 @@ export interface CuidadorDetalle {
   cuidadorDesde: string;
   cuidadosRealizados: number;
   hospitales: Hospital[];
+  /** Turnos que ha cubierto como cuidador y terminaron bien (los más recientes). */
+  ultimosCuidadosRealizados: ItemCompletado[];
+  /** Total de anuncios que ha publicado como paciente/familiar y dio por cumplidos. */
+  anunciosCompletados: number;
+  ultimosAnunciosCompletados: ItemCompletado[];
+}
+
+/**
+ * Anuncio/turno terminado tal y como se ve en un perfil público. Se usa
+ * igual para "cuidados realizados" (lado cuidador) que para "anuncios
+ * completados" (lado paciente): es el mismo servicio visto desde cada parte.
+ */
+export interface ItemCompletado {
+  anuncioId: string;
+  titulo: string;
+  hospitalNombre: string;
+  hospitalCiudad: string;
+  /** Fin del turno (ISO datetime). */
+  completadoEn: string;
+  horas: number;
 }
 
 export interface PaginaCuidadores {

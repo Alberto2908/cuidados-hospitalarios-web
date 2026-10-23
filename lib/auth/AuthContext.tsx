@@ -3,10 +3,16 @@
 import { createContext, useContext, ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as authApi from "@/lib/auth/api";
-import type { ActualizarPerfilDatos, RegistroDatos, UsuarioActual } from "@/lib/auth/api";
+import type {
+  ActualizarPerfilDatos,
+  RegistroDatos,
+  TemaUsuario,
+  UsuarioActual,
+  VerificacionIdentidadDatos,
+} from "@/lib/auth/api";
 import type { Hospital } from "@/lib/mock/hospitales";
 
-export type { UserRole, UserEstado, UsuarioActual } from "@/lib/auth/api";
+export type { UserRole, UserEstado, UsuarioActual, TemaUsuario } from "@/lib/auth/api";
 export type AuthUser = UsuarioActual;
 
 const AUTH_QUERY_KEY = ["auth", "me"] as const;
@@ -21,11 +27,16 @@ interface AuthContextType {
   logout: () => void;
   actualizarPerfil: (datos: ActualizarPerfilDatos) => Promise<AuthUser>;
   convertirseCuidador: () => Promise<AuthUser>;
+  enviarVerificacionIdentidad: (datos: VerificacionIdentidadDatos) => Promise<AuthUser>;
+  marcarResultadoVerificacionVisto: () => Promise<AuthUser>;
   obtenerStripeOnboardingLink: () => Promise<{ url: string }>;
   sincronizarStripe: () => Promise<AuthUser>;
   cambiarContrasena: (actual: string, nueva: string) => Promise<void>;
+  verificarEmail: (codigo: string) => Promise<AuthUser>;
+  reenviarVerificacionEmail: () => Promise<void>;
   actualizarHospitales: (hospitalIds: string[]) => Promise<Hospital[]>;
   actualizarTarifaHora: (tarifaHora: number) => Promise<AuthUser>;
+  actualizarTema: (tema: TemaUsuario) => Promise<AuthUser>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -44,6 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     staleTime: 5 * 60 * 1000,
     retry: false,
+    // Con la verificación de identidad pendiente se consulta de vez en cuando para
+    // enterarse pronto de la decisión del admin (notificación en el menú de usuario).
+    refetchInterval: (query) => (query.state.data?.estadoVerificacion === "PENDIENTE" ? 30 * 1000 : false),
   });
 
   const loginMutation = useMutation({
@@ -77,6 +91,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
   });
 
+  const verificacionIdentidadMutation = useMutation({
+    mutationFn: (datos: VerificacionIdentidadDatos) => authApi.enviarVerificacionIdentidad(datos),
+    onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
+  });
+
+  const resultadoVistoMutation = useMutation({
+    mutationFn: authApi.marcarResultadoVerificacionVisto,
+    onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
+  });
+
   const sincronizarStripeMutation = useMutation({
     mutationFn: authApi.sincronizarStripe,
     onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
@@ -85,6 +109,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const cambiarContrasenaMutation = useMutation({
     mutationFn: ({ actual, nueva }: { actual: string; nueva: string }) =>
       authApi.cambiarContrasena(actual, nueva),
+  });
+
+  const verificarEmailMutation = useMutation({
+    mutationFn: (codigo: string) => authApi.verificarEmail(codigo),
+    onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
   });
 
   const actualizarHospitalesMutation = useMutation({
@@ -101,6 +130,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
   });
 
+  const actualizarTemaMutation = useMutation({
+    mutationFn: (tema: TemaUsuario) => authApi.actualizarTema(tema),
+    onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
+  });
+
   return (
     <AuthContext.Provider
       value={{
@@ -113,11 +147,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout: () => logoutMutation.mutate(),
         actualizarPerfil: (datos) => actualizarPerfilMutation.mutateAsync(datos),
         convertirseCuidador: () => convertirseCuidadorMutation.mutateAsync(),
+        enviarVerificacionIdentidad: (datos) => verificacionIdentidadMutation.mutateAsync(datos),
+        marcarResultadoVerificacionVisto: () => resultadoVistoMutation.mutateAsync(),
         obtenerStripeOnboardingLink: () => authApi.obtenerStripeOnboardingLink(),
         sincronizarStripe: () => sincronizarStripeMutation.mutateAsync(),
         cambiarContrasena: (actual, nueva) => cambiarContrasenaMutation.mutateAsync({ actual, nueva }),
+        verificarEmail: (codigo) => verificarEmailMutation.mutateAsync(codigo),
+        reenviarVerificacionEmail: () => authApi.reenviarVerificacionEmail(),
         actualizarHospitales: (hospitalIds) => actualizarHospitalesMutation.mutateAsync(hospitalIds),
         actualizarTarifaHora: (tarifaHora) => actualizarTarifaHoraMutation.mutateAsync(tarifaHora),
+        actualizarTema: (tema) => actualizarTemaMutation.mutateAsync(tema),
       }}
     >
       {children}

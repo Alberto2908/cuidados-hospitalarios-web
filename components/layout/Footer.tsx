@@ -11,7 +11,7 @@ const legalLinks = [
 export default function Footer() {
   return (
     <footer className="bg-background">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="page-container py-10">
         <div className="flex flex-col items-center gap-6 text-center">
 
           {/* Logo */}

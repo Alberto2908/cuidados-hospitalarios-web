@@ -4,25 +4,32 @@ import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
-import { CalendarDays, MapPin, MessageSquare } from "lucide-react";
+import { CalendarDays, MapPin, MessageSquare, User, Wallet } from "lucide-react";
+import { estadoServicioMostrado, puedeRetirarseConPagoHecho, seccionVisible } from "@/lib/anuncio/horas";
+import { useAhora } from "@/lib/ui/useAhora";
+import { formatearFecha } from "@/lib/fecha";
+import { formatearEuros } from "@/lib/pago/formato";
+import { BOTON_NEGRO, ModalRespuestaIncidencia } from "@/components/pago/ConfirmacionCuidado";
+import { responderIncidenciaServicio } from "@/lib/api/servicios";
 import { Button } from "@/components/ui/button";
+import BotonVerPerfil from "@/components/perfil/BotonVerPerfil";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Estrellas } from "@/components/ui/estrellas";
 import {
-  etiquetaEstadoPostulacion,
-  misPostulacionesConSeccion,
-  retirarPostulacion,
-  type MiPostulacion,
-} from "@/lib/api/postulaciones";
+  etiquetaEstadoInscripcion,
+  misInscripcionesConSeccion,
+  retirarInscripcion,
+  type MiInscripcion,
+} from "@/lib/api/inscripciones";
 
-const ESTADO_COLOR: Record<MiPostulacion["estado"], string> = {
+const ESTADO_COLOR: Record<MiInscripcion["estado"], string> = {
   pendiente: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   aceptada: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   rechazada: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
   retirada: "bg-muted text-muted-foreground",
 };
 
-// Una vez la postulacion esta 'aceptada' (servicio creado), su propio
+// Una vez la inscripcion esta 'aceptada' (servicio creado), su propio
 // estado se queda en "Aceptado por ambas partes" para siempre aunque el
 // servicio avance a confirmado/completado/cancelado (ver V12 en el
 // backend) -asi que la tarjeta usa el estado del servicio, mas fino,
@@ -30,6 +37,8 @@ const ESTADO_COLOR: Record<MiPostulacion["estado"], string> = {
 const ESTADO_SERVICIO_LABEL: Record<string, string> = {
   aceptado: "Aceptado",
   confirmado: "Confirmado (pagado)",
+  en_curso: "En curso",
+  en_revision: "En revisión",
   pendiente_confirmacion: "Pendiente de confirmación",
   completado: "Completado",
   cancelado: "Cancelado",
@@ -38,6 +47,8 @@ const ESTADO_SERVICIO_LABEL: Record<string, string> = {
 const ESTADO_SERVICIO_COLOR: Record<string, string> = {
   aceptado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   confirmado: "bg-accent text-accent-foreground",
+  en_curso: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  en_revision: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
   pendiente_confirmacion: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   completado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
@@ -45,53 +56,68 @@ const ESTADO_SERVICIO_COLOR: Record<string, string> = {
 
 export default function CuidadorHistorialPage() {
   const queryClient = useQueryClient();
-  const { data: postulaciones, isLoading } = useQuery({
-    queryKey: ["postulaciones", "mias", "historial"],
-    queryFn: misPostulacionesConSeccion,
+  const { data: inscripciones, isLoading } = useQuery({
+    queryKey: ["inscripciones", "mias", "historial"],
+    queryFn: misInscripcionesConSeccion,
   });
 
   const retirarMutation = useMutation({
-    mutationFn: (id: string) => retirarPostulacion(id),
+    mutationFn: (id: string) => retirarInscripcion(id),
     onSuccess: () => {
-      sileo.success({ title: "Postulación retirada" });
-      queryClient.invalidateQueries({ queryKey: ["postulaciones", "mias", "historial"] });
+      sileo.success({ title: "Inscripción retirada" });
+      queryClient.invalidateQueries({ queryKey: ["inscripciones", "mias", "historial"] });
     },
     onError: (error: Error) => sileo.error({ title: "No se pudo retirar", description: error.message }),
   });
 
-  const activas = postulaciones?.filter((p) => p.seccion === "activo") ?? [];
-  const historial = postulaciones?.filter((p) => p.seccion === "historial") ?? [];
+  const ahora = useAhora();
+  const seccionDe = (p: MiInscripcion) =>
+    seccionVisible(p.seccion === "activo" ? "activo" : "historial", p.estadoServicio, p.franjas, ahora);
+  const enCurso = inscripciones?.filter((p) => seccionDe(p) === "en_curso") ?? [];
+  const activas = inscripciones?.filter((p) => seccionDe(p) === "activo") ?? [];
+  const historial = inscripciones?.filter((p) => seccionDe(p) === "historial") ?? [];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-container py-8">
       <div className="mb-5">
-        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Mis postulaciones</h1>
+        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Mis inscripciones</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Tus postulaciones activas y, debajo, el historial de las ya aceptadas y terminadas, rechazadas o retiradas.
+          Tus inscripciones activas y, debajo, el historial de las que ya se han realizado.
         </p>
       </div>
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Cargando…</p>
-      ) : !postulaciones || postulaciones.length === 0 ? (
+      ) : !inscripciones || inscripciones.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl bg-surface-sunken py-16 text-center text-sm text-muted-foreground shadow-inset-soft">
-          <p>Todavía no te has postulado a ningún anuncio.</p>
+          <p>Todavía no te has inscrito en ningún anuncio.</p>
           <Link href="/cuidador/buscar" className="mt-2 font-medium text-foreground underline underline-offset-2">
             Busca anuncios activos
           </Link>
         </div>
       ) : (
         <div className="flex flex-col gap-8">
+          {enCurso.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">En curso</h2>
+              <div className="flex flex-col gap-3">
+                {enCurso.map((p) => (
+                  <TarjetaMiInscripcion key={p.id} inscripcion={p} />
+                ))}
+              </div>
+            </section>
+          )}
+
           <section>
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Activas</h2>
             {activas.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No tienes postulaciones activas ahora mismo.</p>
+              <p className="text-sm text-muted-foreground">No tienes inscripciones activas ahora mismo.</p>
             ) : (
               <div className="flex flex-col gap-3">
                 {activas.map((p) => (
-                  <TarjetaMiPostulacion
+                  <TarjetaMiInscripcion
                     key={p.id}
-                    postulacion={p}
+                    inscripcion={p}
                     onRetirar={
                       p.estado === "pendiente" || p.estado === "aceptada"
                         ? () => retirarMutation.mutate(p.id)
@@ -107,11 +133,11 @@ export default function CuidadorHistorialPage() {
           <section>
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Historial</h2>
             {historial.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aquí aparecerán tus postulaciones ya terminadas, rechazadas o retiradas.</p>
+              <p className="text-sm text-muted-foreground">Aquí aparecerán tus inscripciones ya realizadas.</p>
             ) : (
               <div className="flex flex-col gap-3">
                 {historial.map((p) => (
-                  <TarjetaMiPostulacion key={p.id} postulacion={p} />
+                  <TarjetaMiInscripcion key={p.id} inscripcion={p} />
                 ))}
               </div>
             )}
@@ -122,87 +148,184 @@ export default function CuidadorHistorialPage() {
   );
 }
 
-function TarjetaMiPostulacion({
-  postulacion,
+// Lo que ve el cuidador del dinero de un servicio, resumido para la tarjeta (el detalle
+// completo esta en el recuadro de pago de la pagina del anuncio).
+function textoPagoCuidador(inscripcion: MiInscripcion): string | null {
+  const total = inscripcion.importeTotal != null ? formatearEuros(inscripcion.importeTotal) : null;
+  const recibido = inscripcion.importeCuidador ?? 0;
+  switch (inscripcion.estadoPago) {
+    case "procesado":
+      return recibido > 0
+        ? `Ya has recibido ${formatearEuros(recibido)} por los días confirmados. El resto sigue retenido hasta que se confirme.`
+        : `El pago${total ? ` (${total})` : ""} está cobrado y retenido. Lo recibirás cuando el paciente/familiar confirme el cuidado.`;
+    case "liberado":
+      return `Has recibido ${formatearEuros(recibido)}, ya descontada la comisión de la plataforma.`;
+    case "reembolsado":
+      return "El pago se ha devuelto a la familia.";
+    default:
+      return null;
+  }
+}
+
+function TarjetaMiInscripcion({
+  inscripcion,
   onRetirar,
   retirando,
 }: {
-  postulacion: MiPostulacion;
+  inscripcion: MiInscripcion;
   onRetirar?: () => void;
   retirando?: boolean;
 }) {
   // Dos motivos de aviso, misma tarjeta: contraoferta del paciente/familiar
   // sin responder (badge del navbar via contarEsperandoRespuestaCuidador), o
-  // pago ya procesado/retenido sin ver (postulacion.nuevoServicioAceptado —
+  // pago ya procesado/retenido sin ver (inscripcion.nuevoServicioAceptado —
   // deliberadamente NO se activa solo con aceptar, ver TODO.md). Se marca en
   // la tarjeta concreta para saber de cual se trata si hay varias.
-  const esperandoMiRespuesta = postulacion.estado === "pendiente" && postulacion.propuestoPor === "paciente";
+  const esperandoMiRespuesta = inscripcion.estado === "pendiente" && inscripcion.propuestoPor === "paciente";
   const [modalRetirarAbierto, setModalRetirarAbierto] = useState(false);
+  const [modalRespuestaAbierto, setModalRespuestaAbierto] = useState(false);
+  const queryClient = useQueryClient();
+  const respuestaMutation = useMutation({
+    mutationFn: (descripcion: string) => responderIncidenciaServicio(inscripcion.servicioId as string, descripcion),
+    onSuccess: () => {
+      sileo.success({ title: "Versión enviada", description: "La plataforma la tendrá en cuenta al revisar la incidencia." });
+      setModalRespuestaAbierto(false);
+      queryClient.invalidateQueries({ queryKey: ["inscripciones", "mias", "historial"] });
+      queryClient.invalidateQueries({ queryKey: ["servicio", inscripcion.servicioId] });
+    },
+    onError: (error: Error) => sileo.error({ title: "No se pudo enviar", description: error.message }),
+  });
+  // Servicio ya cobrado (el dinero esta retenido): la retirada devuelve el pago.
+  const pagado = inscripcion.estadoServicio === "confirmado" || inscripcion.estadoServicio === "pendiente_confirmacion";
+  // Con el pago hecho solo se puede retirar hasta 30 min antes del inicio: despues el boton
+  // queda deshabilitado (el servidor tambien lo exige). El reloj lo actualiza sin recargar.
+  const ahora = useAhora();
+  const retiradaCerrada = pagado && !puedeRetirarseConPagoHecho(inscripcion.franjas, ahora);
+  const estadoMostrado = estadoServicioMostrado(inscripcion.estadoServicio, inscripcion.franjas, ahora, inscripcion.incidenciaAbierta);
 
   return (
-    <div className="flex items-stretch justify-between gap-3 rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_8px_24px_oklch(0.29_0.05_265/0.12)]">
-      <Link href={`/paciente/anuncio/${postulacion.anuncioId}`} className="min-w-0 flex-1 hover:opacity-80">
-        <p className="font-medium text-foreground text-sm">{postulacion.anuncioTitulo}</p>
+    <div className="flex items-stretch justify-between gap-3 rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_5px_16px_oklch(0.29_0.05_265/0.08)]">
+      <Link href={`/paciente/anuncio/${inscripcion.anuncioId}`} className="min-w-0 flex-1 hover:opacity-80">
+        <p className="font-medium text-foreground text-sm">{inscripcion.anuncioTitulo}</p>
         <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
           <MapPin className="h-3 w-3 shrink-0" />
-          <span className="truncate">{postulacion.hospital.nombre}</span>
+          <span className="truncate">{inscripcion.hospital.nombre}</span>
         </div>
         <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
           <CalendarDays className="h-3 w-3 shrink-0" />
-          <span>{postulacion.precioHora} €/hora</span>
+          <span>{inscripcion.precioHora} €/hora</span>
         </div>
+        <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+          <User className="h-3 w-3 shrink-0" />
+          <span className="truncate">Publicado por {inscripcion.anuncianteNombre}</span>
+        </div>
+        {inscripcion.incidenciaAbierta && (
+          <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
+            Este cuidado tiene una incidencia abierta: la plataforma la está revisando.
+            {inscripcion.incidenciaRespondida ? " Ya has aportado tu versión." : ""}
+          </p>
+        )}
+        {textoPagoCuidador(inscripcion) && (
+          <p className="mt-2 flex items-start gap-1 text-xs text-foreground">
+            <Wallet className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+            <span>{textoPagoCuidador(inscripcion)}</span>
+          </p>
+        )}
+        {inscripcion.franjas.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {inscripcion.franjas.map((f, i) => (
+              <span key={i} className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground">
+                {formatearFecha(f.fecha)} · {f.diaEntero ? "Día entero" : `${f.horaDesde}–${f.horaHasta}`}
+              </span>
+            ))}
+          </div>
+        )}
       </Link>
 
       <div className="flex shrink-0 flex-col items-end justify-between gap-2">
         <div className="flex flex-col items-end gap-1.5">
           <div className="flex items-center gap-1.5">
-            {(esperandoMiRespuesta || postulacion.nuevoServicioAceptado) && (
+            {(esperandoMiRespuesta || inscripcion.nuevoServicioAceptado || (inscripcion.incidenciaAbierta && !inscripcion.incidenciaRespondida) || inscripcion.resolucionIncidenciaNueva) && (
               <span className="flex shrink-0 items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
                 <MessageSquare className="h-3 w-3" />
                 1
               </span>
             )}
-            {postulacion.estadoServicio ? (
+            {inscripcion.estadoServicio ? (
               <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_SERVICIO_COLOR[postulacion.estadoServicio] ?? ESTADO_COLOR[postulacion.estado]}`}
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_SERVICIO_COLOR[estadoMostrado ?? ""] ?? ESTADO_COLOR[inscripcion.estado]}`}
               >
-                {ESTADO_SERVICIO_LABEL[postulacion.estadoServicio] ?? postulacion.estadoServicio}
+                {ESTADO_SERVICIO_LABEL[estadoMostrado ?? ""] ?? estadoMostrado}
               </span>
             ) : (
-              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_COLOR[postulacion.estado]}`}>
-                {etiquetaEstadoPostulacion(postulacion, true)}
+              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${ESTADO_COLOR[inscripcion.estado]}`}>
+                {etiquetaEstadoInscripcion(inscripcion, true)}
               </span>
             )}
           </div>
-          {postulacion.miValoracion != null && (
+          {inscripcion.miValoracion != null && (
             <span className="mt-2.5 flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
-              <Estrellas valor={postulacion.miValoracion} />
-              {postulacion.miValoracion.toFixed(1)}
+              <Estrellas valor={inscripcion.miValoracion} />
+              {inscripcion.miValoracion.toFixed(1)}
             </span>
           )}
         </div>
 
-        {onRetirar && (
-          <Button
-            type="button"
-            size="sm"
-            variant="destructive"
-            className="rounded-full"
-            disabled={retirando}
-            onClick={() => setModalRetirarAbierto(true)}
-          >
-            Retirar
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {inscripcion.incidenciaAbierta && !inscripcion.incidenciaRespondida && inscripcion.servicioId && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className={`rounded-full ${BOTON_NEGRO}`}
+              onClick={() => setModalRespuestaAbierto(true)}
+            >
+              Aportar mi versión
+            </Button>
+          )}
+          <BotonVerPerfil href={`/pacientes/${inscripcion.anuncianteId}`} className="rounded-full" />
+          {onRetirar && (
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              className="rounded-full"
+              disabled={retirando || retiradaCerrada}
+              title={
+                retiradaCerrada
+                  ? "Ya no puedes retirarte: el cuidado empieza en menos de 30 minutos o ya ha empezado"
+                  : undefined
+              }
+              onClick={() => setModalRetirarAbierto(true)}
+            >
+              Retirar
+            </Button>
+          )}
+        </div>
       </div>
+
+      {inscripcion.incidenciaAbierta && inscripcion.servicioId && (
+        <ModalRespuestaIncidencia
+          open={modalRespuestaAbierto}
+          onOpenChange={setModalRespuestaAbierto}
+          motivo={inscripcion.incidenciaMotivo}
+          descripcionFamilia={inscripcion.incidenciaDescripcion}
+          enviando={respuestaMutation.isPending}
+          onEnviar={(descripcion) => respuestaMutation.mutate(descripcion)}
+        />
+      )}
 
       {onRetirar && (
         <ConfirmDialog
           open={modalRetirarAbierto}
           onOpenChange={setModalRetirarAbierto}
-          titulo="Retirar postulación"
-          descripcion={`¿Seguro que quieres retirar tu postulación a "${postulacion.anuncioTitulo}"? Esta acción no se puede deshacer.`}
-          textoConfirmar="Retirar postulación"
+          titulo="Retirar inscripción"
+          descripcion={
+            pagado
+              ? `¿Seguro que quieres retirarte de "${inscripcion.anuncioTitulo}"? Se devolverá el pago íntegro y el anuncio volverá a publicarse. Retirarte de un cuidado ya pagado puede tener penalizaciones en el futuro. Esta acción no se puede deshacer.`
+              : `¿Seguro que quieres retirar tu inscripción a "${inscripcion.anuncioTitulo}"? Esta acción no se puede deshacer.`
+          }
+          textoConfirmar="Retirar inscripción"
           confirmando={retirando}
           onConfirmar={() => {
             onRetirar();

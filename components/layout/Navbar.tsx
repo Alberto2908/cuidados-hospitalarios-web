@@ -14,24 +14,33 @@ import {
   LayoutDashboard,
   BarChart3,
   Users,
-  UserCheck,
   User,
   KeyRound,
   LogOut,
   Settings,
+  CircleUserRound,
+  ShieldCheck,
+  Wallet,
 } from "lucide-react";
 import { useAuth, UserRole } from "@/lib/auth/AuthContext";
 import { misNotificacionesConteo as misNotificacionesConteoAnuncios } from "@/lib/api/anuncios";
-import { misNotificacionesConteo as misNotificacionesConteoPostulaciones } from "@/lib/api/postulaciones";
+import { misNotificacionesConteo as misNotificacionesConteoInscripciones } from "@/lib/api/inscripciones";
+import { fetchVerificacionesConteo } from "@/lib/api/admin";
+import { fetchPagosConteo } from "@/lib/api/adminPagos";
+import { useIndicadorDeslizante } from "@/lib/ui/useIndicadorDeslizante";
 
-// Notificaciones por rol: para USUARIO/CUIDADOR-como-paciente, postulaciones
+// Notificaciones por rol: para USUARIO/CUIDADOR-como-paciente, inscripciones
 // que esperan su respuesta en sus anuncios activos (ver backend
 // AnuncioService.contarNotificacionesPendientes); para CUIDADOR, sus propias
-// postulaciones donde el paciente acaba de contraofertar (ver backend
-// PostulacionService.contarNotificacionesPendientes). Cada href de "mis
-// anuncios/postulaciones" tiene como mucho un contador activo a la vez.
+// inscripciones donde el paciente acaba de contraofertar (ver backend
+// InscripcionService.contarNotificacionesPendientes). Cada href de "mis
+// anuncios/inscripciones" tiene como mucho un contador activo a la vez.
 const HREF_NOTIFICACIONES_PACIENTE = "/paciente/historial";
 const HREF_NOTIFICACIONES_CUIDADOR = "/cuidador/historial";
+// ADMIN: solicitudes de verificación de identidad pendientes de revisar.
+const HREF_NOTIFICACIONES_ADMIN = "/admin/verificaciones";
+// ADMIN: pagos retenidos que necesitan una decisión (ver AdminPagoService).
+const HREF_PAGOS_ADMIN = "/admin/pagos";
 
 /* ─── tipos de enlace de nav ─────────────────────────────────────── */
 interface NavLink {
@@ -45,21 +54,27 @@ interface NavLink {
   tambienActivoEn?: string[];
 }
 
+// Perfil publico propio (como lo ven los demas). ADMIN no tiene.
+const MI_PERFIL: NavLink = { label: "Mi perfil", href: "/mi-perfil", icon: <CircleUserRound className="h-4 w-4" /> };
+
 const NAV_LINKS: Record<UserRole, NavLink[]> = {
   USUARIO: [
     { label: "Poner anuncio",   href: "/paciente/anuncio/nuevo", icon: <Megaphone className="h-4 w-4" /> },
-    { label: "Buscar cuidador", href: "/paciente/buscar",        icon: <Search     className="h-4 w-4" /> },
+    { label: "Buscar cuidador", href: "/paciente/buscar",        icon: <Search     className="h-4 w-4" />, tambienActivoEn: ["/cuidadores/"] },
     { label: "Mis anuncios",    href: "/paciente/historial",     icon: <History    className="h-4 w-4" />, tambienActivoEn: ["/paciente/anuncio/"] },
+    MI_PERFIL,
   ],
   CUIDADOR: [
-    { label: "Buscar anuncio", href: "/cuidador/buscar",    icon: <Search  className="h-4 w-4" /> },
-    { label: "Mis postulaciones", href: "/cuidador/historial", icon: <History className="h-4 w-4" /> },
+    { label: "Buscar anuncio", href: "/cuidador/buscar",    icon: <Search  className="h-4 w-4" />, tambienActivoEn: ["/paciente/anuncio/"] },
+    { label: "Mis inscripciones", href: "/cuidador/historial", icon: <History className="h-4 w-4" />, tambienActivoEn: ["/pacientes/"] },
+    MI_PERFIL,
   ],
   ADMIN: [
     { label: "Dashboard",           href: "/admin/dashboard", icon: <BarChart3       className="h-4 w-4" /> },
     { label: "Gestionar anuncios",  href: "/admin/anuncios",  icon: <LayoutDashboard className="h-4 w-4" />, tambienActivoEn: ["/admin/anuncios/"] },
-    { label: "Gestionar cuidadores",href: "/admin/cuidadores",icon: <UserCheck       className="h-4 w-4" />, tambienActivoEn: ["/admin/cuidadores/"] },
-    { label: "Gestionar pacientes", href: "/admin/pacientes", icon: <Users           className="h-4 w-4" />, tambienActivoEn: ["/admin/pacientes/"] },
+    { label: "Gestionar usuarios",  href: "/admin/usuarios",  icon: <Users           className="h-4 w-4" />, tambienActivoEn: ["/admin/cuidadores/", "/admin/pacientes/"] },
+    { label: "Verificaciones",      href: "/admin/verificaciones", icon: <ShieldCheck className="h-4 w-4" /> },
+    { label: "Pagos",               href: "/admin/pagos",     icon: <Wallet          className="h-4 w-4" />, tambienActivoEn: ["/admin/pagos/"] },
   ],
 };
 
@@ -69,11 +84,46 @@ const NAV_LINKS: Record<UserRole, NavLink[]> = {
  * ningún link hace match exacto se prueba por prefijo, para paginas de
  * detalle que no viven bajo el href pero se abren siempre desde ese link.
  */
-function linkActivo(pathname: string, links: NavLink[]): string | null {
+function linkActivo(pathname: string, links: NavLink[], origen: string | null): string | null {
   const exacto = links.find((l) => l.href === pathname);
   if (exacto) return exacto.href;
+  // Detalle de anuncio y perfiles publicos se abren desde varios sitios: se
+  // queda marcado el link desde el que se llego (guardado abajo), tambien al
+  // ir de un detalle a un perfil y viceversa. Sin origen conocido (URL
+  // abierta directamente) se usa el link por defecto de tambienActivoEn.
+  if (origen && RUTAS_DETALLE.some((p) => pathname.startsWith(p)) && links.some((l) => l.href === origen)) {
+    return origen;
+  }
   const porPrefijo = links.find((l) => l.tambienActivoEn?.some((p) => pathname.startsWith(p)));
   return porPrefijo?.href ?? null;
+}
+
+const RUTAS_DETALLE = ["/paciente/anuncio/", "/cuidadores/", "/pacientes/"];
+const ORIGENES_DETALLE = ["/paciente/buscar", "/paciente/historial", "/cuidador/buscar", "/cuidador/historial"];
+const CLAVE_ORIGEN_NAV = "nav-origen";
+
+function borrarOrigenNav() {
+  try {
+    sessionStorage.removeItem(CLAVE_ORIGEN_NAV);
+  } catch {
+    // sessionStorage no disponible
+  }
+}
+
+function guardarOrigenNav(href: string) {
+  try {
+    sessionStorage.setItem(CLAVE_ORIGEN_NAV, href);
+  } catch {
+    // sessionStorage no disponible: se usa el link por defecto de tambienActivoEn
+  }
+}
+
+function leerOrigenNav(): string | null {
+  try {
+    return typeof window === "undefined" ? null : sessionStorage.getItem(CLAVE_ORIGEN_NAV);
+  } catch {
+    return null;
+  }
 }
 
 /* ─── componente principal ───────────────────────────────────────── */
@@ -96,7 +146,33 @@ export default function Navbar() {
   }, []);
 
   const links = user ? NAV_LINKS[user.rol] : [];
-  const hrefActivo = linkActivo(pathname, links);
+  const rol = user?.rol;
+  useEffect(() => {
+    // Recuerda el ultimo listado del nav en el que se estuvo (por pestana) para
+    // mantenerlo marcado en las paginas de detalle que cuelgan de el.
+    const enlaces = rol ? NAV_LINKS[rol] : [];
+    const exacto = enlaces.find((l) => l.href === pathname);
+    if (exacto) {
+      // Solo los listados desde los que se abre un detalle; cualquier otro
+      // link (Poner anuncio, Mi perfil...) borra el origen para que el
+      // siguiente detalle use el link por defecto.
+      if (ORIGENES_DETALLE.includes(exacto.href)) guardarOrigenNav(exacto.href);
+      else borrarOrigenNav();
+      return;
+    }
+    // Detalle abierto sin origen conocido (URL directa, tras crear un
+    // anuncio...): se fija el link por defecto para que los perfiles que se
+    // abran desde aqui lo hereden.
+    if (RUTAS_DETALLE.some((p) => pathname.startsWith(p)) && !enlaces.some((l) => l.href === leerOrigenNav())) {
+      const porDefecto = enlaces.find((l) => l.tambienActivoEn?.some((p) => pathname.startsWith(p)));
+      if (porDefecto) guardarOrigenNav(porDefecto.href);
+    }
+  }, [pathname, rol]);
+  const origen = leerOrigenNav();
+  const hrefActivo = linkActivo(pathname, links, origen);
+  // El fondo de la pastilla activa se desliza hasta el enlace nuevo al navegar.
+  const { contenedor: navRef, registrar: registrarLink, estiloIndicador } =
+    useIndicadorDeslizante(hrefActivo, links.map((l) => l.href).join("|"));
 
   const esPaciente = user?.rol === "USUARIO";
   const esCuidador = user?.rol === "CUIDADOR";
@@ -108,17 +184,40 @@ export default function Navbar() {
     staleTime: 20 * 1000,
     refetchInterval: 30 * 1000,
   });
-  const { data: notificacionesPostulaciones } = useQuery({
-    queryKey: ["postulaciones", "notificaciones-conteo"],
-    queryFn: misNotificacionesConteoPostulaciones,
+  const { data: notificacionesInscripciones } = useQuery({
+    queryKey: ["inscripciones", "notificaciones-conteo"],
+    queryFn: misNotificacionesConteoInscripciones,
     enabled: isAuthenticated && esCuidador,
     staleTime: 20 * 1000,
     refetchInterval: 30 * 1000,
   });
 
+  const esAdmin = user?.rol === "ADMIN";
+  const { data: verificacionesPendientes } = useQuery({
+    queryKey: ["admin", "verificaciones", "conteo"],
+    queryFn: fetchVerificacionesConteo,
+    enabled: isAuthenticated && esAdmin,
+    staleTime: 20 * 1000,
+    refetchInterval: 30 * 1000,
+  });
+
+  const { data: pagosPendientes } = useQuery({
+    queryKey: ["admin", "pagos", "conteo"],
+    queryFn: fetchPagosConteo,
+    enabled: isAuthenticated && esAdmin,
+    staleTime: 20 * 1000,
+    refetchInterval: 30 * 1000,
+  });
+
+  // El cuidador tiene un resultado de verificación (aprobada/rechazada) sin ver:
+  // punto en el menú de usuario y en "Datos personales", que es donde se ve.
+  const avisoVerificacion = esCuidador && Boolean(user?.verificacionResultadoPendiente);
+
   const notificacionesPorHref: Record<string, number> = {
+    [HREF_NOTIFICACIONES_ADMIN]: verificacionesPendientes?.total ?? 0,
+    [HREF_PAGOS_ADMIN]: pagosPendientes?.total ?? 0,
     [HREF_NOTIFICACIONES_PACIENTE]: notificacionesAnuncios?.total ?? 0,
-    [HREF_NOTIFICACIONES_CUIDADOR]: notificacionesPostulaciones?.total ?? 0,
+    [HREF_NOTIFICACIONES_CUIDADOR]: notificacionesInscripciones?.total ?? 0,
   };
 
   return (
@@ -136,16 +235,22 @@ export default function Navbar() {
              columna central y la zona derecha no "herede" su hueco cuando no hay sesión. */}
         <div className="justify-self-center">
           {isAuthenticated && (
-            <nav className="hidden md:flex items-center gap-1 rounded-full bg-card p-1 shadow-soft">
+            <nav ref={navRef} className="relative hidden md:flex items-stretch gap-1 rounded-full bg-card p-1 shadow-soft">
+              <span
+                aria-hidden
+                className="pointer-events-none absolute rounded-full bg-primary"
+                style={estiloIndicador}
+              />
               {links.map((link) => {
                 const activo = link.href === hrefActivo;
                 return (
                   <Link
                     key={link.href}
+                    ref={registrarLink(link.href)}
                     href={link.href}
-                    className={`relative flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors ${
+                    className={`relative z-10 flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors duration-300 ${
                       activo
-                        ? "bg-primary text-primary-foreground"
+                        ? "text-primary-foreground"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -177,8 +282,14 @@ export default function Navbar() {
                 className="flex items-center gap-2 rounded-full bg-card py-1.5 pl-1.5 pr-3 shadow-soft transition-shadow hover:shadow-float"
               >
                 {/* Avatar inicial */}
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
+                <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
                   {user.nombre[0]}{user.apellidos[0]}
+                  {avisoVerificacion && (
+                    <span
+                      className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-card"
+                      aria-label="Tienes una notificación sobre tu verificación de identidad"
+                    />
+                  )}
                 </div>
                 <span className="hidden sm:block text-sm font-medium text-foreground">
                   {user.nombre} {user.apellidos}
@@ -203,6 +314,12 @@ export default function Navbar() {
                     >
                       <User className="h-4 w-4 text-muted-foreground" />
                       Datos personales
+                      {avisoVerificacion && (
+                        <span
+                          className="ml-auto h-2 w-2 shrink-0 rounded-full bg-red-500"
+                          aria-label="Notificación sobre tu verificación de identidad"
+                        />
+                      )}
                     </Link>
                     <Link
                       href="/perfil/contrasena"
@@ -301,6 +418,12 @@ export default function Navbar() {
             <div className="mt-2 border-t border-border pt-2 flex flex-col gap-1">
               <Link href="/perfil" onClick={() => setMobileOpen(false)} className="flex items-center gap-2.5 rounded-full px-3.5 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
                 <User className="h-4 w-4" /> Datos personales
+                {avisoVerificacion && (
+                  <span
+                    className="ml-auto h-2 w-2 shrink-0 rounded-full bg-red-500"
+                    aria-label="Notificación sobre tu verificación de identidad"
+                  />
+                )}
               </Link>
               <Link href="/perfil/contrasena" onClick={() => setMobileOpen(false)} className="flex items-center gap-2.5 rounded-full px-3.5 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
                 <KeyRound className="h-4 w-4" /> Cambiar contraseña

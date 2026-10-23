@@ -1,0 +1,180 @@
+import { apiFetch } from "@/lib/api/client";
+import type { EstadoPago, EstadoServicio, MotivoIncidencia, Servicio } from "@/lib/api/servicios";
+import type { Hospital } from "@/lib/mock/hospitales";
+import type { FranjaHoraria } from "@/lib/anuncio/schema";
+
+export type EstadoInscripcion = "pendiente" | "rechazada" | "retirada" | "aceptada";
+export type PropuestoPor = "cuidador" | "paciente";
+export type SeccionMiInscripcion = "activo" | "historial";
+
+export interface Inscripcion {
+  id: string;
+  anuncioId: string;
+  cuidadorUsuarioId: string;
+  cuidadorNombre: string;
+  precioHora: number;
+  propuestoPor: PropuestoPor;
+  estado: EstadoInscripcion;
+  /** Quien propone un precio lo acepta implicitamente: estos dos flags reflejan el consentimiento de cada parte. */
+  aceptadoPorCuidador: boolean;
+  aceptadoPorPaciente: boolean;
+  /** Id del servicio creado al aceptar (null si sigue pendiente/rechazada/retirada). */
+  servicioId: string | null;
+  /** Estado del servicio creado al aceptar (null si sigue pendiente/rechazada/retirada). estado se queda en "aceptada" para siempre, este campo es el que avanza (ver V12). */
+  estadoServicio: EstadoServicio | null;
+  /** Si el servicio ya tiene una reseña puesta (solo puede haber una). */
+  tieneResena: boolean;
+  creadoEn: string;
+  actualizadoEn: string;
+}
+
+// Sin precioHora: la tarifa de partida es la que el cuidador tiene fijada
+// en su perfil (decision explicita, no se elige caso por caso al inscribirse).
+export function inscribirse(anuncioId: string): Promise<Inscripcion> {
+  return apiFetch<Inscripcion>(`/api/anuncios/${anuncioId}/inscripciones`, { method: "POST" });
+}
+
+export function listarInscripcionesPorAnuncio(anuncioId: string): Promise<Inscripcion[]> {
+  return apiFetch<Inscripcion[]>(`/api/anuncios/${anuncioId}/inscripciones`);
+}
+
+export function listarMisInscripciones(): Promise<Inscripcion[]> {
+  return apiFetch<Inscripcion[]>("/api/inscripciones/mias");
+}
+
+interface HospitalApi {
+  id: string;
+  nombre: string;
+  direccion: string;
+  ciudad: string;
+  provincia: string;
+  codigoPostal: string;
+  lat: number;
+  lng: number;
+  telefono?: string | null;
+  email?: string | null;
+}
+
+function toHospital(h: HospitalApi): Hospital {
+  return {
+    id: h.id,
+    nombre: h.nombre,
+    direccion: h.direccion,
+    ciudad: h.ciudad,
+    provincia: h.provincia,
+    codigoPostal: h.codigoPostal,
+    lat: Number(h.lat),
+    lng: Number(h.lng),
+  };
+}
+
+export interface MiInscripcion {
+  id: string;
+  anuncioId: string;
+  anuncioTitulo: string;
+  /** Quien publicó el anuncio (solo el nombre) y su id, para abrir su perfil (/pacientes/[id]). */
+  anuncianteId: string;
+  anuncianteNombre: string;
+  hospital: Hospital;
+  precioHora: number;
+  propuestoPor: PropuestoPor;
+  estado: EstadoInscripcion;
+  aceptadoPorCuidador: boolean;
+  aceptadoPorPaciente: boolean;
+  seccion: SeccionMiInscripcion;
+  estadoServicio: EstadoServicio | null;
+  /** Pago ya procesado/retenido y todavía no visto — ver TODO.md (aviso solo tras el cobro real, no al aceptar). */
+  nuevoServicioAceptado: boolean;
+  /** La valoración que el paciente/familiar le ha puesto a este cuidador por este servicio (null si todavía no ha valorado). */
+  miValoracion: number | null;
+  creadoEn: string;
+  /** Dias y horas del cuidado. */
+  franjas: FranjaHoraria[];
+  /** Pago del servicio (null si aun no hay servicio): dinero retenido o ya entregado. */
+  estadoPago: EstadoPago | null;
+  importeTotal: number | null;
+  /** Lo recibido por el cuidador, ya descontada la comision (null mientras no haya nada). */
+  importeCuidador: number | null;
+  /** Servicio asociado y estado de su incidencia (la abre la familia; el cuidador puede aportar su version). */
+  servicioId: string | null;
+  incidenciaAbierta: boolean;
+  incidenciaRespondida: boolean;
+  /** Lo que comunico la familia sobre la incidencia (null si no hay). */
+  incidenciaMotivo: MotivoIncidencia | null;
+  incidenciaDescripcion: string | null;
+  /** La plataforma ha resuelto la incidencia y el cuidador aun no lo ha visto. */
+  resolucionIncidenciaNueva: boolean;
+}
+
+interface MiInscripcionApi extends Omit<MiInscripcion, "hospital" | "franjas"> {
+  hospital: HospitalApi;
+  franjas: { fecha: string; horaDesde: string; horaHasta: string; diaEntero: boolean }[];
+}
+
+/** Inscripciones propias del cuidador: activas arriba, historial debajo (ver /cuidador/historial). */
+export async function misInscripcionesConSeccion(): Promise<MiInscripcion[]> {
+  const data = await apiFetch<MiInscripcionApi[]>("/api/inscripciones/mias/historial");
+  return data.map((p) => ({
+    ...p,
+    hospital: toHospital(p.hospital),
+    franjas: p.franjas.map((f) => ({ fecha: f.fecha, horaDesde: f.horaDesde.slice(0, 5), horaHasta: f.horaHasta.slice(0, 5), diaEntero: f.diaEntero })),
+  }));
+}
+
+/** Contraoferta: la puede mandar tanto el cuidador como el autor del anuncio. */
+export function actualizarPrecioInscripcion(id: string, precioHora: number): Promise<Inscripcion> {
+  return apiFetch<Inscripcion>(`/api/inscripciones/${id}/precio`, {
+    method: "PATCH",
+    body: JSON.stringify({ precioHora }),
+  });
+}
+
+export function aceptarInscripcion(id: string): Promise<Servicio> {
+  return apiFetch<Servicio>(`/api/inscripciones/${id}/aceptar`, { method: "POST" });
+}
+
+export function rechazarInscripcion(id: string): Promise<void> {
+  return apiFetch<void>(`/api/inscripciones/${id}/rechazar`, { method: "POST" });
+}
+
+export function retirarInscripcion(id: string): Promise<void> {
+  return apiFetch<void>(`/api/inscripciones/${id}/retirar`, { method: "POST" });
+}
+
+/** Badge del navbar (cuidador): contraofertas del paciente que esperan su respuesta. */
+export function misNotificacionesConteo(): Promise<{ total: number }> {
+  return apiFetch<{ total: number }>("/api/inscripciones/mias/notificaciones-conteo");
+}
+
+/**
+ * Etiqueta del estado de una inscripcion vista desde un lado concreto
+ * (cuidador o paciente/familiar): quien propone un precio lo acepta
+ * implicitamente, la otra parte tiene que aceptarlo tambien para pasar a
+ * "aceptada" -> mientras tanto se distingue de quien es la aceptacion
+ * pendiente, en vez de un generico "Pendiente" o "Aceptada" que no dice nada
+ * de en que punto de la negociacion esta cada uno.
+ */
+export function etiquetaEstadoInscripcion(
+  inscripcion: Pick<Inscripcion, "estado" | "aceptadoPorCuidador" | "aceptadoPorPaciente"> & {
+    estadoServicio?: Inscripcion["estadoServicio"];
+  },
+  viendoComoCuidador: boolean,
+): string {
+  if (inscripcion.estado === "rechazada") return "Rechazada";
+  if (inscripcion.estado === "retirada") return "Retirada";
+  if (inscripcion.estado === "aceptada") {
+    // Con el pago ya hecho (el servicio pasa de 'aceptado' a 'confirmado' al cobrarse),
+    // "aceptado por ambas partes" deja de decir nada nuevo.
+    const cobrado =
+      inscripcion.estadoServicio === "confirmado" ||
+      inscripcion.estadoServicio === "pendiente_confirmacion" ||
+      inscripcion.estadoServicio === "completado";
+    return cobrado ? "Pagado" : "Aceptado por ambas partes";
+  }
+
+  const miAceptacion = viendoComoCuidador ? inscripcion.aceptadoPorCuidador : inscripcion.aceptadoPorPaciente;
+  const otraAceptacion = viendoComoCuidador ? inscripcion.aceptadoPorPaciente : inscripcion.aceptadoPorCuidador;
+  if (miAceptacion && !otraAceptacion) return "Aceptado por tu parte";
+  if (otraAceptacion && !miAceptacion) return "Aceptado por la otra parte";
+  return "Pendiente";
+}

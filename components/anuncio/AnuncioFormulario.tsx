@@ -91,7 +91,7 @@ export default function AnuncioFormulario({ modo, anuncioId, valoresIniciales }:
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-container py-8">
       <div className="mb-5">
         <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">{modo === "crear" ? "Crear anuncio" : "Modificar anuncio"}</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
@@ -270,7 +270,7 @@ export default function AnuncioFormulario({ modo, anuncioId, valoresIniciales }:
         <FormSection
           step={3}
           title="Cuándo"
-          description="Marca los días y define uno o varios turnos por día (pasos de 15 min). Si la hora de fin es anterior o igual a la de inicio, cruza medianoche."
+          description="Marca los días y define uno o varios turnos por día (pasos de 15 min). Si un turno pasa de medianoche, el resto se añade solo al día siguiente."
         >
           <div className="flex flex-col gap-5 lg:flex-row lg:items-stretch">
             <Controller

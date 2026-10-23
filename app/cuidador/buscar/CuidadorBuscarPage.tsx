@@ -149,7 +149,7 @@ export default function CuidadorBuscarPage() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-container py-8">
       <div className="mb-5">
         <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Buscar anuncios</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
@@ -243,7 +243,7 @@ function TarjetaAnuncio({ anuncio }: { anuncio: Anuncio }) {
   return (
     <Link
       href={`/paciente/anuncio/${anuncio.id}`}
-      className="block rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_8px_24px_oklch(0.29_0.05_265/0.12)]"
+      className="block rounded-2xl bg-card p-4 shadow-float transition-shadow duration-200 hover:shadow-[0_5px_16px_oklch(0.29_0.05_265/0.08)]"
     >
       <p className="font-medium text-foreground text-sm leading-snug">{anuncio.titulo}</p>
       <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{anuncio.descripcion}</p>

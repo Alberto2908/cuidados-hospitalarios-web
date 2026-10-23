@@ -7,11 +7,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
 import { ArrowLeft, CalendarDays, Lock, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import BotonVerPerfil from "@/components/perfil/BotonVerPerfil";
 import ModalContraoferta from "@/components/anuncio/ModalContraoferta";
+import ModalPago from "@/components/pago/ModalPago";
+import ResumenPago from "@/components/pago/ResumenPago";
+import ConfirmacionCuidado from "@/components/pago/ConfirmacionCuidado";
 import ModalResena from "@/components/anuncio/ModalResena";
-import { horasTotales } from "@/lib/anuncio/horas";
+import { cuidadoEmpezado, estadoServicioMostrado, horasTotales, puedeRetirarseConPagoHecho } from "@/lib/anuncio/horas";
+import { useAhora } from "@/lib/ui/useAhora";
 import { formatearFecha } from "@/lib/fecha";
 import type { FranjaHoraria } from "@/lib/anuncio/schema";
 import {
@@ -20,18 +25,18 @@ import {
   type Anuncio,
 } from "@/lib/api/anuncios";
 import {
-  aceptarPostulacion,
-  actualizarPrecioPostulacion,
-  etiquetaEstadoPostulacion,
-  listarMisPostulaciones,
-  listarPostulacionesPorAnuncio,
-  postularse,
-  rechazarPostulacion,
-  retirarPostulacion,
-  type Postulacion,
-} from "@/lib/api/postulaciones";
+  aceptarInscripcion,
+  actualizarPrecioInscripcion,
+  etiquetaEstadoInscripcion,
+  listarMisInscripciones,
+  listarInscripcionesPorAnuncio,
+  inscribirse,
+  rechazarInscripcion,
+  retirarInscripcion,
+  type Inscripcion,
+} from "@/lib/api/inscripciones";
 import { crearResena } from "@/lib/api/resenas";
-import type { EstadoServicio } from "@/lib/api/servicios";
+import { obtenerServicio, type EstadoServicio } from "@/lib/api/servicios";
 
 // "Cubierto" (nombre interno del backend) se muestra como "Aceptado" SOLO
 // cuando no hay ningun servicio todavia del que sacar un estado mas fino
@@ -55,17 +60,21 @@ const ESTADO_COLOR: Record<Anuncio["estado"], string> = {
 // "Aceptado" para siempre aunque el servicio avance a confirmado/
 // pendiente_confirmacion/completado/cancelado (ver V12 en el backend) -> se
 // usa este, mas fino, en cuanto existe.
-const ESTADO_SERVICIO_LABEL: Record<EstadoServicio, string> = {
+const ESTADO_SERVICIO_LABEL: Record<EstadoServicio | "en_curso" | "en_revision", string> = {
   aceptado: "Aceptado",
   confirmado: "Confirmado (pagado)",
+  en_curso: "En curso",
+  en_revision: "En revisión",
   pendiente_confirmacion: "Pendiente de confirmación",
   completado: "Completado",
   cancelado: "Cancelado",
 };
 
-const ESTADO_SERVICIO_COLOR: Record<EstadoServicio, string> = {
+const ESTADO_SERVICIO_COLOR: Record<EstadoServicio | "en_curso" | "en_revision", string> = {
   aceptado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   confirmado: "bg-accent text-accent-foreground",
+  en_curso: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  en_revision: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
   pendiente_confirmacion: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   completado: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
   cancelado: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
@@ -87,36 +96,48 @@ export default function AnuncioDetallePage() {
   const esAutor = Boolean(user && anuncio && user.id === anuncio.usuarioId);
   const esCuidador = user?.rol === "CUIDADOR";
 
-  const postulacionesQuery = useQuery({
-    queryKey: ["postulaciones", "anuncio", anuncioId],
-    queryFn: () => listarPostulacionesPorAnuncio(anuncioId),
+  const inscripcionesQuery = useQuery({
+    queryKey: ["inscripciones", "anuncio", anuncioId],
+    queryFn: () => listarInscripcionesPorAnuncio(anuncioId),
     enabled: esAutor,
   });
 
-  const misPostulacionesQuery = useQuery({
-    queryKey: ["postulaciones", "mias"],
-    queryFn: listarMisPostulaciones,
+  const misInscripcionesQuery = useQuery({
+    queryKey: ["inscripciones", "mias"],
+    queryFn: listarMisInscripciones,
     enabled: esCuidador && !esAutor,
   });
 
-  const miPostulacion = misPostulacionesQuery.data?.find(
+  const miInscripcion = misInscripcionesQuery.data?.find(
     (p) => p.anuncioId === anuncioId,
   );
 
   // Estado del servicio (mas fino que anuncio.estado, ver ESTADO_SERVICIO_LABEL):
-  // desde el lado autor, la postulacion aceptada (como mucho una); desde el
+  // desde el lado autor, la inscripcion aceptada (como mucho una); desde el
   // lado cuidador, la propia.
   const estadoServicio =
-    postulacionesQuery.data?.find((p) => p.estado === "aceptada")?.estadoServicio
-    ?? miPostulacion?.estadoServicio
+    inscripcionesQuery.data?.find((p) => p.estado === "aceptada")?.estadoServicio
+    ?? miInscripcion?.estadoServicio
     ?? null;
+  const ahora = useAhora();
+  // La incidencia abierta se lee del servicio (misma consulta que el recuadro de pago).
+  const servicioIdCabecera =
+    inscripcionesQuery.data?.find((p) => p.estado === "aceptada")?.servicioId ?? miInscripcion?.servicioId ?? null;
+  const servicioCabeceraQuery = useQuery({
+    queryKey: ["servicio", servicioIdCabecera],
+    queryFn: () => obtenerServicio(servicioIdCabecera as string),
+    enabled: Boolean(servicioIdCabecera),
+  });
+  const incidenciaAbierta =
+    Boolean(servicioCabeceraQuery.data?.incidenciaAbiertaEn) && servicioCabeceraQuery.data?.estadoPago === "procesado";
+  const estadoMostrado = estadoServicioMostrado(estadoServicio, anuncio?.franjas ?? [], ahora, incidenciaAbierta);
 
   function invalidarTodo() {
     queryClient.invalidateQueries({ queryKey: ["anuncio", anuncioId] });
     queryClient.invalidateQueries({
-      queryKey: ["postulaciones", "anuncio", anuncioId],
+      queryKey: ["inscripciones", "anuncio", anuncioId],
     });
-    queryClient.invalidateQueries({ queryKey: ["postulaciones", "mias"] });
+    queryClient.invalidateQueries({ queryKey: ["inscripciones", "mias"] });
     // El estado de este anuncio (activo/cubierto/borrado) tambien se
     // muestra en "Mis anuncios" y en el badge de notificaciones del navbar;
     // sin esto quedaban con datos obsoletos hasta que expirase el
@@ -126,7 +147,7 @@ export default function AnuncioDetallePage() {
       queryKey: ["anuncios", "notificaciones-conteo"],
     });
     queryClient.invalidateQueries({
-      queryKey: ["postulaciones", "notificaciones-conteo"],
+      queryKey: ["inscripciones", "notificaciones-conteo"],
     });
   }
 
@@ -138,7 +159,7 @@ export default function AnuncioDetallePage() {
       // sentido quedarse aqui refrescandolo.
       queryClient.removeQueries({ queryKey: ["anuncio", anuncioId] });
       queryClient.invalidateQueries({ queryKey: ["anuncios"] });
-      queryClient.invalidateQueries({ queryKey: ["postulaciones"] });
+      queryClient.invalidateQueries({ queryKey: ["inscripciones"] });
       router.push("/paciente/historial");
     },
     onError: (error: Error) =>
@@ -147,21 +168,21 @@ export default function AnuncioDetallePage() {
 
   if (anuncioQuery.isLoading) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center text-sm text-muted-foreground">
+      <div className="mx-auto max-w-7xl px-4 py-16 text-center text-sm text-muted-foreground">
         Cargando anuncio…
       </div>
     );
   }
   if (!anuncio) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center text-sm text-muted-foreground">
+      <div className="mx-auto max-w-7xl px-4 py-16 text-center text-sm text-muted-foreground">
         No se ha encontrado el anuncio.
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-container py-8">
       <button
         type="button"
         onClick={() => router.back()}
@@ -180,14 +201,21 @@ export default function AnuncioDetallePage() {
             <MapPin className="h-3.5 w-3.5" />
             {anuncio.hospital.nombre}
           </p>
+          {!esAutor && (
+            <p className="mt-2 text-sm text-muted-foreground">Publicado por {anuncio.pacienteNombre}</p>
+          )}
         </div>
-        <span
-          className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
-            estadoServicio ? ESTADO_SERVICIO_COLOR[estadoServicio] : ESTADO_COLOR[anuncio.estado]
-          }`}
-        >
-          {estadoServicio ? ESTADO_SERVICIO_LABEL[estadoServicio] : ESTADO_LABEL[anuncio.estado]}
-        </span>
+        {/* Estado arriba y, debajo, "Ver perfil" a la altura de "Publicado por…" */}
+        <div className="flex shrink-0 flex-col items-end justify-between gap-2 self-stretch">
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-medium ${
+              estadoMostrado ? ESTADO_SERVICIO_COLOR[estadoMostrado] : ESTADO_COLOR[anuncio.estado]
+            }`}
+          >
+            {estadoMostrado ? ESTADO_SERVICIO_LABEL[estadoMostrado] : ESTADO_LABEL[anuncio.estado]}
+          </span>
+          {!esAutor && <BotonVerPerfil href={`/pacientes/${anuncio.usuarioId}`} />}
+        </div>
       </div>
 
       <div className="rounded-2xl bg-card p-6 shadow-float">
@@ -228,7 +256,7 @@ export default function AnuncioDetallePage() {
             <Lock className="h-3.5 w-3.5 shrink-0" />
             <span>
               La planta, habitación y cama son privadas hasta que se acepte una
-              postulación.
+              inscripción.
             </span>
           </div>
         ) : null}
@@ -256,23 +284,24 @@ export default function AnuncioDetallePage() {
       </div>
 
       {esAutor && (
-        <SeccionPostulacionesAutor
+        <SeccionInscripcionesAutor
           anuncioActivo={anuncio.estado === "activo"}
           franjas={anuncio.franjas ?? []}
-          postulaciones={postulacionesQuery.data ?? []}
-          cargando={postulacionesQuery.isLoading}
+          inscripciones={inscripcionesQuery.data ?? []}
+          cargando={inscripcionesQuery.isLoading}
           onCambio={invalidarTodo}
         />
       )}
 
       {!esAutor && esCuidador && (
-        <SeccionPostularse
+        <SeccionInscribirse
           anuncioId={anuncioId}
           anuncioActivo={anuncio.estado === "activo"}
           horas={horasTotales(anuncio.franjas ?? [])}
+          franjas={anuncio.franjas ?? []}
           miTarifaHora={user?.tarifaHora ?? null}
-          miPostulacion={miPostulacion}
-          cargando={misPostulacionesQuery.isLoading}
+          miInscripcion={miInscripcion}
+          cargando={misInscripcionesQuery.isLoading}
           onCambio={invalidarTodo}
         />
       )}
@@ -280,37 +309,42 @@ export default function AnuncioDetallePage() {
   );
 }
 
-function SeccionPostulacionesAutor({
+function SeccionInscripcionesAutor({
   anuncioActivo,
   franjas,
-  postulaciones,
+  inscripciones,
   cargando,
   onCambio,
 }: {
   anuncioActivo: boolean;
   franjas: FranjaHoraria[];
-  postulaciones: Postulacion[];
+  inscripciones: Inscripcion[];
   cargando: boolean;
   onCambio: () => void;
 }) {
   const horas = horasTotales(franjas);
+  // Servicio cuyo pago esta abierto en el modal (null = cerrado). "Aceptar y
+  // pagar" abre el modal en cuanto se acepta la inscripcion; si se cierra sin
+  // pagar, queda el boton "Pagar" en la fila (el servicio sigue 'aceptado').
+  const [servicioPagoId, setServicioPagoId] = useState<string | null>(null);
   const aceptarMutation = useMutation({
-    mutationFn: (id: string) => aceptarPostulacion(id),
+    mutationFn: (id: string) => aceptarInscripcion(id),
     onSuccess: (servicio) => {
       sileo.success({
-        title: "Postulación aceptada",
-        description: `${servicio.cuidadorNombre} se encargará del servicio (${servicio.importeTotal} €).`,
+        title: "Inscripción aceptada",
+        description: `${servicio.cuidadorNombre} se encargará del servicio (${servicio.importeTotal} €). Falta completar el pago.`,
       });
       onCambio();
+      setServicioPagoId(servicio.id);
     },
     onError: (error: Error) =>
       sileo.error({ title: "No se pudo aceptar", description: error.message }),
   });
 
   const rechazarMutation = useMutation({
-    mutationFn: (id: string) => rechazarPostulacion(id),
+    mutationFn: (id: string) => rechazarInscripcion(id),
     onSuccess: () => {
-      sileo.success({ title: "Postulación rechazada" });
+      sileo.success({ title: "Inscripción rechazada" });
       onCambio();
     },
     onError: (error: Error) =>
@@ -319,7 +353,7 @@ function SeccionPostulacionesAutor({
 
   const contraofertaMutation = useMutation({
     mutationFn: ({ id, precioHora }: { id: string; precioHora: number }) =>
-      actualizarPrecioPostulacion(id, precioHora),
+      actualizarPrecioInscripcion(id, precioHora),
     onSuccess: () => {
       sileo.success({ title: "Contraoferta enviada" });
       onCambio();
@@ -330,28 +364,30 @@ function SeccionPostulacionesAutor({
 
   return (
     <div className="mt-6 rounded-2xl bg-card p-6 shadow-float">
-      <h2 className="text-lg font-semibold text-foreground">Postulaciones</h2>
+      <h2 className="text-lg font-semibold text-foreground">Inscripciones</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {anuncioActivo
           ? "Cuidadores que se han ofrecido para este anuncio."
-          : "Este anuncio ya no admite nuevas postulaciones."}
+          : "Este anuncio ya no admite nuevas inscripciones."}
       </p>
 
       <div className="mt-4 flex flex-col gap-3">
         {cargando ? (
           <p className="text-sm text-muted-foreground">Cargando…</p>
-        ) : postulaciones.length === 0 ? (
+        ) : inscripciones.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Todavía no hay ninguna postulación.
+            Todavía no hay ninguna inscripción.
           </p>
         ) : (
-          postulaciones.map((p) => (
-            <FilaPostulacion
+          inscripciones.map((p) => (
+            <FilaInscripcion
               key={p.id}
-              postulacion={p}
+              inscripcion={p}
               horas={horas}
               puedeActuar={anuncioActivo}
               onAceptar={() => aceptarMutation.mutate(p.id)}
+              onPagar={setServicioPagoId}
+              onCambio={onCambio}
               onRechazar={() => rechazarMutation.mutate(p.id)}
               onContraoferta={(precioHora) =>
                 contraofertaMutation.mutate({ id: p.id, precioHora })
@@ -365,56 +401,72 @@ function SeccionPostulacionesAutor({
           ))
         )}
       </div>
+
+      <ModalPago
+        key={`pago-${servicioPagoId ?? "cerrado"}`}
+        open={servicioPagoId !== null}
+        onOpenChange={(abierto) => {
+          if (!abierto) {
+            setServicioPagoId(null);
+          }
+        }}
+        servicioId={servicioPagoId}
+        onPagado={() => {
+          sileo.success({
+            title: "Pago realizado",
+            description: "El dinero queda retenido hasta que confirmes que el cuidado se ha realizado.",
+          });
+          setServicioPagoId(null);
+          onCambio();
+        }}
+      />
     </div>
   );
 }
 
-function FilaPostulacion({
-  postulacion,
+function FilaInscripcion({
+  inscripcion,
   horas,
   puedeActuar,
   onAceptar,
+  onPagar,
+  onCambio,
   onRechazar,
   onContraoferta,
   pendienteAccion,
 }: {
-  postulacion: Postulacion;
+  inscripcion: Inscripcion;
   horas: number;
   puedeActuar: boolean;
   onAceptar: () => void;
+  onPagar: (servicioId: string) => void;
+  onCambio: () => void;
   onRechazar: () => void;
   onContraoferta: (precioHora: number) => void;
   pendienteAccion: boolean;
 }) {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [modalResenaAbierto, setModalResenaAbierto] = useState(false);
-  const esPendiente = postulacion.estado === "pendiente";
-  const importeTotal = Math.round(postulacion.precioHora * horas * 100) / 100;
+  const esPendiente = inscripcion.estado === "pendiente";
+  const importeTotal = Math.round(inscripcion.precioHora * horas * 100) / 100;
   // Se coloca junto al texto/boton de cada estado (Pagar, Añadir reseña,
-  // "Rechazaste esta postulación"…) en vez de siempre en su propia fila al
+  // "Rechazaste esta inscripción"…) en vez de siempre en su propia fila al
   // final, para que no quede huérfano. Solo se usa la fila de abajo cuando
   // no hay ningun bloque de estado (pendiente, o algun estado sin manejar).
   const tieneBloqueDeEstado =
-    postulacion.estado === "aceptada" ||
-    postulacion.estado === "rechazada" ||
-    postulacion.estado === "retirada";
-  const botonVerPerfil = (
-    <Link
-      href={`/cuidadores/${postulacion.cuidadorUsuarioId}`}
-      className={cn(buttonVariants({ variant: "outline", size: "sm" }), "border-0 bg-foreground text-background hover:bg-foreground/90")}
-    >
-      Ver perfil
-    </Link>
-  );
+    inscripcion.estado === "aceptada" ||
+    inscripcion.estado === "rechazada" ||
+    inscripcion.estado === "retirada";
+  const botonVerPerfil = <BotonVerPerfil href={`/cuidadores/${inscripcion.cuidadorUsuarioId}`} />;
 
   const queryClient = useQueryClient();
   const crearResenaMutation = useMutation({
     mutationFn: (datos: { valoracion: number; comentario: string }) =>
-      crearResena(postulacion.servicioId as string, datos.valoracion, datos.comentario),
+      crearResena(inscripcion.servicioId as string, datos.valoracion, datos.comentario),
     onSuccess: () => {
       sileo.success({ title: "Reseña enviada", description: "Gracias por valorar a tu cuidador." });
       setModalResenaAbierto(false);
-      queryClient.invalidateQueries({ queryKey: ["postulaciones", "anuncio", postulacion.anuncioId] });
+      queryClient.invalidateQueries({ queryKey: ["inscripciones", "anuncio", inscripcion.anuncioId] });
       queryClient.invalidateQueries({ queryKey: ["anuncios", "mios"] });
       queryClient.invalidateQueries({ queryKey: ["anuncios", "notificaciones-conteo"] });
     },
@@ -425,13 +477,13 @@ function FilaPostulacion({
     <div className="rounded-xl bg-accent p-4 shadow-inset-soft">
       <div className="flex items-center justify-between gap-2">
         <p className="font-medium text-foreground text-sm">
-          {postulacion.cuidadorNombre}
+          {inscripcion.cuidadorNombre}
         </p>
-        <EstadoPostulacionBadge postulacion={postulacion} esCuidador={false} />
+        <EstadoInscripcionBadge inscripcion={inscripcion} esCuidador={false} />
       </div>
       <p className="mt-1 text-sm text-foreground">
-        Precio por hora: <strong>{postulacion.precioHora} €</strong> (
-        {postulacion.propuestoPor === "cuidador"
+        Precio por hora: <strong>{inscripcion.precioHora} €</strong> (
+        {inscripcion.propuestoPor === "cuidador"
           ? "enviado por el cuidador"
           : "enviado por ti"}
         )
@@ -440,19 +492,19 @@ function FilaPostulacion({
         Coste total para este servicio ({horas}h): <strong>{importeTotal} €</strong>
       </p>
 
-      {postulacion.estado === "aceptada" && postulacion.estadoServicio === "aceptado" && (
+      {inscripcion.estado === "aceptada" && inscripcion.estadoServicio === "aceptado" && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-emerald-50 p-3 dark:bg-emerald-900/20">
           <p className="text-sm text-emerald-700 dark:text-emerald-400">
-            {postulacion.propuestoPor === "cuidador"
-              ? `Aceptaste la propuesta de ${postulacion.cuidadorNombre}. Falta completar el pago.`
-              : `${postulacion.cuidadorNombre} aceptó tu propuesta. Falta completar el pago.`}
+            {inscripcion.propuestoPor === "cuidador"
+              ? `Aceptaste la propuesta de ${inscripcion.cuidadorNombre}. Falta completar el pago.`
+              : `${inscripcion.cuidadorNombre} aceptó tu propuesta. Falta completar el pago.`}
           </p>
           <div className="flex items-center gap-2">
-            {/* TODO(stripe): abrir el pago real en vez de este placeholder, ver TODO.md "Cobro real via Stripe" */}
             <Button
               type="button"
               size="sm"
-              onClick={() => sileo.warning({ title: "Disponible próximamente", description: "El cobro real llegará con la integración de pagos." })}
+              disabled={!inscripcion.servicioId}
+              onClick={() => inscripcion.servicioId && onPagar(inscripcion.servicioId)}
             >
               Pagar
             </Button>
@@ -460,7 +512,7 @@ function FilaPostulacion({
           </div>
         </div>
       )}
-      {postulacion.estado === "aceptada" && postulacion.estadoServicio === "confirmado" && (
+      {inscripcion.estado === "aceptada" && inscripcion.estadoServicio === "confirmado" && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-accent p-3">
           <p className="text-sm text-accent-foreground">
             Pago realizado. El cuidado está en marcha.
@@ -468,7 +520,7 @@ function FilaPostulacion({
           {botonVerPerfil}
         </div>
       )}
-      {postulacion.estado === "aceptada" && postulacion.estadoServicio === "pendiente_confirmacion" && (
+      {inscripcion.estado === "aceptada" && inscripcion.estadoServicio === "pendiente_confirmacion" && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-amber-50 p-3 dark:bg-amber-900/20">
           <p className="text-sm text-amber-700 dark:text-amber-400">
             El turno ha terminado. Pendiente de que confirmes que el cuidado se realizó correctamente.
@@ -476,13 +528,13 @@ function FilaPostulacion({
           {botonVerPerfil}
         </div>
       )}
-      {postulacion.estado === "aceptada" && postulacion.estadoServicio === "completado" && (
+      {inscripcion.estado === "aceptada" && inscripcion.estadoServicio === "completado" && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-emerald-50 p-3 dark:bg-emerald-900/20">
           <p className="text-sm text-emerald-700 dark:text-emerald-400">
-            {postulacion.tieneResena ? "Cuidado completado. Ya has valorado a este cuidador." : "Cuidado completado."}
+            {inscripcion.tieneResena ? "Cuidado completado. Ya has valorado a este cuidador." : "Cuidado completado."}
           </p>
           <div className="flex items-center gap-2">
-            {!postulacion.tieneResena && (
+            {!inscripcion.tieneResena && (
               <Button type="button" size="sm" onClick={() => setModalResenaAbierto(true)}>
                 Añadir reseña
               </Button>
@@ -491,7 +543,7 @@ function FilaPostulacion({
           </div>
         </div>
       )}
-      {postulacion.estado === "aceptada" && postulacion.estadoServicio === "cancelado" && (
+      {inscripcion.estado === "aceptada" && inscripcion.estadoServicio === "cancelado" && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-red-50 p-3 dark:bg-red-900/20">
           <p className="text-sm text-red-700 dark:text-red-400">
             Este servicio fue cancelado.
@@ -499,15 +551,23 @@ function FilaPostulacion({
           {botonVerPerfil}
         </div>
       )}
-      {postulacion.estado === "rechazada" && (
+      {inscripcion.estado === "aceptada" && inscripcion.servicioId && inscripcion.estadoServicio && (
+        <>
+          <ResumenPago servicioId={inscripcion.servicioId} rol="paciente" />
+          {(inscripcion.estadoServicio === "confirmado" || inscripcion.estadoServicio === "pendiente_confirmacion") && (
+            <ConfirmacionCuidado servicioId={inscripcion.servicioId} rol="paciente" onCambio={onCambio} />
+          )}
+        </>
+      )}
+      {inscripcion.estado === "rechazada" && (
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm text-muted-foreground">Rechazaste esta postulación.</p>
+          <p className="text-sm text-muted-foreground">Rechazaste esta inscripción.</p>
           {botonVerPerfil}
         </div>
       )}
-      {postulacion.estado === "retirada" && (
+      {inscripcion.estado === "retirada" && (
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm text-muted-foreground">{postulacion.cuidadorNombre} retiró su postulación.</p>
+          <p className="text-sm text-muted-foreground">{inscripcion.cuidadorNombre} retiró su inscripción.</p>
           {botonVerPerfil}
         </div>
       )}
@@ -525,12 +585,11 @@ function FilaPostulacion({
             >
               Contraofertar
             </Button>
-            {postulacion.propuestoPor === "cuidador" ? (
-              // TODO(stripe): este boton finaliza la postulacion "en seco" hoy
-              // (onAceptar -> POST /api/postulaciones/{id}/aceptar). Cuando se
-              // integre el cobro real, debe abrir antes la ventana de pago de
-              // Stripe y solo llamar a "aceptar" (o un endpoint equivalente)
-              // tras un pago confirmado — ver TODO.md, "Cobro real via Stripe".
+            {inscripcion.propuestoPor === "cuidador" ? (
+              // Acepta la inscripcion (crea el servicio, sin cobrar todavia) y abre
+              // enseguida el modal de pago (ver aceptarMutation en
+              // SeccionInscripcionesAutor). El servicio no queda confirmado hasta que
+              // Stripe avisa del cobro.
               <Button
                 type="button"
                 size="sm"
@@ -563,7 +622,7 @@ function FilaPostulacion({
         open={modalAbierto}
         onOpenChange={setModalAbierto}
         horas={horas}
-        precioHoraInicial={postulacion.precioHora}
+        precioHoraInicial={inscripcion.precioHora}
         enviando={pendienteAccion}
         onEnviar={(precioHora) => {
           onContraoferta(precioHora);
@@ -575,7 +634,7 @@ function FilaPostulacion({
         key={`resena-${modalResenaAbierto ? "abierto" : "cerrado"}`}
         open={modalResenaAbierto}
         onOpenChange={setModalResenaAbierto}
-        cuidadorNombre={postulacion.cuidadorNombre}
+        cuidadorNombre={inscripcion.cuidadorNombre}
         enviando={crearResenaMutation.isPending}
         onEnviar={(valoracion, comentario) => crearResenaMutation.mutate({ valoracion, comentario })}
       />
@@ -583,43 +642,45 @@ function FilaPostulacion({
   );
 }
 
-function SeccionPostularse({
+function SeccionInscribirse({
   anuncioId,
   anuncioActivo,
   horas,
+  franjas,
   miTarifaHora,
-  miPostulacion,
+  miInscripcion,
   cargando,
   onCambio,
 }: {
   anuncioId: string;
   anuncioActivo: boolean;
   horas: number;
+  franjas: FranjaHoraria[];
   miTarifaHora: number | null;
-  miPostulacion: Postulacion | undefined;
+  miInscripcion: Inscripcion | undefined;
   cargando: boolean;
   onCambio: () => void;
 }) {
   const [modalAbierto, setModalAbierto] = useState(false);
 
-  const postularseMutation = useMutation({
-    mutationFn: () => postularse(anuncioId),
+  const inscribirseMutation = useMutation({
+    mutationFn: () => inscribirse(anuncioId),
     onSuccess: () => {
       sileo.success({
-        title: "Te has postulado",
+        title: "Te has inscrito",
         description: "El paciente/familiar podrá revisar tu propuesta.",
       });
       onCambio();
     },
     onError: (error: Error) =>
       sileo.error({
-        title: "No se pudo enviar la postulación",
+        title: "No se pudo enviar la inscripción",
         description: error.message,
       }),
   });
 
   const aceptarMutation = useMutation({
-    mutationFn: () => aceptarPostulacion(miPostulacion!.id),
+    mutationFn: () => aceptarInscripcion(miInscripcion!.id),
     onSuccess: (servicio) => {
       sileo.success({
         title: "Propuesta aceptada",
@@ -633,7 +694,7 @@ function SeccionPostularse({
 
   const contraofertaMutation = useMutation({
     mutationFn: (precioHora: number) =>
-      actualizarPrecioPostulacion(miPostulacion!.id, precioHora),
+      actualizarPrecioInscripcion(miInscripcion!.id, precioHora),
     onSuccess: () => {
       sileo.success({ title: "Nueva propuesta enviada" });
       onCambio();
@@ -642,10 +703,24 @@ function SeccionPostularse({
       sileo.error({ title: "No se pudo enviar", description: error.message }),
   });
 
+  const [modalRetirarAbierto, setModalRetirarAbierto] = useState(false);
+  // Reloj para que el boton "Retirar" se deshabilite solo al llegar al limite, sin recargar.
+  const ahora = useAhora();
+  // Servicio ya cobrado (el dinero esta retenido): la retirada devuelve el pago.
+  const pagado =
+    miInscripcion?.estadoServicio === "confirmado" || miInscripcion?.estadoServicio === "pendiente_confirmacion";
+  // Con el pago hecho solo se puede retirar hasta 30 min antes del inicio; despues el
+  // boton queda deshabilitado con la explicacion (el backend tambien lo exige).
+  const retiradaCerrada = pagado && !puedeRetirarseConPagoHecho(franjas, ahora);
+  // Una vez empezado el cuidado ya no se ofrece retirarse (queda la incidencia/queja).
+  const servicioRetirable =
+    miInscripcion?.estadoServicio === "aceptado" || miInscripcion?.estadoServicio === "confirmado";
+  const retiradaOculta = !servicioRetirable || (pagado && cuidadoEmpezado(franjas, ahora));
+
   const retirarMutation = useMutation({
-    mutationFn: () => retirarPostulacion(miPostulacion!.id),
+    mutationFn: () => retirarInscripcion(miInscripcion!.id),
     onSuccess: () => {
-      sileo.success({ title: "Postulación retirada" });
+      sileo.success({ title: "Inscripción retirada" });
       onCambio();
     },
     onError: (error: Error) =>
@@ -660,19 +735,19 @@ function SeccionPostularse({
     );
   }
 
-  if (!anuncioActivo && !miPostulacion) {
+  if (!anuncioActivo && !miInscripcion) {
     return null;
   }
 
   return (
     <div className="mt-6 rounded-2xl bg-card p-6 shadow-float">
-      <h2 className="text-lg font-semibold text-foreground">Tu postulación</h2>
+      <h2 className="text-lg font-semibold text-foreground">Tu inscripción</h2>
 
-      {!miPostulacion ? (
+      {!miInscripcion ? (
         anuncioActivo &&
         (miTarifaHora == null ? (
           <p className="mt-3 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-            Antes de postularte, fija tu tarifa por hora en{" "}
+            Antes de inscribirte, fija tu tarifa por hora en{" "}
             <Link
               href="/perfil"
               className="font-medium text-foreground underline underline-offset-2"
@@ -684,17 +759,17 @@ function SeccionPostularse({
         ) : (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <p className="text-sm text-foreground">
-              Te postularás con tu tarifa:{" "}
+              Te inscribirás con tu tarifa:{" "}
               <strong>{miTarifaHora} €/hora</strong>
             </p>
             <Button
               type="button"
               size="sm"
               className="ml-auto"
-              disabled={postularseMutation.isPending}
-              onClick={() => postularseMutation.mutate()}
+              disabled={inscribirseMutation.isPending}
+              onClick={() => inscribirseMutation.mutate()}
             >
-              Postularme
+              Inscribirme
             </Button>
           </div>
         ))
@@ -703,22 +778,51 @@ function SeccionPostularse({
           <div className="flex items-center justify-between gap-2">
             <p className="text-base text-foreground">
               Precio propuesto:{" "}
-              <strong>{miPostulacion.precioHora} €/hora</strong> (
-              {miPostulacion.propuestoPor === "cuidador"
+              <strong>{miInscripcion.precioHora} €/hora</strong> (
+              {miInscripcion.propuestoPor === "cuidador"
                 ? "enviado por ti"
                 : "enviado por el paciente/familiar"}
               )
             </p>
-            <EstadoPostulacionBadge postulacion={miPostulacion} esCuidador />
+            <EstadoInscripcionBadge inscripcion={miInscripcion} esCuidador />
           </div>
           <p className="text-base text-foreground">
             Coste total para este servicio ({horas}h):{" "}
-            <strong>{Math.round(miPostulacion.precioHora * horas * 100) / 100} €</strong>
+            <strong>{Math.round(miInscripcion.precioHora * horas * 100) / 100} €</strong>
           </p>
 
-          {(miPostulacion.estado === "pendiente" || miPostulacion.estado === "aceptada") && (
+          {miInscripcion.estado === "aceptada" && miInscripcion.servicioId && miInscripcion.estadoServicio && (
+            <>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <ResumenPago servicioId={miInscripcion.servicioId} rol="cuidador" className="w-fit" />
+                {!retiradaOculta && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    disabled={retirarMutation.isPending || retiradaCerrada}
+                    onClick={() => (pagado ? setModalRetirarAbierto(true) : retirarMutation.mutate())}
+                  >
+                    Retirar
+                  </Button>
+                )}
+              </div>
+              {!retiradaOculta && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {retiradaCerrada
+                  ? "Ya no puedes retirarte: el cuidado empieza en menos de 30 minutos o ya ha empezado. Si no puedes asistir, ponte en contacto con nosotros."
+                  : pagado
+                    ? "Puedes retirarte hasta 30 minutos antes de que empiece el cuidado: se devolverá el pago íntegro."
+                    : "Puedes retirarte antes de que se complete el pago."}
+              </p>
+              )}
+              <ConfirmacionCuidado servicioId={miInscripcion.servicioId} rol="cuidador" />
+            </>
+          )}
+
+          {miInscripcion.estado === "pendiente" && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              {miPostulacion.estado === "pendiente" && miPostulacion.propuestoPor === "paciente" && (
+              {miInscripcion.estado === "pendiente" && miInscripcion.propuestoPor === "paciente" && (
                 <Button
                   type="button"
                   size="sm"
@@ -728,12 +832,12 @@ function SeccionPostularse({
                   Aceptar
                 </Button>
               )}
-              {miPostulacion.estado === "pendiente" && (
+              {miInscripcion.estado === "pendiente" && (
                 <Button
                   type="button"
                   size="sm"
                   variant={
-                    miPostulacion.propuestoPor === "paciente"
+                    miInscripcion.propuestoPor === "paciente"
                       ? "outline"
                       : "default"
                   }
@@ -752,25 +856,33 @@ function SeccionPostularse({
               >
                 Retirar
               </Button>
-              {miPostulacion.estado === "pendiente" && miPostulacion.propuestoPor === "cuidador" && (
+              {miInscripcion.estado === "pendiente" && miInscripcion.propuestoPor === "cuidador" && (
                 <p className="text-xs text-muted-foreground">
                   Esperando la respuesta del paciente/familiar a tu propuesta.
                 </p>
               )}
-              {miPostulacion.estado === "aceptada" && (
-                <p className="text-xs text-muted-foreground">
-                  Puedes retirarte antes de que se complete el pago.
-                </p>
-              )}
             </div>
           )}
+
+          <ConfirmDialog
+            open={modalRetirarAbierto}
+            onOpenChange={setModalRetirarAbierto}
+            titulo="Retirarte del cuidado"
+            descripcion="Se devolverá el pago íntegro y el anuncio volverá a publicarse. Retirarte de un cuidado ya pagado puede tener penalizaciones en el futuro. Esta acción no se puede deshacer."
+            textoConfirmar="Retirarme"
+            confirmando={retirarMutation.isPending}
+            onConfirmar={() => {
+              retirarMutation.mutate();
+              setModalRetirarAbierto(false);
+            }}
+          />
 
           <ModalContraoferta
             key={modalAbierto ? "abierto" : "cerrado"}
             open={modalAbierto}
             onOpenChange={setModalAbierto}
             horas={horas}
-            precioHoraInicial={miPostulacion.precioHora}
+            precioHoraInicial={miInscripcion.precioHora}
             enviando={contraofertaMutation.isPending}
             onEnviar={(precioHora) => {
               contraofertaMutation.mutate(precioHora);
@@ -778,13 +890,13 @@ function SeccionPostularse({
             }}
           />
 
-          {miPostulacion.estado === "rechazada" && (
+          {miInscripcion.estado === "rechazada" && (
             <p className="mt-2 text-sm text-muted-foreground">
-              El paciente/familiar rechazó tu postulación para este anuncio.
+              El paciente/familiar rechazó tu inscripción para este anuncio.
             </p>
           )}
-          {miPostulacion.estado === "retirada" && (
-            <p className="mt-2 text-sm text-muted-foreground">Retiraste tu postulación.</p>
+          {miInscripcion.estado === "retirada" && (
+            <p className="mt-2 text-sm text-muted-foreground">Retiraste tu inscripción.</p>
           )}
         </div>
       )}
@@ -792,14 +904,14 @@ function SeccionPostularse({
   );
 }
 
-function EstadoPostulacionBadge({
-  postulacion,
+function EstadoInscripcionBadge({
+  inscripcion,
   esCuidador,
 }: {
-  postulacion: Pick<Postulacion, "estado" | "aceptadoPorCuidador" | "aceptadoPorPaciente">;
+  inscripcion: Pick<Inscripcion, "estado" | "aceptadoPorCuidador" | "aceptadoPorPaciente" | "estadoServicio">;
   esCuidador: boolean;
 }) {
-  const color: Record<Postulacion["estado"], string> = {
+  const color: Record<Inscripcion["estado"], string> = {
     pendiente:
       "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
     aceptada:
@@ -810,9 +922,9 @@ function EstadoPostulacionBadge({
   };
   return (
     <span
-      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${color[postulacion.estado]}`}
+      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${color[inscripcion.estado]}`}
     >
-      {etiquetaEstadoPostulacion(postulacion, esCuidador)}
+      {etiquetaEstadoInscripcion(inscripcion, esCuidador)}
     </span>
   );
 }

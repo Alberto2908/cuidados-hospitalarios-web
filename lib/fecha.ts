@@ -30,3 +30,13 @@ export function formatearAntiguedad(fechaIso: string): string {
   if (mesesRestantes === 0) return textoAnios;
   return `${textoAnios} y ${mesesRestantes === 1 ? "1 mes" : `${mesesRestantes} meses`}`;
 }
+
+/**
+ * Fecha y hora (hora local del navegador) para eventos concretos, como cuándo
+ * se envió una solicitud: DD-MM-AAAA HH:mm. Solo para ISO datetime completo.
+ */
+export function formatearFechaHora(fechaIso: string): string {
+  const fecha = new Date(fechaIso);
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return `${dos(fecha.getDate())}-${dos(fecha.getMonth() + 1)}-${fecha.getFullYear()} ${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
+}

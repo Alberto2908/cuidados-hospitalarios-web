@@ -37,15 +37,7 @@ export default function AdminCuidadoresPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      {/* Cabecera */}
-      <div className="mb-5">
-        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Gestionar cuidadores</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Listado de todos los cuidadores registrados en la plataforma
-        </p>
-      </div>
-
+    <div>
       {/* Tarjetas resumen */}
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard icon={<UserCheck className="h-5 w-5" />} label="Total cuidadores" display={String(totales.total)} color="text-foreground" />

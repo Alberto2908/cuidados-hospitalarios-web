@@ -5,19 +5,25 @@ import { useRouter } from "next/navigation";
 import { sileo } from "sileo";
 import { useAuth, type AuthUser } from "@/lib/auth/AuthContext";
 import { ApiError } from "@/lib/api/client";
-import type { ActualizarPerfilDatos, TipoDocumento } from "@/lib/auth/api";
+import type { ActualizarPerfilDatos, VerificacionIdentidadDatos } from "@/lib/auth/api";
+import ModalVerificacionIdentidad from "@/components/perfil/ModalVerificacionIdentidad";
 import type { Hospital } from "@/lib/mock/hospitales";
 import SelectorProvincia from "@/components/anuncio/SelectorProvincia";
 import SelectorHospitalesMultiple from "@/components/perfil/SelectorHospitalesMultiple";
-import { User, Stethoscope, ShieldCheck, AlertTriangle, Lock, Building2, X, Euro } from "lucide-react";
+import SeccionApariencia from "@/components/perfil/SeccionApariencia";
+import { User, Stethoscope, ShieldCheck, AlertTriangle, Lock, Building2, X, Euro, Clock, BadgeCheck } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-
-const TIPOS_DOCUMENTO: TipoDocumento[] = ["DNI", "NIE", "NIF"];
 
 export default function PerfilPage() {
   const { user, isLoading, isAuthenticated, sincronizarStripe } = useAuth();
   const router = useRouter();
-  const sincronizado = useRef(false);
+  const [comprobandoCobro, setComprobandoCobro] = useState(false);
+  // sincronizarStripe cambia de identidad en cada render: se guarda en una ref para
+  // que el efecto de abajo solo se ejecute al entrar, no en cada render.
+  const sincronizarRef = useRef(sincronizarStripe);
+  useEffect(() => {
+    sincronizarRef.current = sincronizarStripe;
+  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -25,12 +31,33 @@ export default function PerfilPage() {
     }
   }, [isLoading, isAuthenticated, router]);
 
+  // Al entrar se consulta el estado de Stripe. Si el cuidador acaba de volver del
+  // alta (?stripe=retorno), Stripe puede tardar unos segundos en activar la cuenta:
+  // se vuelve a consultar cada pocos segundos hasta que quede habilitada.
   useEffect(() => {
-    if (user?.rol === "CUIDADOR" && !sincronizado.current) {
-      sincronizado.current = true;
-      sincronizarStripe().catch(() => {});
+    if (user?.rol !== "CUIDADOR") return;
+    const vuelveDeStripe = new URLSearchParams(window.location.search).get("stripe") === "retorno";
+    let cancelado = false;
+
+    async function comprobar() {
+      if (vuelveDeStripe) setComprobandoCobro(true);
+      const intentos = vuelveDeStripe ? 10 : 1;
+      for (let i = 0; i < intentos && !cancelado; i++) {
+        try {
+          const actualizado = await sincronizarRef.current();
+          if (actualizado.stripeCobrosHabilitados) break;
+        } catch {
+          // se reintenta en la siguiente vuelta
+        }
+        if (i < intentos - 1) await new Promise((r) => setTimeout(r, 3000));
+      }
+      if (!cancelado) setComprobandoCobro(false);
     }
-  }, [user?.rol, sincronizarStripe]);
+    void comprobar();
+    return () => {
+      cancelado = true;
+    };
+  }, [user?.rol]);
 
   if (isLoading || !user) {
     return (
@@ -40,23 +67,47 @@ export default function PerfilPage() {
     );
   }
 
-  return <PerfilContenido user={user} />;
+  return <PerfilContenido user={user} comprobandoCobro={comprobandoCobro} />;
 }
 
-function PerfilContenido({ user }: { user: AuthUser }) {
-  const { actualizarPerfil, convertirseCuidador, obtenerStripeOnboardingLink } = useAuth();
+function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comprobandoCobro: boolean }) {
+  const {
+    actualizarPerfil,
+    convertirseCuidador,
+    obtenerStripeOnboardingLink,
+    enviarVerificacionIdentidad,
+    marcarResultadoVerificacionVisto,
+  } = useAuth();
 
   const [nombre, setNombre] = useState(user.nombre);
   const [apellidos, setApellidos] = useState(user.apellidos);
   const [telefono, setTelefono] = useState(user.telefono ?? "");
-  const [tipoDocumento, setTipoDocumento] = useState<TipoDocumento>(user.tipoDocumento ?? "DNI");
-  const [numeroDocumento, setNumeroDocumento] = useState(user.numeroDocumento ?? "");
 
   const [guardando, setGuardando] = useState(false);
   const [convirtiendo, setConvirtiendo] = useState(false);
   const [verificando, setVerificando] = useState(false);
+  const [modalVerificacionAbierta, setModalVerificacionAbierta] = useState(false);
+  const [clavesModalVerificacion, setClaveModalVerificacion] = useState(0);
+  const [enviandoVerificacion, setEnviandoVerificacion] = useState(false);
 
-  const documentoBloqueado = user.documentoVerificado;
+  // Con la verificación de identidad pendiente o aprobada, nombre, apellidos y
+  // documento quedan congelados (el servidor también lo impone).
+  const datosCongelados = user.estadoVerificacion === "PENDIENTE" || user.estadoVerificacion === "APROBADA";
+
+  // Abrir el perfil da por visto el resultado de la verificación (apaga las
+  // notificaciones del menú de usuario). Solo se pide si hay algo sin ver.
+  // El ref evita repetir la llamada: marcarResultadoVerificacionVisto cambia de
+  // identidad en cada render del AuthProvider y, sin el, el efecto entraria en bucle.
+  const hayResultadoSinVer = user.verificacionResultadoPendiente;
+  const resultadoMarcadoVisto = useRef(false);
+  useEffect(() => {
+    if (hayResultadoSinVer && !resultadoMarcadoVisto.current) {
+      resultadoMarcadoVisto.current = true;
+      marcarResultadoVerificacionVisto().catch(() => {
+        resultadoMarcadoVisto.current = false;
+      });
+    }
+  }, [hayResultadoSinVer, marcarResultadoVerificacionVisto]);
 
   async function handleGuardarDatos(e: React.FormEvent) {
     e.preventDefault();
@@ -71,10 +122,6 @@ function PerfilContenido({ user }: { user: AuthUser }) {
       apellidos: apellidos.trim(),
       telefono: telefono.trim() || undefined,
     };
-    if (numeroDocumento.trim() && !documentoBloqueado) {
-      datos.tipoDocumento = tipoDocumento;
-      datos.numeroDocumento = numeroDocumento.trim();
-    }
 
     setGuardando(true);
     try {
@@ -82,8 +129,6 @@ function PerfilContenido({ user }: { user: AuthUser }) {
       setNombre(actualizado.nombre);
       setApellidos(actualizado.apellidos);
       setTelefono(actualizado.telefono ?? "");
-      setTipoDocumento(actualizado.tipoDocumento ?? "DNI");
-      setNumeroDocumento(actualizado.numeroDocumento ?? "");
       sileo.success({ title: "Cambios guardados", description: "Tus datos personales se han actualizado." });
     } catch (err) {
       const mensaje = err instanceof ApiError ? err.message : "No se han podido guardar los cambios.";
@@ -106,6 +151,29 @@ function PerfilContenido({ user }: { user: AuthUser }) {
       sileo.error({ title: "No se ha podido completar", description: mensaje });
     } finally {
       setConvirtiendo(false);
+    }
+  }
+
+  function abrirModalVerificacion() {
+    setClaveModalVerificacion((k) => k + 1);
+    setModalVerificacionAbierta(true);
+  }
+
+  async function handleEnviarVerificacion(datos: VerificacionIdentidadDatos) {
+    setEnviandoVerificacion(true);
+    try {
+      await enviarVerificacionIdentidad(datos);
+      setModalVerificacionAbierta(false);
+      sileo.success({
+        title: "Solicitud enviada",
+        description: "Un administrador revisará tu documento. Tus datos personales quedan bloqueados mientras tanto.",
+        duration: 8000,
+      });
+    } catch (err) {
+      const mensaje = err instanceof ApiError ? err.message : "No se ha podido enviar la solicitud.";
+      sileo.error({ title: "No se ha podido enviar", description: mensaje });
+    } finally {
+      setEnviandoVerificacion(false);
     }
   }
 
@@ -159,8 +227,9 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 id="nombre"
                 type="text"
                 value={nombre}
+                disabled={datosCongelados}
                 onChange={(e) => setNombre(e.target.value)}
-                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2"
+                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
               />
             </div>
             <div className="space-y-1.5">
@@ -169,11 +238,21 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 id="apellidos"
                 type="text"
                 value={apellidos}
+                disabled={datosCongelados}
                 onChange={(e) => setApellidos(e.target.value)}
-                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2"
+                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
               />
             </div>
           </div>
+
+          {datosCongelados && (
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Lock className="h-3 w-3 shrink-0" />
+              {user.estadoVerificacion === "APROBADA"
+                ? "Nombre y apellidos verificados: no se pueden modificar."
+                : "Nombre y apellidos bloqueados mientras se revisa tu identidad."}
+            </p>
+          )}
 
           <div className="space-y-1.5">
             <label htmlFor="telefono" className="text-sm font-medium text-foreground">
@@ -189,39 +268,6 @@ function PerfilContenido({ user }: { user: AuthUser }) {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-              Documento de identidad
-              {documentoBloqueado && (
-                <span className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
-                  <Lock className="h-3 w-3" /> verificado, no se puede modificar
-                </span>
-              )}
-            </label>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[140px_1fr]">
-              <select
-                value={tipoDocumento}
-                disabled={documentoBloqueado}
-                onChange={(e) => setTipoDocumento(e.target.value as TipoDocumento)}
-                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
-              >
-                {TIPOS_DOCUMENTO.map((tipo) => (
-                  <option key={tipo} value={tipo}>
-                    {tipo}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="text"
-                value={numeroDocumento}
-                disabled={documentoBloqueado}
-                onChange={(e) => setNumeroDocumento(e.target.value)}
-                placeholder="12345678A"
-                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
-              />
-            </div>
-          </div>
-
           <button
             type="submit"
             disabled={guardando}
@@ -231,6 +277,28 @@ function PerfilContenido({ user }: { user: AuthUser }) {
           </button>
         </form>
       </div>
+
+      <SeccionApariencia />
+
+      {user.rol === "CUIDADOR" && (
+        <div className="rounded-2xl bg-card p-6 shadow-float">
+          <SeccionVerificacionIdentidad user={user} onVerificar={abrirModalVerificacion} />
+        </div>
+      )}
+
+      {user.rol === "CUIDADOR" && (
+        <ModalVerificacionIdentidad
+          key={clavesModalVerificacion}
+          open={modalVerificacionAbierta}
+          onOpenChange={setModalVerificacionAbierta}
+          nombre={user.nombre}
+          apellidos={user.apellidos}
+          tipoDocumentoInicial={user.tipoDocumento}
+          numeroDocumentoInicial={user.numeroDocumento}
+          onEnviar={handleEnviarVerificacion}
+          enviando={enviandoVerificacion}
+        />
+      )}
 
       {user.rol === "CUIDADOR" && (
         <div className="rounded-2xl bg-card p-6 shadow-float">
@@ -255,20 +323,18 @@ function PerfilContenido({ user }: { user: AuthUser }) {
             cuando quieras.
           </p>
 
-          {user.numeroDocumento ? (
-            <button
-              type="button"
-              onClick={handleConvertirse}
-              disabled={convirtiendo}
-              className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
-            >
-              {convirtiendo ? "Enviando..." : "Convertirme en cuidador"}
-            </button>
-          ) : (
-            <p className="rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-              Completa tu documento de identidad en “Datos personales” para poder convertirte en cuidador.
-            </p>
-          )}
+          <p className="mb-5 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+            Para aparecer en las búsquedas e inscribirte en anuncios tendrás que verificar tu identidad con tu
+            DNI o NIE desde tu perfil.
+          </p>
+          <button
+            type="button"
+            onClick={handleConvertirse}
+            disabled={convirtiendo}
+            className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
+          >
+            {convirtiendo ? "Enviando..." : "Convertirme en cuidador"}
+          </button>
         </div>
       )}
 
@@ -283,7 +349,10 @@ function PerfilContenido({ user }: { user: AuthUser }) {
             <>
               <div className="mb-4 flex items-start gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>Pagos activados. Ya puedes recibir tus ingresos cuando completes un turno.</span>
+                <span>
+                  Datos de cobro completados. Recibirás el dinero de cada cuidado en tu cuenta bancaria cuando el
+                  paciente/familiar lo confirme.
+                </span>
               </div>
               <button
                 type="button"
@@ -296,11 +365,18 @@ function PerfilContenido({ user }: { user: AuthUser }) {
             </>
           ) : (
             <>
+              {comprobandoCobro && (
+                <div className="mb-4 flex items-start gap-2 rounded-xl bg-muted px-4 py-3 text-sm text-muted-foreground">
+                  <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>Stripe está comprobando tus datos. Puede tardar unos segundos; esta pantalla se actualizará sola.</span>
+                </div>
+              )}
               <div className="mb-4 flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
-                  Todavía no has verificado tus datos de cobro con Stripe. Puedes hacerlo ahora o más adelante,
-                  pero <strong>no recibirás tus ingresos hasta que lo completes</strong>.
+                  Todavía no has completado tus datos de cobro. Puedes inscribirte y aceptar cuidados sin ellos, pero{" "}
+                  <strong>no recibirás el dinero hasta que los completes</strong>: se queda retenido y se te entrega en
+                  cuanto termines. Los datos los recoge Stripe (identidad y cuenta bancaria).
                 </span>
               </div>
               <button
@@ -309,7 +385,7 @@ function PerfilContenido({ user }: { user: AuthUser }) {
                 disabled={verificando}
                 className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
               >
-                {verificando ? "Redirigiendo a Stripe..." : "Verificar datos de cobro con Stripe"}
+                {verificando ? "Redirigiendo a Stripe..." : "Completar datos de cobro"}
               </button>
             </>
           )}
@@ -334,6 +410,7 @@ function colorCompletitud(porcentaje: number): string {
 
 function SeccionCompletitud({ user }: { user: AuthUser }) {
   const items = [
+    { label: "Identidad verificada", hecho: user.documentoVerificado },
     { label: "Teléfono de contacto", hecho: Boolean(user.telefono) },
     { label: "Tarifa por hora", hecho: user.tarifaHora != null },
     { label: "Hospitales en los que trabajas", hecho: (user.hospitalesTrabajo?.length ?? 0) > 0 },
@@ -357,6 +434,70 @@ function SeccionCompletitud({ user }: { user: AuthUser }) {
   );
 }
 
+function SeccionVerificacionIdentidad({ user, onVerificar }: { user: AuthUser; onVerificar: () => void }) {
+  const estado = user.estadoVerificacion;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 text-foreground">
+        <BadgeCheck className="h-5 w-5 text-accent-foreground" />
+        <h2 className="text-lg font-semibold">Verificación de identidad</h2>
+      </div>
+
+      {estado === "APROBADA" && (
+        <div className="flex items-start gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Tu identidad está verificada
+            {user.tipoDocumento && user.numeroDocumento ? ` (${user.tipoDocumento} ${user.numeroDocumento})` : ""}. Apareces
+            en las búsquedas y puedes inscribirte en anuncios.
+          </span>
+        </div>
+      )}
+
+      {estado === "PENDIENTE" && (
+        <div className="flex items-start gap-2 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+          <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Tu solicitud
+            {user.tipoDocumento && user.numeroDocumento ? ` (${user.tipoDocumento} ${user.numeroDocumento})` : ""} está
+            pendiente de revisión. Hasta que se complete no aparecerás en las búsquedas ni podrás inscribirte en
+            anuncios. Tus datos personales no se pueden modificar durante la revisión.
+          </span>
+        </div>
+      )}
+
+      {(estado === "SIN_SOLICITAR" || estado === "RECHAZADA") && (
+        <>
+          {estado === "RECHAZADA" && (
+            <div className="flex items-start gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                No hemos podido verificar tu documento. Revisa que las imágenes sean legibles y que los datos
+                coincidan, y vuelve a enviarlo.
+              </span>
+            </div>
+          )}
+          <div className="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Para aparecer en las búsquedas e inscribirte en anuncios necesitas verificar tu identidad con tu DNI o
+              NIE.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onVerificar}
+            className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90"
+          >
+            Verificar mi identidad
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 function SeccionTarifa({ tarifaInicial }: { tarifaInicial: number | null }) {
   const { actualizarTarifaHora } = useAuth();
   const [tarifa, setTarifa] = useState(tarifaInicial != null ? String(tarifaInicial) : "");
@@ -371,7 +512,7 @@ function SeccionTarifa({ tarifaInicial }: { tarifaInicial: number | null }) {
     setGuardando(true);
     try {
       await actualizarTarifaHora(valor);
-      sileo.success({ title: "Tarifa guardada", description: "Ya puedes postularte a anuncios con esta tarifa." });
+      sileo.success({ title: "Tarifa guardada", description: "Ya puedes inscribirte en anuncios con esta tarifa." });
     } catch (err) {
       const mensaje = err instanceof ApiError ? err.message : "No se ha podido guardar la tarifa.";
       sileo.error({ title: "No se ha podido guardar", description: mensaje });
@@ -387,8 +528,8 @@ function SeccionTarifa({ tarifaInicial }: { tarifaInicial: number | null }) {
         <h2 className="text-lg font-semibold">Tu tarifa por hora</h2>
       </div>
       <p className="text-sm text-muted-foreground">
-        Es el precio de partida con el que te postulas a un anuncio. El paciente/familiar podrá proponerte un
-        precio distinto una vez te hayas postulado.
+        Es el precio de partida con el que te inscribes en un anuncio. El paciente/familiar podrá proponerte un
+        precio distinto una vez te hayas inscrito.
       </p>
       <div className="flex items-center gap-2">
         <input

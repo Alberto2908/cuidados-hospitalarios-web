@@ -10,17 +10,18 @@ import {
   History,
   LayoutDashboard,
   Users,
-  UserCheck,
   ShieldCheck,
   Stethoscope,
   ArrowRight,
   Bell,
   MapPin,
   BarChart3,
+  Wallet,
+  CircleUserRound,
 } from "lucide-react";
 import { useAuth, UserRole, type AuthUser } from "@/lib/auth/AuthContext";
 import { misNotificacionesConteo as misNotificacionesAnuncios } from "@/lib/api/anuncios";
-import { misNotificacionesConteo as misNotificacionesPostulaciones } from "@/lib/api/postulaciones";
+import { misNotificacionesConteo as misNotificacionesInscripciones } from "@/lib/api/inscripciones";
 import { fetchTodosLosHospitales } from "@/lib/api/hospitales";
 
 interface AccesoRapido {
@@ -50,6 +51,12 @@ const ACCESOS_POR_ROL: Record<UserRole, AccesoRapido[]> = {
       href: "/paciente/historial",
       icon: <History className="h-5 w-5" />,
     },
+    {
+      label: "Mi perfil",
+      description: "Mira cómo te ven los demás",
+      href: "/mi-perfil",
+      icon: <CircleUserRound className="h-5 w-5" />,
+    },
   ],
   CUIDADOR: [
     {
@@ -59,10 +66,16 @@ const ACCESOS_POR_ROL: Record<UserRole, AccesoRapido[]> = {
       icon: <Search className="h-5 w-5" />,
     },
     {
-      label: "Mis postulaciones",
+      label: "Mis inscripciones",
       description: "Sigue el estado de tus propuestas",
       href: "/cuidador/historial",
       icon: <History className="h-5 w-5" />,
+    },
+    {
+      label: "Mi perfil",
+      description: "Mira cómo te ven los demás",
+      href: "/mi-perfil",
+      icon: <CircleUserRound className="h-5 w-5" />,
     },
   ],
   ADMIN: [
@@ -79,16 +92,22 @@ const ACCESOS_POR_ROL: Record<UserRole, AccesoRapido[]> = {
       icon: <LayoutDashboard className="h-5 w-5" />,
     },
     {
-      label: "Gestionar cuidadores",
-      description: "Administra las cuentas de cuidadores",
-      href: "/admin/cuidadores",
-      icon: <UserCheck className="h-5 w-5" />,
+      label: "Gestionar usuarios",
+      description: "Administra las cuentas de cuidadores y pacientes",
+      href: "/admin/usuarios",
+      icon: <Users className="h-5 w-5" />,
     },
     {
-      label: "Gestionar pacientes",
-      description: "Administra las cuentas de pacientes",
-      href: "/admin/pacientes",
-      icon: <Users className="h-5 w-5" />,
+      label: "Verificaciones",
+      description: "Revisa las solicitudes de identidad pendientes",
+      href: "/admin/verificaciones",
+      icon: <ShieldCheck className="h-5 w-5" />,
+    },
+    {
+      label: "Pagos",
+      description: "Dinero retenido e incidencias de pago",
+      href: "/admin/pagos",
+      icon: <Wallet className="h-5 w-5" />,
     },
   ],
 };
@@ -120,7 +139,7 @@ const PASOS = [
   {
     icon: <Search className="h-5 w-5" />,
     titulo: "Recibe propuestas",
-    texto: "Cuidadores profesionales de la zona se postulan con su tarifa. Puedes negociar el precio.",
+    texto: "Cuidadores profesionales de la zona se inscriben con su tarifa. Puedes negociar el precio.",
   },
   {
     icon: <ShieldCheck className="h-5 w-5" />,
@@ -184,7 +203,7 @@ export default function InicioPage() {
                   <Link
                     key={acceso.href}
                     href={acceso.href}
-                    className="group flex items-center gap-3 rounded-2xl bg-card p-4 shadow-float transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_oklch(0.29_0.05_265/0.12)]"
+                    className="group flex items-center gap-3 rounded-2xl bg-card p-4 shadow-float transition-all hover:-translate-y-0.5 hover:shadow-[0_5px_16px_oklch(0.29_0.05_265/0.08)] sm:[&:last-child:nth-child(odd)]:col-span-2 sm:[&:last-child:nth-child(odd)]:w-[calc(50%-0.375rem)] sm:[&:last-child:nth-child(odd)]:justify-self-center"
                   >
                     <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${ROLE_CHIP[user.rol]}`}>
                       {acceso.icon}
@@ -218,7 +237,7 @@ export default function InicioPage() {
             </p>
             <p>
               Publicas el turno que necesitas —el hospital, la planta y el horario exacto— y los
-              cuidadores profesionales de la zona lo ven y se postulan con su tarifa por hora, así
+              cuidadores profesionales de la zona lo ven y se inscriben con su tarifa por hora, así
               que puedes comparar propuestas antes de decidir.
             </p>
             <p>
@@ -342,7 +361,7 @@ export default function InicioPage() {
           <div>
             <h3 className="text-lg font-semibold text-foreground">Cómo se elige al cuidador</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Cuando un cuidador se postula a tu anuncio, ves su tarifa por hora y puedes
+              Cuando un cuidador se inscribe en tu anuncio, ves su tarifa por hora y puedes
               proponerle un precio distinto antes de decidir. Nadie queda asignado hasta que tú
               aceptas su propuesta.
             </p>
@@ -368,14 +387,14 @@ function ResumenCuenta({ user }: { user: AuthUser }) {
     enabled: esPaciente,
     staleTime: 20 * 1000,
   });
-  const { data: notiPostulaciones } = useQuery({
-    queryKey: ["postulaciones", "notificaciones-conteo"],
-    queryFn: misNotificacionesPostulaciones,
+  const { data: notiInscripciones } = useQuery({
+    queryKey: ["inscripciones", "notificaciones-conteo"],
+    queryFn: misNotificacionesInscripciones,
     enabled: esCuidador,
     staleTime: 20 * 1000,
   });
 
-  const pendientes = esPaciente ? notiAnuncios?.total ?? 0 : notiPostulaciones?.total ?? 0;
+  const pendientes = esPaciente ? notiAnuncios?.total ?? 0 : notiInscripciones?.total ?? 0;
   const hrefPendientes = esPaciente ? "/paciente/historial" : "/cuidador/historial";
 
   if (user.rol === "ADMIN") return null;
