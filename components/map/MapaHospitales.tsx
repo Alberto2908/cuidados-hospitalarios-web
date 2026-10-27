@@ -309,9 +309,13 @@ export default function MapaHospitales({
   const onClickRef = useRef(onHospitalClick);
   const onBoundsRef = useRef(onBoundsChange);
   const onViewChangeRef = useRef(onViewChange);
-  onClickRef.current = onHospitalClick;
-  onBoundsRef.current = onBoundsChange;
-  onViewChangeRef.current = onViewChange;
+  // Los handlers vigentes se guardan tras cada render (no durante él) para que los
+  // listeners del mapa, creados una sola vez, llamen siempre a la última versión.
+  useEffect(() => {
+    onClickRef.current = onHospitalClick;
+    onBoundsRef.current = onBoundsChange;
+    onViewChangeRef.current = onViewChange;
+  });
 
   /* ── Init mapa ── */
   useEffect(() => {

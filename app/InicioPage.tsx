@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   HeartPulse,
@@ -18,11 +18,13 @@ import {
   BarChart3,
   Wallet,
   CircleUserRound,
+  ClipboardList,
 } from "lucide-react";
 import { useAuth, UserRole, type AuthUser } from "@/lib/auth/AuthContext";
 import { misNotificacionesConteo as misNotificacionesAnuncios } from "@/lib/api/anuncios";
 import { misNotificacionesConteo as misNotificacionesInscripciones } from "@/lib/api/inscripciones";
 import { fetchTodosLosHospitales } from "@/lib/api/hospitales";
+import { cuidadorCompleto } from "@/lib/cuidador/completitud";
 
 interface AccesoRapido {
   label: string;
@@ -34,7 +36,7 @@ interface AccesoRapido {
 const ACCESOS_POR_ROL: Record<UserRole, AccesoRapido[]> = {
   USUARIO: [
     {
-      label: "Poner anuncio",
+      label: "Crear anuncio",
       description: "Publica el turno que necesitas cubrir",
       href: "/paciente/anuncio/nuevo",
       icon: <Megaphone className="h-5 w-5" />,
@@ -60,16 +62,28 @@ const ACCESOS_POR_ROL: Record<UserRole, AccesoRapido[]> = {
   ],
   CUIDADOR: [
     {
-      label: "Buscar anuncio",
-      description: "Encuentra turnos disponibles",
-      href: "/cuidador/buscar",
+      label: "Crear anuncio",
+      description: "Publica el turno que necesitas cubrir",
+      href: "/paciente/anuncio/nuevo",
+      icon: <Megaphone className="h-5 w-5" />,
+    },
+    {
+      label: "Buscador",
+      description: "Busca anuncios o cuidadores cerca del hospital",
+      href: "/paciente/buscar",
       icon: <Search className="h-5 w-5" />,
+    },
+    {
+      label: "Mis anuncios",
+      description: "Gestiona tus anuncios activos",
+      href: "/paciente/historial",
+      icon: <History className="h-5 w-5" />,
     },
     {
       label: "Mis inscripciones",
       description: "Sigue el estado de tus propuestas",
       href: "/cuidador/historial",
-      icon: <History className="h-5 w-5" />,
+      icon: <ClipboardList className="h-5 w-5" />,
     },
     {
       label: "Mi perfil",
@@ -384,37 +398,52 @@ function ResumenCuenta({ user }: { user: AuthUser }) {
   const { data: notiAnuncios } = useQuery({
     queryKey: ["anuncios", "notificaciones-conteo"],
     queryFn: misNotificacionesAnuncios,
-    enabled: esPaciente,
+    enabled: esPaciente || esCuidador,
     staleTime: 20 * 1000,
   });
   const { data: notiInscripciones } = useQuery({
     queryKey: ["inscripciones", "notificaciones-conteo"],
     queryFn: misNotificacionesInscripciones,
-    enabled: esCuidador,
+    enabled: cuidadorCompleto(user),
     staleTime: 20 * 1000,
   });
 
-  const pendientes = esPaciente ? notiAnuncios?.total ?? 0 : notiInscripciones?.total ?? 0;
-  const hrefPendientes = esPaciente ? "/paciente/historial" : "/cuidador/historial";
+  const avisos = [
+    { total: notiAnuncios?.total ?? 0, href: "/paciente/historial" },
+    { total: esCuidador ? notiInscripciones?.total ?? 0 : 0, href: "/cuidador/historial" },
+  ].filter((a) => a.total > 0);
 
   if (user.rol === "ADMIN") return null;
 
   return (
     <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-      {(esPaciente || esCuidador) && pendientes > 0 && (
+      {avisos.map(({ total, href }) => (
         <Link
-          href={hrefPendientes}
+          key={href}
+          href={href}
           className="flex flex-1 items-center justify-center gap-2.5 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/70"
         >
           <Bell className="h-4 w-4 shrink-0 text-accent-foreground" />
-          Tienes {pendientes} {pendientes === 1 ? "notificación" : "notificaciones"}
+          Tienes {total} {total === 1 ? "notificación" : "notificaciones"}
+          {esCuidador && <span className="text-xs font-normal">en {href === "/paciente/historial" ? "mis anuncios" : "mis inscripciones"}</span>}
         </Link>
-      )}
+      ))}
     </div>
   );
 }
 
 const CANTIDAD_HOSPITALES_DESTACADOS = 8;
+
+// mulberry32: generador con semilla, para que el sorteo sea una función pura de la semilla.
+function generadorAleatorio(semilla: number) {
+  let a = semilla;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 /**
  * Muestra unos pocos hospitales reales del catálogo (~850), elegidos al azar
@@ -429,15 +458,19 @@ function HospitalesDestacados() {
     staleTime: 10 * 60 * 1000,
   });
 
+  // Semilla fijada al montar (el inicializador perezoso se ejecuta una sola vez): el sorteo
+  // cambia en cada carga de la página pero no en cada render.
+  const [semilla] = useState(() => Math.floor(Math.random() * 2 ** 32));
   const destacados = useMemo(() => {
     if (!hospitales || hospitales.length === 0) return [];
+    const aleatorio = generadorAleatorio(semilla);
     const copia = [...hospitales];
     for (let i = copia.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(aleatorio() * (i + 1));
       [copia[i], copia[j]] = [copia[j], copia[i]];
     }
     return copia.slice(0, CANTIDAD_HOSPITALES_DESTACADOS);
-  }, [hospitales]);
+  }, [hospitales, semilla]);
 
   if (destacados.length === 0) return null;
 

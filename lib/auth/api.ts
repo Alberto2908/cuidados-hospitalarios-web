@@ -27,6 +27,8 @@ export interface UsuarioActual {
   /** El admin ya ha aprobado/rechazado la solicitud y el cuidador aún no lo ha visto (notificación). */
   verificacionResultadoPendiente: boolean;
   stripeCobrosHabilitados: boolean | null;
+  /** Cuidador con dinero retenido que no puede recibir hasta completar los datos de cobro. */
+  cobrosPendientes: boolean;
   proveedorAuth: "LOCAL" | "GOOGLE";
   hospitalesTrabajo: Hospital[] | null;
   tarifaHora: number | null;

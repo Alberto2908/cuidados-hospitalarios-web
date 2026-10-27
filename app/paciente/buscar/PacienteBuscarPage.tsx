@@ -7,6 +7,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { MapPin, Star, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SelectorBuscador from "@/components/cuidador/SelectorBuscador";
 import { fetchTodosLosHospitales } from "@/lib/api/hospitales";
 import { formatearAntiguedad } from "@/lib/fecha";
 import {
@@ -175,11 +176,14 @@ export default function PacienteBuscarPage() {
 
   return (
     <div className="page-container py-8">
-      <div className="mb-5">
-        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Buscar cuidador</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Selecciona un hospital en el mapa para ver los cuidadores disponibles ahí
-        </p>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Buscar cuidador</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Selecciona un hospital en el mapa para ver los cuidadores disponibles ahí
+          </p>
+        </div>
+        <SelectorBuscador activo="cuidadores" />
       </div>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
 

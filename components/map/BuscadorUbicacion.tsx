@@ -43,6 +43,8 @@ export default function BuscadorUbicacion({ onSelect, hospitales, trailing }: Pr
   useEffect(() => {
     const q = query.trim();
     if (q.length < 2) {
+      // Restablece el estado de la búsqueda al vaciarse la consulta: no hay nada que derivar.
+      /* eslint-disable react-hooks/set-state-in-effect */
       setSuggestions([]);
       setLoading(false);
       setError(null);
@@ -52,6 +54,7 @@ export default function BuscadorUbicacion({ onSelect, hospitales, trailing }: Pr
     const controller = new AbortController();
     setLoading(true);
     setError(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     const timer = window.setTimeout(async () => {
       // 1) Coincidencias locales de hospitales (instantáneas y precisas)

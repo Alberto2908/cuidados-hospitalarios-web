@@ -1,5 +1,10 @@
 import CuidadorHistorialPage from "./CuidadorHistorialPage";
+import RequiereCuidadorCompleto from "@/components/cuidador/RequiereCuidadorCompleto";
 
 export default function Page() {
-  return <CuidadorHistorialPage />;
+  return (
+    <RequiereCuidadorCompleto>
+      <CuidadorHistorialPage />
+    </RequiereCuidadorCompleto>
+  );
 }

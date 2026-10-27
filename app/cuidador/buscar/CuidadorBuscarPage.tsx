@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { MapPin, CalendarDays, X } from "lucide-react";
+import SelectorBuscador from "@/components/cuidador/SelectorBuscador";
 import { fetchTodosLosHospitales } from "@/lib/api/hospitales";
 import {
   fetchAnunciosPorHospitales,
@@ -150,11 +151,14 @@ export default function CuidadorBuscarPage() {
 
   return (
     <div className="page-container py-8">
-      <div className="mb-5">
-        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Buscar anuncios</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Selecciona un hospital en el mapa para ver los anuncios activos ahí
-        </p>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">Buscar anuncios</h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Selecciona un hospital en el mapa para ver los anuncios activos ahí
+          </p>
+        </div>
+        <SelectorBuscador activo="anuncios" />
       </div>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
 

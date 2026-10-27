@@ -1,4 +1,3 @@
-import { API_BASE_URL } from "@/lib/api/config";
 import { apiFetch } from "@/lib/api/client";
 import type { Hospital } from "@/lib/mock/hospitales";
 import type { FranjaHoraria } from "@/lib/anuncio/schema";
@@ -91,26 +90,6 @@ export interface PaginaAnuncios {
   totalPages: number;
 }
 
-async function apiGetPublico<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`);
-  if (!response.ok) {
-    throw new Error(`Error al cargar ${path} (${response.status})`);
-  }
-  return response.json() as Promise<T>;
-}
-
-async function apiPostPublico<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    throw new Error(`Error al cargar ${path} (${response.status})`);
-  }
-  return response.json() as Promise<T>;
-}
-
 function hospitalIdsParams(hospitalIds: string[]): URLSearchParams {
   const params = new URLSearchParams();
   hospitalIds.forEach((id) => params.append("hospitalIds", id));
@@ -129,7 +108,7 @@ export async function fetchAnunciosPorHospitales(
   const params = hospitalIdsParams(hospitalIds);
   params.set("page", String(page));
   params.set("size", String(size));
-  const pagina = await apiGetPublico<{
+  const pagina = await apiFetch<{
     content: AnuncioApi[];
     page: number;
     size: number;
@@ -146,10 +125,10 @@ export async function fetchAnunciosPorHospitales(
  */
 export async function fetchConteoAnunciosPorHospitales(hospitalIds: string[]): Promise<Record<string, number>> {
   if (hospitalIds.length === 0) return {};
-  return apiPostPublico<Record<string, number>>("/api/anuncios/conteo", hospitalIds);
+  return apiFetch<Record<string, number>>("/api/anuncios/conteo", { method: "POST", body: JSON.stringify(hospitalIds) });
 }
 
-// apiFetch (no apiGetPublico) a proposito: envia la cookie de sesion, asi el
+// apiFetch a proposito: envia la cookie de sesion, asi el
 // backend puede revelar planta/habitacion/cama cuando quien mira es el autor
 // o el cuidador con la inscripcion aceptada.
 export async function obtenerAnuncio(id: string): Promise<Anuncio> {

@@ -9,6 +9,7 @@ import {
   X,
   ChevronDown,
   Megaphone,
+  ClipboardList,
   Search,
   History,
   LayoutDashboard,
@@ -22,6 +23,7 @@ import {
   ShieldCheck,
   Wallet,
 } from "lucide-react";
+import { cuidadorCompleto } from "@/lib/cuidador/completitud";
 import { useAuth, UserRole } from "@/lib/auth/AuthContext";
 import { misNotificacionesConteo as misNotificacionesConteoAnuncios } from "@/lib/api/anuncios";
 import { misNotificacionesConteo as misNotificacionesConteoInscripciones } from "@/lib/api/inscripciones";
@@ -52,21 +54,31 @@ interface NavLink {
    * pero se abre siempre desde "Mis anuncios"). El propio href ya se
    * comprueba aparte, no hace falta repetirlo aqui. */
   tambienActivoEn?: string[];
+  /** Otras rutas que son "esta pantalla" (p.ej. el buscador compartido del cuidador). */
+  exactoEn?: string[];
 }
 
 // Perfil publico propio (como lo ven los demas). ADMIN no tiene.
 const MI_PERFIL: NavLink = { label: "Mi perfil", href: "/mi-perfil", icon: <CircleUserRound className="h-4 w-4" /> };
 
+const CREAR_ANUNCIO: NavLink = { label: "Crear anuncio", href: "/paciente/anuncio/nuevo", icon: <Megaphone className="h-4 w-4" /> };
+const MIS_ANUNCIOS: NavLink = {
+  label: "Mis anuncios", href: "/paciente/historial", icon: <History className="h-4 w-4" />, tambienActivoEn: ["/paciente/anuncio/"],
+};
+
 const NAV_LINKS: Record<UserRole, NavLink[]> = {
   USUARIO: [
-    { label: "Poner anuncio",   href: "/paciente/anuncio/nuevo", icon: <Megaphone className="h-4 w-4" /> },
-    { label: "Buscar cuidador", href: "/paciente/buscar",        icon: <Search     className="h-4 w-4" />, tambienActivoEn: ["/cuidadores/"] },
-    { label: "Mis anuncios",    href: "/paciente/historial",     icon: <History    className="h-4 w-4" />, tambienActivoEn: ["/paciente/anuncio/"] },
+    CREAR_ANUNCIO,
+    { label: "Buscar cuidador", href: "/paciente/buscar", icon: <Search className="h-4 w-4" />, tambienActivoEn: ["/cuidadores/"] },
+    MIS_ANUNCIOS,
     MI_PERFIL,
   ],
+  // El buscador es uno solo (selector Buscar anuncios / Buscar cuidadores dentro de la pagina).
   CUIDADOR: [
-    { label: "Buscar anuncio", href: "/cuidador/buscar",    icon: <Search  className="h-4 w-4" />, tambienActivoEn: ["/paciente/anuncio/"] },
-    { label: "Mis inscripciones", href: "/cuidador/historial", icon: <History className="h-4 w-4" />, tambienActivoEn: ["/pacientes/"] },
+    CREAR_ANUNCIO,
+    { label: "Buscador", href: "/paciente/buscar", icon: <Search className="h-4 w-4" />, exactoEn: ["/cuidador/buscar"], tambienActivoEn: ["/cuidadores/"] },
+    MIS_ANUNCIOS,
+    { label: "Mis inscripciones", href: "/cuidador/historial", icon: <ClipboardList className="h-4 w-4" />, tambienActivoEn: ["/pacientes/"] },
     MI_PERFIL,
   ],
   ADMIN: [
@@ -79,13 +91,13 @@ const NAV_LINKS: Record<UserRole, NavLink[]> = {
 };
 
 /**
- * El exacto siempre gana (así "Poner anuncio" en /paciente/anuncio/nuevo no
+ * El exacto siempre gana (así "Crear anuncio" en /paciente/anuncio/nuevo no
  * se lo roba "Mis anuncios" por su prefijo /paciente/anuncio/). Solo si
  * ningún link hace match exacto se prueba por prefijo, para paginas de
  * detalle que no viven bajo el href pero se abren siempre desde ese link.
  */
 function linkActivo(pathname: string, links: NavLink[], origen: string | null): string | null {
-  const exacto = links.find((l) => l.href === pathname);
+  const exacto = links.find((l) => l.href === pathname || l.exactoEn?.includes(pathname));
   if (exacto) return exacto.href;
   // Detalle de anuncio y perfiles publicos se abren desde varios sitios: se
   // queda marcado el link desde el que se llego (guardado abajo), tambien al
@@ -151,10 +163,10 @@ export default function Navbar() {
     // Recuerda el ultimo listado del nav en el que se estuvo (por pestana) para
     // mantenerlo marcado en las paginas de detalle que cuelgan de el.
     const enlaces = rol ? NAV_LINKS[rol] : [];
-    const exacto = enlaces.find((l) => l.href === pathname);
+    const exacto = enlaces.find((l) => l.href === pathname || l.exactoEn?.includes(pathname));
     if (exacto) {
       // Solo los listados desde los que se abre un detalle; cualquier otro
-      // link (Poner anuncio, Mi perfil...) borra el origen para que el
+      // link (Crear anuncio, Mi perfil...) borra el origen para que el
       // siguiente detalle use el link por defecto.
       if (ORIGENES_DETALLE.includes(exacto.href)) guardarOrigenNav(exacto.href);
       else borrarOrigenNav();
@@ -174,20 +186,22 @@ export default function Navbar() {
   const { contenedor: navRef, registrar: registrarLink, estiloIndicador } =
     useIndicadorDeslizante(hrefActivo, links.map((l) => l.href).join("|"));
 
+  const cuidadorOk = cuidadorCompleto(user);
+
   const esPaciente = user?.rol === "USUARIO";
   const esCuidador = user?.rol === "CUIDADOR";
 
   const { data: notificacionesAnuncios } = useQuery({
     queryKey: ["anuncios", "notificaciones-conteo"],
     queryFn: misNotificacionesConteoAnuncios,
-    enabled: isAuthenticated && esPaciente,
+    enabled: isAuthenticated && (esPaciente || esCuidador),
     staleTime: 20 * 1000,
     refetchInterval: 30 * 1000,
   });
   const { data: notificacionesInscripciones } = useQuery({
     queryKey: ["inscripciones", "notificaciones-conteo"],
     queryFn: misNotificacionesConteoInscripciones,
-    enabled: isAuthenticated && esCuidador,
+    enabled: isAuthenticated && cuidadorOk,
     staleTime: 20 * 1000,
     refetchInterval: 30 * 1000,
   });
@@ -212,6 +226,8 @@ export default function Navbar() {
   // El cuidador tiene un resultado de verificación (aprobada/rechazada) sin ver:
   // punto en el menú de usuario y en "Datos personales", que es donde se ve.
   const avisoVerificacion = esCuidador && Boolean(user?.verificacionResultadoPendiente);
+  // Alta de cuidador sin completar: lo que falta se rellena en "Datos personales".
+  const avisoDatos = avisoVerificacion || (esCuidador && !cuidadorOk);
 
   const notificacionesPorHref: Record<string, number> = {
     [HREF_NOTIFICACIONES_ADMIN]: verificacionesPendientes?.total ?? 0,
@@ -284,10 +300,10 @@ export default function Navbar() {
                 {/* Avatar inicial */}
                 <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
                   {user.nombre[0]}{user.apellidos[0]}
-                  {avisoVerificacion && (
+                  {avisoDatos && (
                     <span
                       className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-card"
-                      aria-label="Tienes una notificación sobre tu verificación de identidad"
+                      aria-label="Tienes datos pendientes por completar en tu perfil"
                     />
                   )}
                 </div>
@@ -314,10 +330,10 @@ export default function Navbar() {
                     >
                       <User className="h-4 w-4 text-muted-foreground" />
                       Datos personales
-                      {avisoVerificacion && (
+                      {avisoDatos && (
                         <span
                           className="ml-auto h-2 w-2 shrink-0 rounded-full bg-red-500"
-                          aria-label="Notificación sobre tu verificación de identidad"
+                          aria-label="Datos pendientes por completar en tu perfil"
                         />
                       )}
                     </Link>
@@ -418,10 +434,10 @@ export default function Navbar() {
             <div className="mt-2 border-t border-border pt-2 flex flex-col gap-1">
               <Link href="/perfil" onClick={() => setMobileOpen(false)} className="flex items-center gap-2.5 rounded-full px-3.5 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
                 <User className="h-4 w-4" /> Datos personales
-                {avisoVerificacion && (
+                {avisoDatos && (
                   <span
                     className="ml-auto h-2 w-2 shrink-0 rounded-full bg-red-500"
-                    aria-label="Notificación sobre tu verificación de identidad"
+                    aria-label="Datos pendientes por completar en tu perfil"
                   />
                 )}
               </Link>

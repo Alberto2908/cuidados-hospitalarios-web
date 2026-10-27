@@ -17,6 +17,8 @@ interface ConfirmDialogProps {
   descripcion: string;
   textoConfirmar?: string;
   confirmando?: boolean;
+  /** `default` para acciones que no destruyen nada (p. ej. un alta irreversible). */
+  variante?: "destructive" | "default";
   onConfirmar: () => void;
 }
 
@@ -30,6 +32,7 @@ export function ConfirmDialog({
   descripcion,
   textoConfirmar = "Confirmar",
   confirmando,
+  variante = "destructive",
   onConfirmar,
 }: ConfirmDialogProps) {
   return (
@@ -43,7 +46,7 @@ export function ConfirmDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Volver
           </Button>
-          <Button type="button" variant="destructive" disabled={confirmando} onClick={onConfirmar}>
+          <Button type="button" variant={variante} disabled={confirmando} onClick={onConfirmar}>
             {confirmando ? "Un momento…" : textoConfirmar}
           </Button>
         </DialogFooter>

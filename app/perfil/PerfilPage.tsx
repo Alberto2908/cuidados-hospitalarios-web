@@ -13,6 +13,35 @@ import SelectorHospitalesMultiple from "@/components/perfil/SelectorHospitalesMu
 import SeccionApariencia from "@/components/perfil/SeccionApariencia";
 import { User, Stethoscope, ShieldCheck, AlertTriangle, Lock, Building2, X, Euro, Clock, BadgeCheck } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { porcentajeCompletitud } from "@/lib/cuidador/completitud";
+
+/**
+ * Punto en la esquina superior derecha del contenedor (que debe ser `relative`), mitad dentro y
+ * mitad fuera. Rojo = falta para completar el alta como cuidador (el 100 % de la barra); naranja =
+ * recomendado pero no obligatorio.
+ */
+function PuntoPendiente({
+  pendiente,
+  nivel = "obligatorio",
+  titulo = "Necesario para completar tu perfil de cuidador",
+}: {
+  pendiente: boolean;
+  nivel?: "obligatorio" | "recomendado";
+  titulo?: string;
+}) {
+  if (!pendiente) return null;
+  return (
+    <span
+      role="img"
+      title={titulo}
+      aria-label={titulo}
+      className={`absolute -right-px -top-px h-4 w-4 rounded-full ring-4 ring-background ${
+        nivel === "obligatorio" ? "bg-red-500" : "bg-orange-400"
+      }`}
+    />
+  );
+}
 
 export default function PerfilPage() {
   const { user, isLoading, isAuthenticated, sincronizarStripe } = useAuth();
@@ -85,6 +114,7 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
 
   const [guardando, setGuardando] = useState(false);
   const [convirtiendo, setConvirtiendo] = useState(false);
+  const [confirmandoConversion, setConfirmandoConversion] = useState(false);
   const [verificando, setVerificando] = useState(false);
   const [modalVerificacionAbierta, setModalVerificacionAbierta] = useState(false);
   const [clavesModalVerificacion, setClaveModalVerificacion] = useState(0);
@@ -142,9 +172,10 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
     setConvirtiendo(true);
     try {
       await convertirseCuidador();
+      setConfirmandoConversion(false);
       sileo.success({
         title: "Ya eres cuidador",
-        description: "Ya puedes indicar en que hospitales trabajas y configurar tus datos de cobro.",
+        description: "Completa el 100 % de tu perfil para desbloquear Buscar anuncios y Mis inscripciones.",
       });
     } catch (err) {
       const mensaje = err instanceof ApiError ? err.message : "No se ha podido completar el alta como cuidador.";
@@ -257,16 +288,19 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
 
             <div className="space-y-1.5">
               <label htmlFor="telefono" className="text-sm font-medium text-foreground">
-                Teléfono <span className="text-muted-foreground">(opcional)</span>
+                Teléfono {user.rol !== "CUIDADOR" && <span className="text-muted-foreground">(opcional)</span>}
               </label>
-              <input
-                id="telefono"
-                type="tel"
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
-                placeholder="+34 600 000 000"
-                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2"
-              />
+              <div className="relative">
+                <PuntoPendiente pendiente={user.rol === "CUIDADOR" && !user.telefono} />
+                <input
+                  id="telefono"
+                  type="tel"
+                  value={telefono}
+                  onChange={(e) => setTelefono(e.target.value)}
+                  placeholder="+34 600 000 000"
+                  className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2"
+                />
+              </div>
             </div>
 
             <button
@@ -282,7 +316,8 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
         <SeccionApariencia />
 
         {user.rol === "CUIDADOR" && (
-          <div className="rounded-2xl bg-card p-6 shadow-float">
+          <div className="relative rounded-2xl bg-card p-6 shadow-float">
+            <PuntoPendiente pendiente={!user.documentoVerificado} />
             <SeccionVerificacionIdentidad user={user} onVerificar={abrirModalVerificacion} />
           </div>
         )}
@@ -302,13 +337,15 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
         )}
 
         {user.rol === "CUIDADOR" && (
-          <div className="rounded-2xl bg-card p-6 shadow-float">
+          <div className="relative rounded-2xl bg-card p-6 shadow-float">
+            <PuntoPendiente pendiente={user.tarifaHora == null} />
             <SeccionTarifa tarifaInicial={user.tarifaHora} />
           </div>
         )}
 
         {user.rol === "CUIDADOR" && (
-          <div className="rounded-2xl bg-card p-6 shadow-float">
+          <div className="relative rounded-2xl bg-card p-6 shadow-float">
+            <PuntoPendiente pendiente={(user.hospitalesTrabajo?.length ?? 0) === 0} />
             <SeccionHospitales hospitalesIniciales={user.hospitalesTrabajo ?? []} />
           </div>
         )}
@@ -326,21 +363,39 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
 
             <p className="mb-5 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
               Para aparecer en las búsquedas e inscribirte en anuncios tendrás que verificar tu identidad con tu
-              DNI o NIE desde tu perfil.
+              DNI o NIE, indicar tu teléfono y tu tarifa por hora, y elegir los hospitales en los que trabajas.
             </p>
             <button
               type="button"
-              onClick={handleConvertirse}
-              disabled={convirtiendo}
+              onClick={() => setConfirmandoConversion(true)}
               className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
             >
-              {convirtiendo ? "Enviando..." : "Convertirme en cuidador"}
+              Convertirme en cuidador
             </button>
+            <ConfirmDialog
+              open={confirmandoConversion}
+              onOpenChange={setConfirmandoConversion}
+              titulo="Convertirte en cuidador es irreversible"
+              descripcion="Una vez completado el alta no podrás volver a ser solo paciente. Las funciones nuevas del cuidador (Buscar anuncios y Mis inscripciones) quedarán deshabilitadas hasta que completes el 100 % del proceso: verificar tu identidad, indicar tu teléfono, tu tarifa por hora y los hospitales en los que trabajas. Los datos de cobro (Stripe) son recomendables: sin ellos no podrás cobrar tus cuidados."
+              textoConfirmar="Convertirme en cuidador"
+              variante="default"
+              confirmando={convirtiendo}
+              onConfirmar={handleConvertirse}
+            />
           </div>
         )}
 
         {user.rol === "CUIDADOR" && (
-          <div className="rounded-2xl bg-card p-6 shadow-float">
+          <div className="relative rounded-2xl bg-card p-6 shadow-float">
+            <PuntoPendiente
+              pendiente={!user.stripeCobrosHabilitados}
+              nivel={user.cobrosPendientes ? "obligatorio" : "recomendado"}
+              titulo={
+                user.cobrosPendientes
+                  ? "Tienes dinero retenido que no podrás recibir hasta completar tus datos de cobro"
+                  : "Recomendado: sin datos de cobro no podrás cobrar tus cuidados"
+              }
+            />
             <div className="mb-4 flex items-center gap-2 text-foreground">
               <ShieldCheck className="h-5 w-5 text-accent-foreground" />
               <h2 className="text-lg font-semibold">Datos de cobro</h2>
@@ -411,15 +466,7 @@ function colorCompletitud(porcentaje: number): string {
 }
 
 function SeccionCompletitud({ user }: { user: AuthUser }) {
-  const items = [
-    { label: "Identidad verificada", hecho: user.documentoVerificado },
-    { label: "Teléfono de contacto", hecho: Boolean(user.telefono) },
-    { label: "Tarifa por hora", hecho: user.tarifaHora != null },
-    { label: "Hospitales en los que trabajas", hecho: (user.hospitalesTrabajo?.length ?? 0) > 0 },
-    { label: "Datos de cobro verificados", hecho: Boolean(user.stripeCobrosHabilitados) },
-  ];
-  const completados = items.filter((item) => item.hecho).length;
-  const porcentaje = Math.round((completados / items.length) * 100);
+  const porcentaje = porcentajeCompletitud(user);
 
   return (
     <div>
@@ -484,7 +531,7 @@ function SeccionVerificacionIdentidad({ user, onVerificar }: { user: AuthUser; o
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
               Para aparecer en las búsquedas e inscribirte en anuncios necesitas verificar tu identidad con tu DNI o
-              NIE.
+              NIE, además de completar tu teléfono, tu tarifa y tus hospitales.
             </span>
           </div>
           <button
