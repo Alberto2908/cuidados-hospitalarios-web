@@ -152,6 +152,7 @@ export default function AnuncioDetallePage() {
     });
   }
 
+  const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
   const borrarAnuncioMutation = useMutation({
     mutationFn: () => borrarAnuncio(anuncioId),
     onSuccess: () => {
@@ -272,14 +273,22 @@ export default function AnuncioDetallePage() {
               size="sm"
               variant="destructive"
               disabled={borrarAnuncioMutation.isPending}
-              onClick={() => {
-                if (confirm("¿Seguro que quieres borrar este anuncio?")) {
-                  borrarAnuncioMutation.mutate();
-                }
-              }}
+              onClick={() => setConfirmandoBorrado(true)}
             >
               Borrar anuncio
             </Button>
+            <ConfirmDialog
+              open={confirmandoBorrado}
+              onOpenChange={setConfirmandoBorrado}
+              titulo="¿Borrar este anuncio?"
+              descripcion="El anuncio dejará de ser visible y se rechazarán sus inscripciones pendientes."
+              textoConfirmar="Borrar anuncio"
+              confirmando={borrarAnuncioMutation.isPending}
+              onConfirmar={() => {
+                borrarAnuncioMutation.mutate();
+                setConfirmandoBorrado(false);
+              }}
+            />
           </div>
         )}
       </div>

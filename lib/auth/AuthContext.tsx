@@ -3,6 +3,7 @@
 import { createContext, useContext, ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as authApi from "@/lib/auth/api";
+import { ApiError } from "@/lib/api/client";
 import type {
   ActualizarPerfilDatos,
   RegistroDatos,
@@ -27,6 +28,7 @@ interface AuthContextType {
   logout: () => void;
   actualizarPerfil: (datos: ActualizarPerfilDatos) => Promise<AuthUser>;
   convertirseCuidador: () => Promise<AuthUser>;
+  dejarDeSerCuidador: () => Promise<AuthUser>;
   enviarVerificacionIdentidad: (datos: VerificacionIdentidadDatos) => Promise<AuthUser>;
   marcarResultadoVerificacionVisto: () => Promise<AuthUser>;
   obtenerStripeOnboardingLink: () => Promise<{ url: string }>;
@@ -49,12 +51,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       try {
         return await authApi.obtenerUsuarioActual();
-      } catch {
-        return null;
+      } catch (err) {
+        // Solo un 401 significa "no hay sesión". Un 502, un corte de red o un backend que se está
+        // reiniciando no son "sin sesión": si se tratan así, el usuario queda como deslogueado
+        // (y se le manda a /login) durante los 5 minutos que se cachea el resultado.
+        if (err instanceof ApiError && err.status === 401) return null;
+        throw err;
       }
     },
     staleTime: 5 * 60 * 1000,
-    retry: false,
+    // Los fallos que no son 401 se reintentan (la carga queda en "Cargando…" mientras tanto).
+    retry: (intentos, err) => !(err instanceof ApiError && err.status === 401) && intentos < 3,
+    retryDelay: (intento) => Math.min(500 * 2 ** intento, 4000),
     // Con la verificación de identidad pendiente se consulta de vez en cuando para
     // enterarse pronto de la decisión del admin (notificación en el menú de usuario).
     refetchInterval: (query) => (query.state.data?.estadoVerificacion === "PENDIENTE" ? 30 * 1000 : false),
@@ -89,6 +97,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const convertirseCuidadorMutation = useMutation({
     mutationFn: authApi.convertirseCuidador,
     onSuccess: (usuario) => queryClient.setQueryData(AUTH_QUERY_KEY, usuario),
+  });
+
+  const dejarDeSerCuidadorMutation = useMutation({
+    mutationFn: authApi.dejarDeSerCuidador,
+    onSuccess: (usuario) => {
+      queryClient.setQueryData(AUTH_QUERY_KEY, usuario);
+      // Las inscripciones retiradas y el contador del navbar ya no son los mismos.
+      queryClient.invalidateQueries({ queryKey: ["inscripciones"] });
+    },
   });
 
   const verificacionIdentidadMutation = useMutation({
@@ -147,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout: () => logoutMutation.mutate(),
         actualizarPerfil: (datos) => actualizarPerfilMutation.mutateAsync(datos),
         convertirseCuidador: () => convertirseCuidadorMutation.mutateAsync(),
+        dejarDeSerCuidador: () => dejarDeSerCuidadorMutation.mutateAsync(),
         enviarVerificacionIdentidad: (datos) => verificacionIdentidadMutation.mutateAsync(datos),
         marcarResultadoVerificacionVisto: () => resultadoVistoMutation.mutateAsync(),
         obtenerStripeOnboardingLink: () => authApi.obtenerStripeOnboardingLink(),

@@ -29,7 +29,11 @@ export async function proxy(request: NextRequest) {
 
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
+    // Se comprueba la firma pero NO la caducidad (currentDate fijo en 1970): el access token dura
+    // minutos y el refresh token (cookie de /api/auth, que esta ruta no recibe) mantiene la sesion, asi
+    // que un token caducado pero autentico no significa "sin sesion". Aqui solo se decide la ruta segun
+    // el rol; quien renueva la sesion es la web (/api/auth/me) y quien protege los datos es el API.
+    const { payload } = await jwtVerify(token, secret, { currentDate: new Date(0) });
     const rol = typeof payload.rol === "string" ? payload.rol : "";
     const rutasPermitidas = RUTAS_POR_ROL[rol] ?? [];
 
@@ -37,7 +41,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   } catch {
-    // Token ausente/expirado/invalido: al login, no al home — todavia no sabemos
+    // Token ausente o con la firma invalida: al login, no al home — todavia no sabemos
     // ni siquiera si esta autenticado.
     return NextResponse.redirect(new URL("/login", request.url));
   }

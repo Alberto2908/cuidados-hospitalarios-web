@@ -21,7 +21,9 @@ export default function RequiereCuidadorCompleto({
 }) {
   const { user, isLoading } = useAuth();
 
-  if (isLoading || !user) return null;
+  if (isLoading || !user) {
+    return <div className="page-container py-8 text-sm text-muted-foreground">Cargando…</div>;
+  }
   if (cuidadorCompleto(user)) return <>{children}</>;
 
   const pendientes = itemsCompletitud(user).filter((i) => !i.hecho);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { sileo } from "sileo";
@@ -11,12 +11,17 @@ import { FloatingInput } from "@/components/ui/FloatingInput";
 import { HeartPulse, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
-  const { login, loginConGoogle } = useAuth();
+  const { login, loginConGoogle, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [enviando, setEnviando] = useState(false);
+
+  // Quien ya tiene sesion (p. ej. la recupero /api/auth/me al abrir esta pagina) no necesita el formulario.
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) router.replace("/");
+  }, [isLoading, isAuthenticated, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

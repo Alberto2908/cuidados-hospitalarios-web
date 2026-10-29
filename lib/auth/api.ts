@@ -119,6 +119,21 @@ export function convertirseCuidador() {
   return apiFetch<UsuarioActual>("/api/usuarios/me/convertirse-cuidador", { method: "POST" });
 }
 
+export interface EstadoDejarDeSerCuidador {
+  permitido: boolean;
+  /** Por qué no se puede; vacío cuando `permitido`. */
+  motivo: string;
+}
+
+/** Si el cuidador puede volver a ser solo familiar/paciente y, si no, el motivo. */
+export function estadoDejarDeSerCuidador() {
+  return apiFetch<EstadoDejarDeSerCuidador>("/api/usuarios/me/dejar-de-ser-cuidador");
+}
+
+export function dejarDeSerCuidador() {
+  return apiFetch<UsuarioActual>("/api/usuarios/me/dejar-de-ser-cuidador", { method: "POST" });
+}
+
 export function obtenerStripeOnboardingLink() {
   return apiFetch<{ url: string }>("/api/usuarios/me/stripe/onboarding-link", { method: "POST" });
 }
