@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
 import { ArrowLeft, CalendarDays, Lock, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { cuidadorCompleto, itemsCompletitud } from "@/lib/cuidador/completitud";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import BotonVerPerfil from "@/components/perfil/BotonVerPerfil";
@@ -105,7 +106,7 @@ export default function AnuncioDetallePage() {
   const misInscripcionesQuery = useQuery({
     queryKey: ["inscripciones", "mias"],
     queryFn: listarMisInscripciones,
-    enabled: esCuidador && !esAutor,
+    enabled: esCuidador && !esAutor && cuidadorCompleto(user),
   });
 
   const miInscripcion = misInscripcionesQuery.data?.find(
@@ -151,6 +152,7 @@ export default function AnuncioDetallePage() {
     });
   }
 
+  const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
   const borrarAnuncioMutation = useMutation({
     mutationFn: () => borrarAnuncio(anuncioId),
     onSuccess: () => {
@@ -271,14 +273,22 @@ export default function AnuncioDetallePage() {
               size="sm"
               variant="destructive"
               disabled={borrarAnuncioMutation.isPending}
-              onClick={() => {
-                if (confirm("¿Seguro que quieres borrar este anuncio?")) {
-                  borrarAnuncioMutation.mutate();
-                }
-              }}
+              onClick={() => setConfirmandoBorrado(true)}
             >
               Borrar anuncio
             </Button>
+            <ConfirmDialog
+              open={confirmandoBorrado}
+              onOpenChange={setConfirmandoBorrado}
+              titulo="¿Borrar este anuncio?"
+              descripcion="El anuncio dejará de ser visible y se rechazarán sus inscripciones pendientes."
+              textoConfirmar="Borrar anuncio"
+              confirmando={borrarAnuncioMutation.isPending}
+              onConfirmar={() => {
+                borrarAnuncioMutation.mutate();
+                setConfirmandoBorrado(false);
+              }}
+            />
           </div>
         )}
       </div>
@@ -661,6 +671,7 @@ function SeccionInscribirse({
   cargando: boolean;
   onCambio: () => void;
 }) {
+  const { user } = useAuth();
   const [modalAbierto, setModalAbierto] = useState(false);
 
   const inscribirseMutation = useMutation({
@@ -737,6 +748,22 @@ function SeccionInscribirse({
 
   if (!anuncioActivo && !miInscripcion) {
     return null;
+  }
+
+  if (!miInscripcion && user && !cuidadorCompleto(user)) {
+    const pendientes = itemsCompletitud(user).filter((i) => !i.hecho);
+    return (
+      <div className="mt-6 rounded-2xl bg-card p-6 shadow-float">
+        <h2 className="text-lg font-semibold text-foreground">Tu inscripción</h2>
+        <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+          Para inscribirte tienes que completar antes tu perfil de cuidador en{" "}
+          <Link href="/perfil" className="font-medium underline underline-offset-2">
+            tu perfil
+          </Link>
+          . Te falta: {pendientes.map((p) => p.label.toLowerCase()).join(", ")}.
+        </p>
+      </div>
+    );
   }
 
   return (

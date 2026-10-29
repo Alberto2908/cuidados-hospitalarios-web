@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useMutation, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { sileo } from "sileo";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { darDeBajaUsuario, reactivarUsuario, suspenderUsuario, type EstadoUsuario } from "@/lib/api/admin";
 
 interface AccionesEstadoUsuarioProps {
@@ -12,8 +14,25 @@ interface AccionesEstadoUsuarioProps {
   queryKeysAInvalidar: QueryKey[];
 }
 
+type AccionPendiente = "suspender" | "baja";
+
+const CONFIRMACIONES: Record<AccionPendiente, { titulo: string; descripcion: string; textoConfirmar: string }> = {
+  suspender: {
+    titulo: "¿Suspender esta cuenta?",
+    descripcion: "No podrá iniciar sesión hasta que la reactives, y sus sesiones abiertas se cierran al momento.",
+    textoConfirmar: "Suspender cuenta",
+  },
+  baja: {
+    titulo: "¿Dar de baja esta cuenta?",
+    descripcion:
+      "No es reversible desde aquí: se cierran sus sesiones y se programará el borrado de sus datos identificativos.",
+    textoConfirmar: "Dar de baja",
+  },
+};
+
 export default function AccionesEstadoUsuario({ usuarioId, estado, queryKeysAInvalidar }: AccionesEstadoUsuarioProps) {
   const queryClient = useQueryClient();
+  const [pendiente, setPendiente] = useState<AccionPendiente | null>(null);
 
   function invalidarTodo() {
     queryKeysAInvalidar.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
@@ -62,11 +81,7 @@ export default function AccionesEstadoUsuario({ usuarioId, estado, queryKeysAInv
           size="sm"
           variant="outline"
           disabled={suspenderMutation.isPending}
-          onClick={() => {
-            if (confirm("¿Seguro que quieres suspender esta cuenta? No podrá iniciar sesión hasta que la reactives.")) {
-              suspenderMutation.mutate();
-            }
-          }}
+          onClick={() => setPendiente("suspender")}
         >
           Suspender cuenta
         </Button>
@@ -76,18 +91,22 @@ export default function AccionesEstadoUsuario({ usuarioId, estado, queryKeysAInv
         size="sm"
         variant="destructive"
         disabled={bajaMutation.isPending}
-        onClick={() => {
-          if (
-            confirm(
-              "¿Seguro que quieres dar de baja esta cuenta? No es reversible desde aquí: se programará el borrado de sus datos identificativos.",
-            )
-          ) {
-            bajaMutation.mutate();
-          }
-        }}
+        onClick={() => setPendiente("baja")}
       >
         Dar de baja
       </Button>
+      {pendiente && (
+        <ConfirmDialog
+          open
+          onOpenChange={(abierto) => !abierto && setPendiente(null)}
+          {...CONFIRMACIONES[pendiente]}
+          confirmando={pendiente === "suspender" ? suspenderMutation.isPending : bajaMutation.isPending}
+          onConfirmar={() => {
+            (pendiente === "suspender" ? suspenderMutation : bajaMutation).mutate();
+            setPendiente(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sileo } from "sileo";
@@ -10,6 +11,7 @@ import type { EstadoAnuncio } from "@/lib/api/anuncios";
 import type { EstadoPago, EstadoServicio } from "@/lib/api/servicios";
 import { formatearFecha } from "@/lib/fecha";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const ESTADO_SERVICIO_LABEL: Record<EstadoServicio, string> = {
   aceptado: "Aceptado",
@@ -65,6 +67,7 @@ export default function AdminAnuncioDetallePage() {
     retry: false,
   });
 
+  const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
   const borrarMutation = useMutation({
     mutationFn: () => borrarAnuncioAdmin(anuncioId),
     onSuccess: () => {
@@ -141,14 +144,22 @@ export default function AdminAnuncioDetallePage() {
                   size="sm"
                   variant="destructive"
                   disabled={borrarMutation.isPending}
-                  onClick={() => {
-                    if (confirm("¿Seguro que quieres borrar este anuncio? Se rechazarán sus inscripciones pendientes.")) {
-                      borrarMutation.mutate();
-                    }
-                  }}
+                  onClick={() => setConfirmandoBorrado(true)}
                 >
                   Borrar anuncio
                 </Button>
+                <ConfirmDialog
+                  open={confirmandoBorrado}
+                  onOpenChange={setConfirmandoBorrado}
+                  titulo="¿Borrar este anuncio?"
+                  descripcion="Se rechazarán sus inscripciones pendientes."
+                  textoConfirmar="Borrar anuncio"
+                  confirmando={borrarMutation.isPending}
+                  onConfirmar={() => {
+                    borrarMutation.mutate();
+                    setConfirmandoBorrado(false);
+                  }}
+                />
               </div>
             )}
           </div>

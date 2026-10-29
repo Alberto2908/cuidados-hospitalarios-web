@@ -27,6 +27,8 @@ export interface UsuarioActual {
   /** El admin ya ha aprobado/rechazado la solicitud y el cuidador aún no lo ha visto (notificación). */
   verificacionResultadoPendiente: boolean;
   stripeCobrosHabilitados: boolean | null;
+  /** Cuidador con dinero retenido que no puede recibir hasta completar los datos de cobro. */
+  cobrosPendientes: boolean;
   proveedorAuth: "LOCAL" | "GOOGLE";
   hospitalesTrabajo: Hospital[] | null;
   tarifaHora: number | null;
@@ -115,6 +117,21 @@ export function marcarResultadoVerificacionVisto() {
 
 export function convertirseCuidador() {
   return apiFetch<UsuarioActual>("/api/usuarios/me/convertirse-cuidador", { method: "POST" });
+}
+
+export interface EstadoDejarDeSerCuidador {
+  permitido: boolean;
+  /** Por qué no se puede; vacío cuando `permitido`. */
+  motivo: string;
+}
+
+/** Si el cuidador puede volver a ser solo familiar/paciente y, si no, el motivo. */
+export function estadoDejarDeSerCuidador() {
+  return apiFetch<EstadoDejarDeSerCuidador>("/api/usuarios/me/dejar-de-ser-cuidador");
+}
+
+export function dejarDeSerCuidador() {
+  return apiFetch<UsuarioActual>("/api/usuarios/me/dejar-de-ser-cuidador", { method: "POST" });
 }
 
 export function obtenerStripeOnboardingLink() {

@@ -6,6 +6,8 @@ import { sileo } from "sileo";
 import { useAuth, type AuthUser } from "@/lib/auth/AuthContext";
 import { ApiError } from "@/lib/api/client";
 import type { ActualizarPerfilDatos, VerificacionIdentidadDatos } from "@/lib/auth/api";
+import SeccionDejarDeSerCuidador from "@/components/perfil/SeccionDejarDeSerCuidador";
+import { AvisoAdvertencia } from "@/components/ui/aviso-advertencia";
 import ModalVerificacionIdentidad from "@/components/perfil/ModalVerificacionIdentidad";
 import type { Hospital } from "@/lib/mock/hospitales";
 import SelectorProvincia from "@/components/anuncio/SelectorProvincia";
@@ -13,6 +15,35 @@ import SelectorHospitalesMultiple from "@/components/perfil/SelectorHospitalesMu
 import SeccionApariencia from "@/components/perfil/SeccionApariencia";
 import { User, Stethoscope, ShieldCheck, AlertTriangle, Lock, Building2, X, Euro, Clock, BadgeCheck } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { porcentajeCompletitud } from "@/lib/cuidador/completitud";
+
+/**
+ * Punto en la esquina superior derecha del contenedor (que debe ser `relative`), mitad dentro y
+ * mitad fuera. Rojo = falta para completar el alta como cuidador (el 100 % de la barra); naranja =
+ * recomendado pero no obligatorio.
+ */
+function PuntoPendiente({
+  pendiente,
+  nivel = "obligatorio",
+  titulo = "Necesario para completar tu perfil de cuidador",
+}: {
+  pendiente: boolean;
+  nivel?: "obligatorio" | "recomendado";
+  titulo?: string;
+}) {
+  if (!pendiente) return null;
+  return (
+    <span
+      role="img"
+      title={titulo}
+      aria-label={titulo}
+      className={`absolute -right-px -top-px h-4 w-4 rounded-full ring-4 ring-background ${
+        nivel === "obligatorio" ? "bg-red-500" : "bg-orange-400"
+      }`}
+    />
+  );
+}
 
 export default function PerfilPage() {
   const { user, isLoading, isAuthenticated, sincronizarStripe } = useAuth();
@@ -85,6 +116,7 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
 
   const [guardando, setGuardando] = useState(false);
   const [convirtiendo, setConvirtiendo] = useState(false);
+  const [confirmandoConversion, setConfirmandoConversion] = useState(false);
   const [verificando, setVerificando] = useState(false);
   const [modalVerificacionAbierta, setModalVerificacionAbierta] = useState(false);
   const [clavesModalVerificacion, setClaveModalVerificacion] = useState(0);
@@ -117,6 +149,12 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
       return;
     }
 
+    // Una vez indicado, el telefono de un cuidador no se puede borrar (requisito del alta).
+    if (user.rol === "CUIDADOR" && user.telefono && !telefono.trim()) {
+      sileo.error({ title: "Teléfono obligatorio", description: "Un cuidador tiene que mantener su teléfono de contacto." });
+      return;
+    }
+
     const datos: ActualizarPerfilDatos = {
       nombre: nombre.trim(),
       apellidos: apellidos.trim(),
@@ -142,9 +180,10 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
     setConvirtiendo(true);
     try {
       await convertirseCuidador();
+      setConfirmandoConversion(false);
       sileo.success({
         title: "Ya eres cuidador",
-        description: "Ya puedes indicar en que hospitales trabajas y configurar tus datos de cobro.",
+        description: "Completa el 100 % de tu perfil para desbloquear Buscar anuncios y Mis inscripciones.",
       });
     } catch (err) {
       const mensaje = err instanceof ApiError ? err.message : "No se ha podido completar el alta como cuidador.";
@@ -257,16 +296,20 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
 
             <div className="space-y-1.5">
               <label htmlFor="telefono" className="text-sm font-medium text-foreground">
-                Teléfono <span className="text-muted-foreground">(opcional)</span>
+                Teléfono{" "}
+                <span className="text-muted-foreground">{user.rol === "CUIDADOR" ? "(obligatorio para cuidadores)" : "(opcional)"}</span>
               </label>
-              <input
-                id="telefono"
-                type="tel"
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
-                placeholder="+34 600 000 000"
-                className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2"
-              />
+              <div className="relative">
+                <PuntoPendiente pendiente={user.rol === "CUIDADOR" && !user.telefono} />
+                <input
+                  id="telefono"
+                  type="tel"
+                  value={telefono}
+                  onChange={(e) => setTelefono(e.target.value)}
+                  placeholder="+34 600 000 000"
+                  className="h-10 w-full rounded-xl border-0 bg-card px-3.5 text-sm text-foreground placeholder:text-muted-foreground shadow-input outline-none ring-ring transition-shadow focus:ring-2"
+                />
+              </div>
             </div>
 
             <button
@@ -282,7 +325,8 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
         <SeccionApariencia />
 
         {user.rol === "CUIDADOR" && (
-          <div className="rounded-2xl bg-card p-6 shadow-float">
+          <div className="relative rounded-2xl bg-card p-6 shadow-float">
+            <PuntoPendiente pendiente={!user.documentoVerificado} />
             <SeccionVerificacionIdentidad user={user} onVerificar={abrirModalVerificacion} />
           </div>
         )}
@@ -302,13 +346,15 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
         )}
 
         {user.rol === "CUIDADOR" && (
-          <div className="rounded-2xl bg-card p-6 shadow-float">
+          <div className="relative rounded-2xl bg-card p-6 shadow-float">
+            <PuntoPendiente pendiente={user.tarifaHora == null} />
             <SeccionTarifa tarifaInicial={user.tarifaHora} />
           </div>
         )}
 
         {user.rol === "CUIDADOR" && (
-          <div className="rounded-2xl bg-card p-6 shadow-float">
+          <div className="relative rounded-2xl bg-card p-6 shadow-float">
+            <PuntoPendiente pendiente={(user.hospitalesTrabajo?.length ?? 0) === 0} />
             <SeccionHospitales hospitalesIniciales={user.hospitalesTrabajo ?? []} />
           </div>
         )}
@@ -326,21 +372,39 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
 
             <p className="mb-5 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
               Para aparecer en las búsquedas e inscribirte en anuncios tendrás que verificar tu identidad con tu
-              DNI o NIE desde tu perfil.
+              DNI o NIE, indicar tu teléfono y tu tarifa por hora, y elegir los hospitales en los que trabajas.
             </p>
             <button
               type="button"
-              onClick={handleConvertirse}
-              disabled={convirtiendo}
+              onClick={() => setConfirmandoConversion(true)}
               className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
             >
-              {convirtiendo ? "Enviando..." : "Convertirme en cuidador"}
+              Convertirme en cuidador
             </button>
+            <ConfirmDialog
+              open={confirmandoConversion}
+              onOpenChange={setConfirmandoConversion}
+              titulo="Convertirte en cuidador"
+              descripcion="Podrás volver a ser solo familiar/paciente mientras tu perfil de cuidador esté incompleto, o si ya lo has completado, mientras no tengas ningún cuidado completado ni un cuidado ya pagado en marcha. Las funciones nuevas del cuidador (Buscar anuncios y Mis inscripciones) quedarán deshabilitadas hasta que completes el 100 % del proceso: verificar tu identidad, indicar tu teléfono, tu tarifa por hora y los hospitales en los que trabajas. Los datos de cobro (Stripe) son recomendables: sin ellos no podrás cobrar tus cuidados."
+              textoConfirmar="Convertirme en cuidador"
+              variante="default"
+              confirmando={convirtiendo}
+              onConfirmar={handleConvertirse}
+            />
           </div>
         )}
 
         {user.rol === "CUIDADOR" && (
-          <div className="rounded-2xl bg-card p-6 shadow-float">
+          <div className="relative rounded-2xl bg-card p-6 shadow-float">
+            <PuntoPendiente
+              pendiente={!user.stripeCobrosHabilitados}
+              nivel={user.cobrosPendientes ? "obligatorio" : "recomendado"}
+              titulo={
+                user.cobrosPendientes
+                  ? "Tienes dinero retenido que no podrás recibir hasta completar tus datos de cobro"
+                  : "Recomendado: sin datos de cobro no podrás cobrar tus cuidados"
+              }
+            />
             <div className="mb-4 flex items-center gap-2 text-foreground">
               <ShieldCheck className="h-5 w-5 text-accent-foreground" />
               <h2 className="text-lg font-semibold">Datos de cobro</h2>
@@ -372,14 +436,11 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
                     <span>Stripe está comprobando tus datos. Puede tardar unos segundos; esta pantalla se actualizará sola.</span>
                   </div>
                 )}
-                <div className="mb-4 flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>
-                    Todavía no has completado tus datos de cobro. Puedes inscribirte y aceptar cuidados sin ellos, pero{" "}
-                    <strong>no recibirás el dinero hasta que los completes</strong>: se queda retenido y se te entrega en
-                    cuanto termines. Los datos los recoge Stripe (identidad y cuenta bancaria).
-                  </span>
-                </div>
+                <AvisoAdvertencia className="mb-4">
+                  Todavía no has completado tus datos de cobro. Puedes inscribirte y aceptar cuidados sin ellos, pero{" "}
+                  <strong>no recibirás el dinero hasta que los completes</strong>: se queda retenido y se te entrega en
+                  cuanto termines. Los datos los recoge Stripe (identidad y cuenta bancaria).
+                </AvisoAdvertencia>
                 <button
                   type="button"
                   onClick={handleVerificarStripe}
@@ -392,6 +453,8 @@ function PerfilContenido({ user, comprobandoCobro }: { user: AuthUser; comproban
             )}
           </div>
         )}
+
+        {user.rol === "CUIDADOR" && <SeccionDejarDeSerCuidador />}
       </div>
     </div>
   );
@@ -411,15 +474,7 @@ function colorCompletitud(porcentaje: number): string {
 }
 
 function SeccionCompletitud({ user }: { user: AuthUser }) {
-  const items = [
-    { label: "Identidad verificada", hecho: user.documentoVerificado },
-    { label: "Teléfono de contacto", hecho: Boolean(user.telefono) },
-    { label: "Tarifa por hora", hecho: user.tarifaHora != null },
-    { label: "Hospitales en los que trabajas", hecho: (user.hospitalesTrabajo?.length ?? 0) > 0 },
-    { label: "Datos de cobro verificados", hecho: Boolean(user.stripeCobrosHabilitados) },
-  ];
-  const completados = items.filter((item) => item.hecho).length;
-  const porcentaje = Math.round((completados / items.length) * 100);
+  const porcentaje = porcentajeCompletitud(user);
 
   return (
     <div>
@@ -458,15 +513,12 @@ function SeccionVerificacionIdentidad({ user, onVerificar }: { user: AuthUser; o
       )}
 
       {estado === "PENDIENTE" && (
-        <div className="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-          <Clock className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>
-            Tu solicitud
-            {user.tipoDocumento && user.numeroDocumento ? ` (${user.tipoDocumento} ${user.numeroDocumento})` : ""} está
-            pendiente de revisión. Hasta que se complete no aparecerás en las búsquedas ni podrás inscribirte en
-            anuncios. Tus datos personales no se pueden modificar durante la revisión.
-          </span>
-        </div>
+        <AvisoAdvertencia icono={Clock}>
+          Tu solicitud
+          {user.tipoDocumento && user.numeroDocumento ? ` (${user.tipoDocumento} ${user.numeroDocumento})` : ""} está
+          pendiente de revisión. Hasta que se complete no aparecerás en las búsquedas ni podrás inscribirte en anuncios.
+          Tus datos personales no se pueden modificar durante la revisión.
+        </AvisoAdvertencia>
       )}
 
       {(estado === "SIN_SOLICITAR" || estado === "RECHAZADA") && (
@@ -480,13 +532,10 @@ function SeccionVerificacionIdentidad({ user, onVerificar }: { user: AuthUser; o
               </span>
             </div>
           )}
-          <div className="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>
-              Para aparecer en las búsquedas e inscribirte en anuncios necesitas verificar tu identidad con tu DNI o
-              NIE.
-            </span>
-          </div>
+          <AvisoAdvertencia>
+            Para aparecer en las búsquedas e inscribirte en anuncios necesitas verificar tu identidad con tu DNI o NIE,
+            además de completar tu teléfono, tu tarifa y tus hospitales.
+          </AvisoAdvertencia>
           <button
             type="button"
             onClick={onVerificar}
@@ -563,6 +612,8 @@ function SeccionHospitales({ hospitalesIniciales }: { hospitalesIniciales: Hospi
   const [provincia, setProvincia] = useState("");
   const [seleccionados, setSeleccionados] = useState<Hospital[]>(hospitalesIniciales);
   const [guardando, setGuardando] = useState(false);
+  // Con hospitales ya guardados no se puede volver a dejar la lista vacía (el servidor también lo impide).
+  const sinHospitalesTrasHaberlos = hospitalesIniciales.length > 0 && seleccionados.length === 0;
 
   function handleToggle(hospital: Hospital) {
     setSeleccionados((actual) =>
@@ -600,7 +651,8 @@ function SeccionHospitales({ hospitalesIniciales }: { hospitalesIniciales: Hospi
         <h2 className="text-lg font-semibold">Hospitales en los que trabajas</h2>
       </div>
       <p className="text-sm text-muted-foreground">
-        Elige la provincia y añade todos los hospitales donde puedas prestar servicio. Puedes seleccionar varios.
+        Elige la provincia y añade todos los hospitales donde puedas prestar servicio. Puedes seleccionar varios, pero
+        siempre tiene que quedar al menos uno.
       </p>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -641,10 +693,14 @@ function SeccionHospitales({ hospitalesIniciales }: { hospitalesIniciales: Hospi
         </ul>
       )}
 
+      {sinHospitalesTrasHaberlos && (
+        <AvisoAdvertencia>Tienes que mantener al menos un hospital en el que trabajes. Añade otro antes de guardar.</AvisoAdvertencia>
+      )}
+
       <button
         type="button"
         onClick={handleGuardar}
-        disabled={guardando}
+        disabled={guardando || sinHospitalesTrasHaberlos}
         className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-primary transition-colors hover:bg-primary/90 disabled:opacity-60"
       >
         {guardando ? "Guardando..." : "Guardar hospitales"}

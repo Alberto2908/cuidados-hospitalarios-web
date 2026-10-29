@@ -11,6 +11,7 @@ import SincronizarTema from "@/components/providers/SincronizarTema";
 import EstadoCuentaBanner from "@/components/auth/EstadoCuentaBanner";
 import VerificarEmailBanner from "@/components/auth/VerificarEmailBanner";
 import VerificarEmailGuard from "@/components/auth/VerificarEmailGuard";
+import SesionRequeridaGuard from "@/components/auth/SesionRequeridaGuard";
 
 const sora = Sora({
   variable: "--font-sora",
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 <EstadoCuentaBanner />
                 <VerificarEmailBanner />
                 <VerificarEmailGuard />
+                <SesionRequeridaGuard />
                 <main className="flex-1">{children}</main>
                 <Footer />
                 <AppToaster />
